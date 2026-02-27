@@ -479,6 +479,8 @@ function switchIgSubtab(targetId) {
 // ═══════════════════════════════════════════════════════════════════════
 let spendChart = null;
 let leadsChart = null;
+let appsChart = null;
+let activeMetaPreset = 'last_7d';
 
 function renderMetaAds() {
   const meta = getState('metaAds');
@@ -508,10 +510,12 @@ function renderMetaCharts(meta) {
   const labels = campaigns.map(c => (c.name || '').slice(0, 20));
   const spendData = campaigns.map(c => c.spend || 0);
   const leadsData = campaigns.map(c => c.leads || 0);
+  const appsData = campaigns.map(c => c.applications || 0);
 
   const chartColors = {
     gold: 'rgba(200, 162, 74, 0.8)',
     green: 'rgba(16, 185, 129, 0.8)',
+    blue: 'rgba(59, 130, 246, 0.8)',
   };
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -547,6 +551,16 @@ function renderMetaCharts(meta) {
       options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Leads by Campaign', color: textColor } } },
     });
   }
+
+  const appsCtx = $('#metaAppsChart');
+  if (appsCtx) {
+    if (appsChart) appsChart.destroy();
+    appsChart = new Chart(appsCtx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Applications', data: appsData, backgroundColor: chartColors.blue, borderRadius: 4 }] },
+      options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Applications by Campaign', color: textColor } } },
+    });
+  }
 }
 
 function renderMetaSummary(summary) {
@@ -554,14 +568,18 @@ function renderMetaSummary(summary) {
 
   const spend = summary.spend || 0;
   const leads = summary.leads || 0;
-  const cpl = leads > 0 ? spend / leads : summary.cpl || 0;
+  const apps = summary.applications || 0;
+  const cpl = leads > 0 ? spend / leads : 0;
+  const cpa = apps > 0 ? spend / apps : 0;
   const roas = summary.roas || (summary.revenue && spend ? (summary.revenue / spend) : 0);
   const impressions = summary.impressions || 0;
   const revenue = summary.revenue || 0;
 
   setTextContent('#metaSpend', '$' + formatNumber(spend));
   setTextContent('#metaLeads', formatNumber(leads));
-  setTextContent('#metaCPL', leads > 0 ? '$' + formatNumber(Math.round(cpl)) : '--');
+  setTextContent('#metaCPL', leads > 0 ? '$' + cpl.toFixed(2) : '--');
+  setTextContent('#metaApps', formatNumber(apps));
+  setTextContent('#metaCPA', apps > 0 ? '$' + cpa.toFixed(2) : '--');
   setTextContent('#metaROAS', roas > 0 ? roas.toFixed(1) + 'x' : '--');
   setTextContent('#metaImpressions', formatCompact(impressions));
   setTextContent('#metaRevenue', revenue > 0 ? '$' + formatNumber(revenue) : '--');
@@ -581,14 +599,16 @@ function renderMetaNarrative(summary) {
   const leads = summary.leads || 0;
   const apps = summary.applications || 0;
   const cpl = leads > 0 ? '$' + (summary.spend / leads).toFixed(2) : 'N/A';
-  const period = summary.period === 'last_30d' ? 'the last 30 days' : 'the last 7 days';
+  const cpa = apps > 0 ? '$' + (summary.spend / apps).toFixed(2) : 'N/A';
+  const periodMap = { today: 'today', yesterday: 'yesterday', last_7d: 'the last 7 days', last_30d: 'the last 30 days' };
+  const period = periodMap[summary.period] || periodMap[activeMetaPreset] || 'the last 7 days';
 
   let text = `Over ${period}: $${spend} spent across ${impressions} impressions.`;
   if (leads > 0) {
     text += ` ${formatNumber(leads)} leads at ${cpl} CPL.`;
   }
   if (apps > 0) {
-    text += ` ${formatNumber(apps)} applications.`;
+    text += ` ${formatNumber(apps)} applications at ${cpa} CPA.`;
   }
   if (summary.registrations > 0) {
     text += ` ${formatNumber(summary.registrations)} registrations.`;
@@ -974,108 +994,34 @@ function saveManualMetaData() {
   showToast('Meta Ads data saved');
 }
 
-async function refreshMetaAds() {
-  const token = localStorage.getItem('forge-meta-token') || '';
-  const account = localStorage.getItem('forge-meta-account') || '';
-
-  if (!token || !account) {
-    showToast('Configure Meta Ads credentials first', 'warning');
-    openMetaSettings();
-    return;
-  }
-
+async function refreshMetaAds(preset) {
+  if (preset) activeMetaPreset = preset;
   try {
     showToast('Fetching Meta Ads data...');
 
-    const getAction = (actions, type) => Number((actions || []).find(a => a.action_type === type)?.value || 0);
+    const res = await fetch(`/api/meta-refresh?preset=${activeMetaPreset}`);
+    const data = await res.json();
 
-    // Helper to build properly encoded URL
-    const buildUrl = (params) => {
-      const qs = new URLSearchParams({ ...params, access_token: token }).toString();
-      return `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?${qs}`;
-    };
-
-    // Try campaign-level first
-    let campaigns = [];
-    let usedCampaignLevel = false;
-
-    try {
-      const campaignUrl = buildUrl({ fields: 'campaign_name,spend,impressions,clicks,ctr,cpc,actions', date_preset: 'last_7d', level: 'campaign' });
-      const campaignRes = await fetch(campaignUrl);
-      const campaignData = await campaignRes.json();
-
-      if (campaignData.data && campaignData.data.length > 0) {
-        campaigns = campaignData.data.map(row => ({
-          name: row.campaign_name,
-          status: 'ACTIVE',
-          spend: Number(row.spend || 0),
-          impressions: Number(row.impressions || 0),
-          clicks: Number(row.clicks || 0),
-          ctr: Number(parseFloat(row.ctr || 0).toFixed(2)),
-          cpc: Number(parseFloat(row.cpc || 0).toFixed(2)),
-          leads: getAction(row.actions, 'lead'),
-          applications: getAction(row.actions, 'offsite_conversion.fb_pixel_custom'),
-        }));
-        usedCampaignLevel = true;
-      }
-    } catch (_) { /* fallback to account level */ }
-
-    // Account-level summary
-    const summaryUrl = buildUrl({ fields: 'spend,impressions,clicks,cpc,cpm,ctr,actions,action_values', date_preset: 'last_7d' });
-    const summaryRes = await fetch(summaryUrl);
-    const summaryData = await summaryRes.json();
-
-    if (summaryData.error) {
-      throw new Error(summaryData.error.message || 'API error');
+    if (!res.ok || data.error) {
+      throw new Error(data.error || `API returned ${res.status}`);
     }
 
-    const row = (summaryData.data || [])[0] || {};
-    const spend = Number(row.spend || 0);
-    const leads = getAction(row.actions, 'lead');
-    const apps = getAction(row.actions, 'offsite_conversion.fb_pixel_custom');
-    const revenue = Number((row.action_values || []).find(a => a.action_type === 'purchase')?.value || 0);
-
-    // Try to get campaign statuses
-    try {
-      const statusUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/campaigns?${new URLSearchParams({ fields: 'name,status', limit: '50', access_token: token })}`;
-      const statusRes = await fetch(statusUrl);
-      const statusData = await statusRes.json();
-      if (statusData.data) {
-        const statusMap = Object.fromEntries(statusData.data.map(c => [c.name, c.status]));
-        campaigns.forEach(c => { if (statusMap[c.name]) c.status = statusMap[c.name]; });
-      }
-    } catch (_) { /* statuses are nice-to-have */ }
-
-    const meta = {
-      lastUpdated: new Date().toISOString(),
-      summary: {
-        spend,
-        leads,
-        applications: apps,
-        cpl: leads > 0 ? Number((spend / leads).toFixed(2)) : 0,
-        roas: spend > 0 && revenue > 0 ? Number((revenue / spend).toFixed(2)) : 0,
-        impressions: Number(row.impressions || 0),
-        revenue,
-        clicks: Number(row.clicks || 0),
-        cpc: Number(parseFloat(row.cpc || 0).toFixed(2)),
-        cpm: Number(parseFloat(row.cpm || 0).toFixed(2)),
-        ctr: Number(parseFloat(row.ctr || 0).toFixed(2)),
-        period: 'last_7d',
-        registrations: getAction(row.actions, 'complete_registration'),
-        landingPageViews: getAction(row.actions, 'landing_page_view'),
-        videoViews: getAction(row.actions, 'video_view'),
-        conversations: getAction(row.actions, 'onsite_conversion.messaging_conversation_started_7d'),
-      },
-      campaigns: usedCampaignLevel ? campaigns : [],
-    };
-
-    setState('metaAds', meta);
-    saveLocal('metaAds', meta);
-    showToast(usedCampaignLevel ? 'Meta Ads refreshed (with campaigns)' : 'Meta Ads refreshed (account-level)');
+    setState('metaAds', data);
+    saveLocal('metaAds', data);
+    showToast(data.campaigns?.length ? 'Meta Ads refreshed (with campaigns)' : 'Meta Ads refreshed (account-level)');
   } catch (err) {
     console.error('[content] Meta refresh failed:', err);
     showToast('Meta refresh failed: ' + err.message, 'error');
   }
+}
+
+function switchMetaPreset(preset) {
+  activeMetaPreset = preset;
+  // Update active button
+  $$('.meta-date-btn').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.preset === preset);
+  });
+  refreshMetaAds(preset);
 }
 
 // ── Compact number helper ───────────────────────────────────────────
@@ -1147,8 +1093,19 @@ function bindContentEvents() {
     if (ig) renderIgTopPosts(ig);
   });
 
+  // Meta date range switcher
+  const dateSwitcher = $('#metaDateSwitcher');
+  if (dateSwitcher) {
+    dateSwitcher.addEventListener('click', (e) => {
+      const btn = e.target.closest('.meta-date-btn');
+      if (!btn) return;
+      const preset = btn.dataset.preset;
+      if (preset) switchMetaPreset(preset);
+    });
+  }
+
   // Meta Ads buttons
-  $('#metaRefreshBtn')?.addEventListener('click', refreshMetaAds);
+  $('#metaRefreshBtn')?.addEventListener('click', () => refreshMetaAds());
   $('#metaSettingsBtn')?.addEventListener('click', openMetaSettings);
   $('#quickAddBtn')?.addEventListener('click', quickAddMetaData);
 

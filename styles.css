@@ -1763,9 +1763,39 @@ textarea.form-input {
   margin-bottom: var(--space-6);
 }
 
+/* Date range switcher */
+.meta-date-switcher {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.meta-date-btn {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.meta-date-btn:hover {
+  border-color: var(--color-gold);
+  color: var(--text-primary);
+}
+
+.meta-date-btn.is-active {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: #fff;
+}
+
 .meta-stats-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
 }
 
@@ -3446,7 +3476,11 @@ textarea.form-input {
   }
 
   .meta-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .meta-chart-row {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -4888,7 +4922,7 @@ a:focus:not(:focus-visible) {
 /* ---- Meta Ads Charts --------------------------------------- */
 .meta-chart-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
   margin: var(--space-4) 0;
 }
@@ -4937,6 +4971,15 @@ a:focus:not(:focus-visible) {
 
   .iframe-container {
     height: calc(100vh - 120px);
+  }
+
+  .meta-date-switcher {
+    flex-wrap: wrap;
+  }
+
+  .meta-date-btn {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-3);
   }
 
   .meta-chart-row {

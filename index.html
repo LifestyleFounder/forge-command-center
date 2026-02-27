@@ -256,12 +256,20 @@
           <!-- Meta Ads -->
           <div class="subtab-panel" id="content-meta" role="tabpanel" hidden>
 
+            <!-- Date Range Switcher -->
+            <div class="meta-date-switcher" id="metaDateSwitcher">
+              <button class="meta-date-btn" data-preset="today">Today</button>
+              <button class="meta-date-btn" data-preset="yesterday">Yesterday</button>
+              <button class="meta-date-btn is-active" data-preset="last_7d">7 Days</button>
+              <button class="meta-date-btn" data-preset="last_30d">30 Days</button>
+            </div>
+
             <!-- KPI Summary -->
             <div class="meta-summary" id="metaSummary">
               <div class="meta-stats-grid">
                 <div class="meta-stat-card">
                   <span class="meta-stat-icon">💰</span>
-                  <span class="meta-stat-label">Ad Spend (7d)</span>
+                  <span class="meta-stat-label">Ad Spend</span>
                   <span class="meta-stat-value" id="metaSpend">$0</span>
                 </div>
                 <div class="meta-stat-card">
@@ -272,12 +280,17 @@
                 <div class="meta-stat-card">
                   <span class="meta-stat-icon">📊</span>
                   <span class="meta-stat-label">Cost Per Lead</span>
-                  <span class="meta-stat-value" id="metaCPL">$0</span>
+                  <span class="meta-stat-value" id="metaCPL">--</span>
                 </div>
                 <div class="meta-stat-card">
-                  <span class="meta-stat-icon">📈</span>
-                  <span class="meta-stat-label">ROAS</span>
-                  <span class="meta-stat-value" id="metaROAS">0x</span>
+                  <span class="meta-stat-icon">📋</span>
+                  <span class="meta-stat-label">Applications</span>
+                  <span class="meta-stat-value" id="metaApps">0</span>
+                </div>
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">💲</span>
+                  <span class="meta-stat-label">Cost Per App</span>
+                  <span class="meta-stat-value" id="metaCPA">--</span>
                 </div>
                 <div class="meta-stat-card">
                   <span class="meta-stat-icon">👁</span>
@@ -285,9 +298,14 @@
                   <span class="meta-stat-value" id="metaImpressions">0</span>
                 </div>
                 <div class="meta-stat-card">
+                  <span class="meta-stat-icon">📈</span>
+                  <span class="meta-stat-label">ROAS</span>
+                  <span class="meta-stat-value" id="metaROAS">--</span>
+                </div>
+                <div class="meta-stat-card">
                   <span class="meta-stat-icon">💵</span>
                   <span class="meta-stat-label">Revenue</span>
-                  <span class="meta-stat-value" id="metaRevenue">$0</span>
+                  <span class="meta-stat-value" id="metaRevenue">--</span>
                 </div>
               </div>
               <p class="meta-narrative" id="metaNarrative"></p>
@@ -297,6 +315,7 @@
             <div class="meta-chart-row" id="metaChartRow">
               <div class="meta-chart-wrap"><canvas id="metaSpendChart"></canvas></div>
               <div class="meta-chart-wrap"><canvas id="metaLeadsChart"></canvas></div>
+              <div class="meta-chart-wrap"><canvas id="metaAppsChart"></canvas></div>
             </div>
 
             <!-- Campaign Performance -->
