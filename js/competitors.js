@@ -132,12 +132,15 @@ function renderFeed() {
 
   return `
     <div class="ig-grid comp-feed-grid">
-      ${recentPosts.map(p => `
+      ${recentPosts.map(p => {
+        const typeIcon = p.type === 'Video' ? '🎬' : p.type === 'Sidecar' ? '📸' : '📷';
+        return `
         <div class="ig-card comp-post-card" data-post-id="${escapeHtml(p.id)}">
-          ${p.imageUrl
-            ? `<img class="ig-card-img" src="${escapeHtml(p.imageUrl)}" alt="" loading="lazy">`
-            : '<div class="ig-card-placeholder"></div>'}
-          <div class="ig-card-overlay">
+          <div class="ig-card-hero">
+            <span class="ig-card-type-icon">${typeIcon}</span>
+            <span class="ig-card-type-label">${escapeHtml(p.type)}</span>
+          </div>
+          <div class="ig-card-stats">
             <span>❤ ${formatNumber(p.likes)}</span>
             <span>💬 ${formatNumber(p.comments)}</span>
             ${p.views ? `<span>👁 ${formatNumber(p.views)}</span>` : ''}
@@ -146,9 +149,10 @@ function renderFeed() {
             <span class="ig-card-creator">@${escapeHtml(p.creator)}</span>
             <span class="ig-card-date">${p.date ? formatDate(p.date) : ''}</span>
           </div>
-          <div class="ig-card-caption text-xs">${escapeHtml((p.caption || '').slice(0, 120))}${(p.caption || '').length > 120 ? '...' : ''}</div>
+          <div class="ig-card-caption text-xs">${escapeHtml((p.caption || '').slice(0, 140))}${(p.caption || '').length > 140 ? '...' : ''}</div>
+          ${p.permalink ? `<a href="${escapeHtml(p.permalink)}" target="_blank" rel="noopener noreferrer" class="ig-card-link text-xs">View on Instagram</a>` : ''}
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
   `;
 }
@@ -170,12 +174,11 @@ function renderTopPostsTable() {
     <div class="table-wrap">
       <table class="data-table">
         <thead>
-          <tr><th></th><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th></tr>
+          <tr><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th><th></th></tr>
         </thead>
         <tbody>
           ${topPosts.slice(0, 50).map(p => `
             <tr class="comp-post-row" data-post-id="${escapeHtml(p.id)}">
-              <td>${p.imageUrl ? `<img class="table-thumb" src="${escapeHtml(p.imageUrl)}" alt="" loading="lazy">` : ''}</td>
               <td>@${escapeHtml(p.creator)}</td>
               <td class="caption-cell">${escapeHtml((p.caption || '').slice(0, 80))}${(p.caption || '').length > 80 ? '...' : ''}</td>
               <td><span class="badge badge-type">${escapeHtml(p.type)}</span></td>
@@ -183,6 +186,7 @@ function renderTopPostsTable() {
               <td>${formatNumber(p.comments)}</td>
               <td>${formatNumber(p.views)}</td>
               <td>${p.date ? formatDate(p.date) : '--'}</td>
+              <td>${p.permalink ? `<a href="${escapeHtml(p.permalink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-xs">↗</a>` : ''}</td>
             </tr>
           `).join('')}
         </tbody>

@@ -3907,25 +3907,42 @@ a:focus:not(:focus-visible) {
   border-color: var(--color-gold);
 }
 
-.ig-card-img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  display: block;
-}
-
-.ig-card-placeholder {
-  width: 100%;
-  aspect-ratio: 1;
+.ig-card-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
   background: var(--bg-tertiary);
 }
 
-.ig-card-overlay {
+.ig-card-type-icon {
+  font-size: 1.5rem;
+}
+
+.ig-card-type-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ig-card-stats {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
   color: var(--text-secondary);
+}
+
+.ig-card-link {
+  display: block;
+  padding: var(--space-1) var(--space-3) var(--space-3);
+  color: var(--color-gold);
+  text-decoration: none;
+}
+
+.ig-card-link:hover {
+  text-decoration: underline;
 }
 
 .ig-card-meta {
