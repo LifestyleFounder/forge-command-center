@@ -571,28 +571,30 @@ function renderMetaSummary(summary) {
   if (!summary) return;
 
   setTextContent('#metaSpend', '$' + formatNumber(summary.spend || 0));
-  setTextContent('#metaLeads', formatNumber(summary.leads || 0));
-  setTextContent('#metaCPL', '$' + formatNumber(summary.cpl || 0));
-  setTextContent('#metaROAS', (summary.roas || 0).toFixed(1) + 'x');
   setTextContent('#metaImpressions', formatNumber(summary.impressions || 0));
-  setTextContent('#metaRevenue', '$' + formatNumber(summary.revenue || 0));
+  setTextContent('#metaClicks', formatNumber(summary.clicks || 0));
+  setTextContent('#metaCTR', (summary.ctr || 0).toFixed(2) + '%');
+  setTextContent('#metaCPC', '$' + (summary.cpc || 0).toFixed(2));
+  setTextContent('#metaCPM', '$' + (summary.cpm || 0).toFixed(2));
 }
 
 function renderMetaNarrative(summary) {
   const el = $('#metaNarrative');
   if (!el || !summary) return;
 
-  if (!summary.spend && !summary.leads) {
+  if (!summary.spend && !summary.impressions) {
     el.textContent = 'Connect your Meta Ads account to see performance data.';
     return;
   }
 
   const spend = formatNumber(summary.spend || 0);
-  const leads = summary.leads || 0;
-  const cpl = formatNumber(summary.cpl || 0);
-  const roas = (summary.roas || 0).toFixed(1);
+  const impressions = formatNumber(summary.impressions || 0);
+  const clicks = formatNumber(summary.clicks || 0);
+  const ctr = (summary.ctr || 0).toFixed(2);
+  const cpc = (summary.cpc || 0).toFixed(2);
+  const period = summary.period === 'last_7d' ? 'this week' : 'last 30 days';
 
-  el.textContent = `You spent $${spend} this week and generated ${leads} lead${leads !== 1 ? 's' : ''} at $${cpl} each. Current ROAS is ${roas}x.`;
+  el.textContent = `Over the ${period}: $${spend} spent across ${impressions} impressions. ${clicks} clicks at $${cpc} CPC (${ctr}% CTR).`;
 }
 
 function renderCampaignsTable(campaigns) {

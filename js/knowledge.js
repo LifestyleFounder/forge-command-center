@@ -58,6 +58,9 @@ async function loadKnowledgeData() {
 
     renderLibrary();
     renderNotes();
+
+    // Auto-sync Notion notes in background (silent — no toast unless error)
+    syncFromNotion(true);
   } catch (err) {
     console.error('[knowledge] Failed to load data:', err);
     showToast('Failed to load knowledge data', 'error');
@@ -413,15 +416,18 @@ function persistNotes(notes) {
 }
 
 // ── Notion Sync ─────────────────────────────────────────────────────
-async function syncFromNotion() {
-  showToast('Syncing from Notion...');
+async function syncFromNotion(silent = false) {
+  if (!silent) showToast('Syncing from Notion...');
   try {
+    // notionGetNotes() returns already-normalized notes via notion-notes.js
     const notionNotes = await notionGetNotes();
     if (!notionNotes || notionNotes.length === 0) {
-      showToast('No notes found in Notion', 'warning');
+      if (!silent) showToast('No notes found in Notion', 'warning');
       return;
     }
 
+    // Map normalized notes into local format — note: normalizeNote in the
+    // service already sets createdAt/updatedAt/source/notionUrl correctly
     const mapped = notionNotes.map(n => ({
       id: n.id || generateId('notion'),
       title: n.title || 'Untitled',
@@ -429,18 +435,19 @@ async function syncFromNotion() {
       folder: 'notion',
       source: 'notion',
       notionId: n.id,
-      createdAt: n.created_time || new Date().toISOString(),
-      updatedAt: n.last_edited_time || new Date().toISOString(),
+      notionUrl: n.notionUrl || null,
+      createdAt: n.createdAt || new Date().toISOString(),
+      updatedAt: n.updatedAt || new Date().toISOString(),
     }));
 
     const existing = getState('notes') || [];
     const merged = mergeNotes(existing, mapped);
     setState('notes', merged);
     persistNotes(merged);
-    showToast(`Synced ${mapped.length} notes from Notion`, 'success');
+    if (!silent) showToast(`Synced ${mapped.length} notes from Notion`, 'success');
   } catch (err) {
     console.error('[knowledge] Notion sync failed:', err);
-    showToast('Notion sync failed', 'error');
+    if (!silent) showToast('Notion sync failed', 'error');
   }
 }
 

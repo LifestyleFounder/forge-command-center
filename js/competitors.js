@@ -237,7 +237,7 @@ function renderScrapeHistory() {
         ${scrapeRuns.slice(0, 5).map(r => `
           <div class="scrape-run">
             <span class="badge badge-${r.status === 'completed' ? 'success' : r.status === 'running' ? 'info' : 'neutral'}">${escapeHtml(r.status || 'unknown')}</span>
-            <span class="text-sm">${r.creators_processed || 0} creators</span>
+            <span class="text-sm">${r.creators_scraped || 0} creators</span>
             <span class="text-xs text-tertiary">${r.started_at ? formatRelativeTime(r.started_at) : '--'}</span>
           </div>
         `).join('')}
