@@ -2,17 +2,17 @@
   "lastUpdated": "2026-02-27T04:00:00.000Z",
   "summary": {
     "spend": 5907.55,
+    "leads": 0,
+    "cpl": 0,
+    "roas": 0,
     "impressions": 262977,
+    "revenue": 0,
     "clicks": 9213,
     "cpc": 0.64,
     "cpm": 22.46,
     "ctr": 3.50,
-    "leads": 0,
-    "applications": 0,
-    "dateStart": "2026-01-28",
-    "dateStop": "2026-02-26",
     "period": "last_30d"
   },
   "campaigns": [],
-  "note": "Campaign-level breakdown unavailable — Meta API requires app proof for level=campaign queries. Account-level aggregate from insights endpoint."
+  "note": "Campaign-level breakdown unavailable — Meta API token expired. Use Settings > API Connection to enter a fresh token, or use Manual Entry / Quick Add. Account-level data from last successful fetch."
 }

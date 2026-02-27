@@ -255,19 +255,142 @@
           </div>
           <!-- Meta Ads -->
           <div class="subtab-panel" id="content-meta" role="tabpanel" hidden>
+
+            <!-- KPI Summary -->
             <div class="meta-summary" id="metaSummary">
-              <div class="stats-row">
-                <div class="stat-card"><span class="stat-label">Spend (30d)</span><span class="stat-value" id="metaSpend">$0</span></div>
-                <div class="stat-card"><span class="stat-label">Impressions</span><span class="stat-value" id="metaImpressions">0</span></div>
-                <div class="stat-card"><span class="stat-label">Clicks</span><span class="stat-value" id="metaClicks">0</span></div>
-                <div class="stat-card"><span class="stat-label">CTR</span><span class="stat-value" id="metaCTR">0%</span></div>
-                <div class="stat-card"><span class="stat-label">CPC</span><span class="stat-value" id="metaCPC">$0</span></div>
-                <div class="stat-card"><span class="stat-label">CPM</span><span class="stat-value" id="metaCPM">$0</span></div>
+              <div class="meta-stats-grid">
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">💰</span>
+                  <span class="meta-stat-label">Ad Spend (7d)</span>
+                  <span class="meta-stat-value" id="metaSpend">$0</span>
+                </div>
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">🎯</span>
+                  <span class="meta-stat-label">Leads</span>
+                  <span class="meta-stat-value" id="metaLeads">0</span>
+                </div>
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">📊</span>
+                  <span class="meta-stat-label">Cost Per Lead</span>
+                  <span class="meta-stat-value" id="metaCPL">$0</span>
+                </div>
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">📈</span>
+                  <span class="meta-stat-label">ROAS</span>
+                  <span class="meta-stat-value" id="metaROAS">0x</span>
+                </div>
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">👁</span>
+                  <span class="meta-stat-label">Impressions</span>
+                  <span class="meta-stat-value" id="metaImpressions">0</span>
+                </div>
+                <div class="meta-stat-card">
+                  <span class="meta-stat-icon">💵</span>
+                  <span class="meta-stat-label">Revenue</span>
+                  <span class="meta-stat-value" id="metaRevenue">$0</span>
+                </div>
               </div>
               <p class="meta-narrative" id="metaNarrative"></p>
             </div>
-            <div class="card"><div class="card-header"><h2>Campaigns</h2><div class="card-actions"><button class="btn btn-primary btn-sm" id="metaRefreshBtn">Refresh</button><button class="btn btn-ghost btn-sm" id="metaSettingsBtn">Settings</button></div></div><div class="card-body"><div class="table-wrap"><table class="data-table"><thead><tr><th>Campaign</th><th>Status</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Leads</th><th>CPL</th></tr></thead><tbody id="metaCampaignsBody"><tr><td colspan="8" class="empty-cell">Connect Meta Ads to see campaigns.</td></tr></tbody></table></div></div></div>
-            <div class="card"><div class="card-header"><h2>Ad Swipe File</h2><span class="text-sm text-secondary" id="swipeCount">0 ads</span></div><div class="card-body"><div class="filter-row"><select class="form-select" id="swipeFilterCompetitor" aria-label="Competitor"><option value="all">All Competitors</option></select><select class="form-select" id="swipeFilterType" aria-label="Type"><option value="all">All Types</option><option value="image">Image</option><option value="video">Video</option><option value="carousel">Carousel</option></select></div><div class="swipes-grid" id="swipesGrid"><div class="empty-state"><p>No ad swipes yet.</p></div></div></div></div>
+
+            <!-- Charts -->
+            <div class="meta-chart-row" id="metaChartRow">
+              <div class="meta-chart-wrap"><canvas id="metaSpendChart"></canvas></div>
+              <div class="meta-chart-wrap"><canvas id="metaLeadsChart"></canvas></div>
+            </div>
+
+            <!-- Campaign Performance -->
+            <div class="meta-section meta-toggle-section" id="metaCampaignSection">
+              <div class="meta-section-header" data-toggle="metaCampaignContent">
+                <h2>Campaign Performance</h2>
+                <div class="meta-section-actions">
+                  <button class="btn btn-primary btn-sm" id="metaRefreshBtn">Refresh</button>
+                  <button class="btn btn-ghost btn-sm" id="metaSettingsBtn">Settings</button>
+                  <span class="meta-toggle-icon">▾</span>
+                </div>
+              </div>
+              <div class="meta-section-content" id="metaCampaignContent">
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Campaign</th>
+                        <th>Status</th>
+                        <th>Spend</th>
+                        <th>Impressions</th>
+                        <th>Clicks</th>
+                        <th>CTR</th>
+                        <th>Leads</th>
+                        <th>CPL</th>
+                      </tr>
+                    </thead>
+                    <tbody id="metaCampaignsBody">
+                      <tr><td colspan="8" class="empty-cell">Connect Meta Ads to see campaigns.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Quick Add -->
+                <div class="meta-quick-add" id="metaQuickAdd">
+                  <h3>Quick Add Data</h3>
+                  <div class="meta-quick-add-row">
+                    <div class="form-group">
+                      <label class="form-label" for="quickSpend">Spend</label>
+                      <input type="number" class="form-input" id="quickSpend" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="quickLeads">Leads</label>
+                      <input type="number" class="form-input" id="quickLeads" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="quickRevenue">Revenue</label>
+                      <input type="number" class="form-input" id="quickRevenue" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group form-group-btn">
+                      <button class="btn btn-primary btn-sm" id="quickAddBtn">Add</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ad Swipe File -->
+            <div class="meta-section meta-toggle-section" id="metaSwipeSection">
+              <div class="meta-section-header" data-toggle="metaSwipeContent">
+                <h2>Ad Swipe File</h2>
+                <div class="meta-section-actions">
+                  <span class="text-sm text-secondary" id="swipeCount">0 ads</span>
+                  <span class="meta-toggle-icon">▾</span>
+                </div>
+              </div>
+              <div class="meta-section-content" id="metaSwipeContent">
+                <div class="swipe-filter-bar">
+                  <select class="form-select" id="swipeFilterCompetitor" aria-label="Filter by competitor">
+                    <option value="all">All Competitors</option>
+                  </select>
+                  <select class="form-select" id="swipeFilterType" aria-label="Filter by type">
+                    <option value="all">All Types</option>
+                    <option value="image">Image</option>
+                    <option value="video">Video</option>
+                    <option value="carousel">Carousel</option>
+                  </select>
+                  <select class="form-select" id="swipeFilterCategory" aria-label="Filter by category">
+                    <option value="all">All Categories</option>
+                    <option value="hook">Hook</option>
+                    <option value="offer">Strong Offer</option>
+                    <option value="creative">Creative Format</option>
+                    <option value="copy">Copy Inspiration</option>
+                    <option value="social-proof">Social Proof</option>
+                    <option value="retargeting">Retargeting</option>
+                    <option value="coaching">Coaching</option>
+                  </select>
+                </div>
+                <div class="swipes-grid" id="swipesGrid">
+                  <div class="empty-state"><p>No ad swipes yet.</p></div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -420,6 +543,21 @@
       <div class="modal-header"><h2 id="settingsTitle">Settings</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
       <div class="modal-body" id="settingsBody"></div>
       <div class="modal-footer"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveSettingsBtn">Save</button></div>
+    </div>
+
+    <!-- Swipe Detail Modal -->
+    <div class="modal modal-lg" id="swipeDetailModal" role="dialog" aria-modal="true" aria-labelledby="swipeDetailTitle" hidden>
+      <div class="modal-header">
+        <h2 id="swipeDetailTitle">Ad Detail</h2>
+        <button class="btn-icon modal-close" data-close-modal aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="swipeDetailBody"></div>
+      <div class="modal-footer">
+        <a class="btn btn-ghost btn-sm" id="swipeDetailLibraryLink" href="#" target="_blank" rel="noopener noreferrer">View in Ads Library</a>
+        <button class="btn btn-ghost" data-close-modal>Close</button>
+      </div>
     </div>
 
     <!-- Toast -->

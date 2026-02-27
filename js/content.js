@@ -494,24 +494,16 @@ function renderMetaAds() {
 function renderMetaCharts(meta) {
   if (typeof Chart === 'undefined') return;
   const campaigns = meta.campaigns || [];
-  if (campaigns.length === 0) return;
 
-  // Ensure chart containers exist
-  let chartRow = $('#metaChartRow');
-  if (!chartRow) {
-    const metaPanel = $('#content-meta');
-    if (!metaPanel) return;
-    const narrative = metaPanel.querySelector('.meta-narrative') || metaPanel.querySelector('#metaNarrative');
-    if (!narrative) return;
-    chartRow = document.createElement('div');
-    chartRow.id = 'metaChartRow';
-    chartRow.className = 'meta-chart-row';
-    chartRow.innerHTML = `
-      <div class="meta-chart-wrap"><canvas id="metaSpendChart"></canvas></div>
-      <div class="meta-chart-wrap"><canvas id="metaLeadsChart"></canvas></div>
-    `;
-    narrative.parentNode.insertBefore(chartRow, narrative.nextSibling);
+  const chartRow = $('#metaChartRow');
+  if (!chartRow) return;
+
+  // Hide charts if no campaign data
+  if (campaigns.length === 0) {
+    chartRow.style.display = 'none';
+    return;
   }
+  chartRow.style.display = '';
 
   const labels = campaigns.map(c => (c.name || '').slice(0, 20));
   const spendData = campaigns.map(c => c.spend || 0);
@@ -519,9 +511,7 @@ function renderMetaCharts(meta) {
 
   const chartColors = {
     gold: 'rgba(200, 162, 74, 0.8)',
-    goldLight: 'rgba(200, 162, 74, 0.2)',
     green: 'rgba(16, 185, 129, 0.8)',
-    greenLight: 'rgba(16, 185, 129, 0.2)',
   };
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -538,30 +528,22 @@ function renderMetaCharts(meta) {
     },
   };
 
-  // Spend chart
   const spendCtx = $('#metaSpendChart');
   if (spendCtx) {
     if (spendChart) spendChart.destroy();
     spendChart = new Chart(spendCtx, {
       type: 'bar',
-      data: {
-        labels,
-        datasets: [{ label: 'Spend ($)', data: spendData, backgroundColor: chartColors.gold, borderRadius: 4 }],
-      },
+      data: { labels, datasets: [{ label: 'Spend ($)', data: spendData, backgroundColor: chartColors.gold, borderRadius: 4 }] },
       options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Spend by Campaign', color: textColor } } },
     });
   }
 
-  // Leads chart
   const leadsCtx = $('#metaLeadsChart');
   if (leadsCtx) {
     if (leadsChart) leadsChart.destroy();
     leadsChart = new Chart(leadsCtx, {
       type: 'bar',
-      data: {
-        labels,
-        datasets: [{ label: 'Leads', data: leadsData, backgroundColor: chartColors.green, borderRadius: 4 }],
-      },
+      data: { labels, datasets: [{ label: 'Leads', data: leadsData, backgroundColor: chartColors.green, borderRadius: 4 }] },
       options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Leads by Campaign', color: textColor } } },
     });
   }
@@ -570,12 +552,19 @@ function renderMetaCharts(meta) {
 function renderMetaSummary(summary) {
   if (!summary) return;
 
-  setTextContent('#metaSpend', '$' + formatNumber(summary.spend || 0));
-  setTextContent('#metaImpressions', formatNumber(summary.impressions || 0));
-  setTextContent('#metaClicks', formatNumber(summary.clicks || 0));
-  setTextContent('#metaCTR', (summary.ctr || 0).toFixed(2) + '%');
-  setTextContent('#metaCPC', '$' + (summary.cpc || 0).toFixed(2));
-  setTextContent('#metaCPM', '$' + (summary.cpm || 0).toFixed(2));
+  const spend = summary.spend || 0;
+  const leads = summary.leads || 0;
+  const cpl = leads > 0 ? spend / leads : summary.cpl || 0;
+  const roas = summary.roas || (summary.revenue && spend ? (summary.revenue / spend) : 0);
+  const impressions = summary.impressions || 0;
+  const revenue = summary.revenue || 0;
+
+  setTextContent('#metaSpend', '$' + formatNumber(spend));
+  setTextContent('#metaLeads', formatNumber(leads));
+  setTextContent('#metaCPL', leads > 0 ? '$' + formatNumber(Math.round(cpl)) : '--');
+  setTextContent('#metaROAS', roas > 0 ? roas.toFixed(1) + 'x' : '--');
+  setTextContent('#metaImpressions', formatCompact(impressions));
+  setTextContent('#metaRevenue', revenue > 0 ? '$' + formatNumber(revenue) : '--');
 }
 
 function renderMetaNarrative(summary) {
@@ -583,18 +572,26 @@ function renderMetaNarrative(summary) {
   if (!el || !summary) return;
 
   if (!summary.spend && !summary.impressions) {
-    el.textContent = 'Connect your Meta Ads account to see performance data.';
+    el.textContent = 'Connect your Meta Ads account or use Quick Add to enter performance data.';
     return;
   }
 
   const spend = formatNumber(summary.spend || 0);
-  const impressions = formatNumber(summary.impressions || 0);
-  const clicks = formatNumber(summary.clicks || 0);
-  const ctr = (summary.ctr || 0).toFixed(2);
-  const cpc = (summary.cpc || 0).toFixed(2);
-  const period = summary.period === 'last_7d' ? 'this week' : 'last 30 days';
+  const impressions = formatCompact(summary.impressions || 0);
+  const leads = summary.leads || 0;
+  const cpl = leads > 0 ? '$' + formatNumber(Math.round(summary.spend / leads)) : 'N/A';
+  const period = summary.period === 'last_30d' ? 'the last 30 days' : 'the last 7 days';
 
-  el.textContent = `Over the ${period}: $${spend} spent across ${impressions} impressions. ${clicks} clicks at $${cpc} CPC (${ctr}% CTR).`;
+  let text = `Over ${period}: $${spend} spent across ${impressions} impressions.`;
+  if (leads > 0) {
+    text += ` ${formatNumber(leads)} leads at ${cpl} CPL.`;
+  }
+  if (summary.revenue > 0) {
+    const roas = (summary.revenue / summary.spend).toFixed(1);
+    text += ` $${formatNumber(summary.revenue)} revenue (${roas}x ROAS).`;
+  }
+
+  el.textContent = text;
 }
 
 function renderCampaignsTable(campaigns) {
@@ -602,7 +599,7 @@ function renderCampaignsTable(campaigns) {
   if (!el) return;
 
   if (!campaigns || campaigns.length === 0) {
-    el.innerHTML = `<tr><td colspan="8" class="empty-cell">Connect Meta Ads to see campaigns.</td></tr>`;
+    el.innerHTML = `<tr><td colspan="8" class="empty-cell">Connect Meta Ads to see campaigns, or use Quick Add below.</td></tr>`;
     return;
   }
 
@@ -622,6 +619,38 @@ function renderCampaignsTable(campaigns) {
       </tr>
     `;
   }).join('');
+}
+
+function quickAddMetaData() {
+  const spend = parseFloat($('#quickSpend')?.value) || 0;
+  const leads = parseInt($('#quickLeads')?.value) || 0;
+  const revenue = parseFloat($('#quickRevenue')?.value) || 0;
+
+  if (!spend && !leads && !revenue) {
+    showToast('Enter at least one value', 'warning');
+    return;
+  }
+
+  const meta = getState('metaAds') || { summary: {}, campaigns: [] };
+  const s = meta.summary || {};
+
+  s.spend = (s.spend || 0) + spend;
+  s.leads = (s.leads || 0) + leads;
+  s.revenue = (s.revenue || 0) + revenue;
+  s.cpl = s.leads > 0 ? Math.round(s.spend / s.leads) : 0;
+  s.roas = s.spend > 0 ? s.revenue / s.spend : 0;
+  meta.summary = s;
+  meta.lastUpdated = new Date().toISOString();
+
+  setState('metaAds', { ...meta });
+  saveLocal('metaAds', meta);
+
+  // Clear inputs
+  const qi = $('#quickSpend'); if (qi) qi.value = '';
+  const ql = $('#quickLeads'); if (ql) ql.value = '';
+  const qr = $('#quickRevenue'); if (qr) qr.value = '';
+
+  showToast('Data added to summary');
 }
 
 // ── Ad Swipe File ────────────────────────────────────────────────────
@@ -655,6 +684,7 @@ function filterAndRenderSwipes(data) {
   const swipes = data.swipes || [];
   const compFilter = ($('#swipeFilterCompetitor'))?.value || 'all';
   const typeFilter = ($('#swipeFilterType'))?.value || 'all';
+  const catFilter = ($('#swipeFilterCategory'))?.value || 'all';
 
   let filtered = swipes;
   if (compFilter !== 'all') {
@@ -662,6 +692,9 @@ function filterAndRenderSwipes(data) {
   }
   if (typeFilter !== 'all') {
     filtered = filtered.filter(s => s.mediaType === typeFilter);
+  }
+  if (catFilter !== 'all') {
+    filtered = filtered.filter(s => s.category === catFilter);
   }
 
   if (countEl) countEl.textContent = `${filtered.length} ad${filtered.length !== 1 ? 's' : ''}`;
@@ -671,28 +704,130 @@ function filterAndRenderSwipes(data) {
     return;
   }
 
-  grid.innerHTML = filtered.map(s => `
-    <div class="swipe-card" data-swipe-id="${escapeHtml(s.id)}">
-      <div class="swipe-header">
-        <span class="swipe-advertiser">${escapeHtml(s.advertiser)}</span>
-        <span class="badge badge-type">${escapeHtml(s.mediaType || '')}</span>
+  grid.innerHTML = filtered.map(s => {
+    const typeIcon = s.mediaType === 'video' ? '🎬' : s.mediaType === 'carousel' ? '📸' : '🖼';
+    const categoryLabel = (s.category || '').replace(/-/g, ' ');
+    const hasImage = s.imageUrl && s.imageUrl.startsWith('http');
+
+    return `
+      <div class="swipe-card" data-swipe-id="${escapeHtml(s.id)}">
+        <div class="swipe-media-area">
+          ${hasImage
+            ? `<img class="swipe-media-img" src="${escapeHtml(s.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : ''}
+          <div class="swipe-media-placeholder" ${hasImage ? 'style="display:none"' : ''}>
+            <span class="swipe-media-icon">${typeIcon}</span>
+            <span class="swipe-media-type">${escapeHtml(s.mediaType || 'ad')}</span>
+          </div>
+          <span class="swipe-type-badge">${escapeHtml(s.mediaType || '')}</span>
+        </div>
+        <div class="swipe-card-body">
+          <span class="swipe-advertiser">${escapeHtml(s.advertiser)}</span>
+          <div class="swipe-headline">${escapeHtml(s.headline || (s.primaryText || '').slice(0, 80))}</div>
+          <div class="swipe-meta-row">
+            <span class="badge badge-category">${escapeHtml(categoryLabel)}</span>
+            ${s.foundDate ? `<span class="swipe-date">${formatDate(s.foundDate)}</span>` : ''}
+          </div>
+        </div>
       </div>
-      <div class="swipe-headline">${escapeHtml(s.headline)}</div>
-      <div class="swipe-body">${escapeHtml((s.primaryText || '').slice(0, 150))}${(s.primaryText || '').length > 150 ? '...' : ''}</div>
-      <div class="swipe-cta">${escapeHtml(s.cta || '')}</div>
-      <div class="swipe-footer">
-        <span class="badge badge-category">${escapeHtml(s.category || '')}</span>
-        ${s.foundDate ? `<span class="swipe-date">${formatDate(s.foundDate)}</span>` : ''}
-      </div>
-      <div class="swipe-notes" hidden>
-        <p><strong>Notes:</strong> ${escapeHtml(s.notes || '')}</p>
-        <p><strong>Why it works:</strong> ${escapeHtml(s.whyItWorks || '')}</p>
-        ${s.adsLibraryUrl ? `<a href="${escapeHtml(s.adsLibraryUrl)}" target="_blank" rel="noopener noreferrer">View in Ads Library</a>` : ''}
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
+function openSwipeDetail(swipeId) {
+  const data = getState('adSwipes');
+  if (!data) return;
+
+  const swipe = (data.swipes || []).find(s => s.id === swipeId);
+  if (!swipe) return;
+
+  const title = $('#swipeDetailTitle');
+  const body = $('#swipeDetailBody');
+  const libraryLink = $('#swipeDetailLibraryLink');
+  if (!body) return;
+
+  if (title) title.textContent = `${swipe.advertiser} — ${swipe.mediaType || 'Ad'}`;
+
+  if (libraryLink) {
+    if (swipe.adsLibraryUrl) {
+      libraryLink.href = swipe.adsLibraryUrl;
+      libraryLink.style.display = '';
+    } else {
+      libraryLink.style.display = 'none';
+    }
+  }
+
+  body.innerHTML = `
+    <div class="swipe-detail">
+      <div class="swipe-detail-meta">
+        <span class="swipe-advertiser">${escapeHtml(swipe.advertiser)}</span>
+        <span class="badge badge-type">${escapeHtml(swipe.mediaType || '')}</span>
+        <span class="badge badge-category">${escapeHtml((swipe.category || '').replace(/-/g, ' '))}</span>
+        ${swipe.startDate ? `<span class="text-xs text-tertiary">Running since ${escapeHtml(swipe.startDate)}</span>` : ''}
+      </div>
+
+      ${swipe.headline ? `
+        <div class="swipe-detail-section">
+          <h3>Headline</h3>
+          <p>${escapeHtml(swipe.headline)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.primaryText ? `
+        <div class="swipe-detail-section">
+          <h3>Primary Text</h3>
+          <p class="swipe-detail-text">${escapeHtml(swipe.primaryText)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.transcript ? `
+        <div class="swipe-detail-section">
+          <h3>Video Script</h3>
+          <p class="swipe-detail-text">${escapeHtml(swipe.transcript)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.cta ? `
+        <div class="swipe-detail-section">
+          <h3>Call to Action</h3>
+          <p>${escapeHtml(swipe.cta)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.whyItWorks ? `
+        <div class="swipe-detail-section swipe-detail-highlight">
+          <h3>Why It Works</h3>
+          <p>${escapeHtml(swipe.whyItWorks)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.hookFramework ? `
+        <div class="swipe-detail-section">
+          <h3>Hook Framework</h3>
+          <p>${escapeHtml(swipe.hookFramework)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.targetAudience ? `
+        <div class="swipe-detail-section">
+          <h3>Target Audience</h3>
+          <p>${escapeHtml(swipe.targetAudience)}</p>
+        </div>
+      ` : ''}
+
+      ${swipe.notes ? `
+        <div class="swipe-detail-section">
+          <h3>Notes</h3>
+          <p class="text-secondary">${escapeHtml(swipe.notes)}</p>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  openModal('swipeDetailModal');
+}
+
+// ── Meta Settings & Refresh ─────────────────────────────────────────
 function openMetaSettings() {
   const body = $('#settingsBody');
   const title = $('#settingsTitle');
@@ -704,31 +839,131 @@ function openMetaSettings() {
   const savedAccount = localStorage.getItem('forge-meta-account') || '';
 
   body.innerHTML = `
-    <div class="form-group">
-      <label class="form-label" for="metaTokenInput">Access Token</label>
-      <input type="password" class="form-input" id="metaTokenInput" placeholder="EAA..." value="${escapeHtml(savedToken)}">
+    <div class="meta-settings-tabs">
+      <button class="btn btn-sm meta-settings-tab is-active" data-meta-tab="api">API Connection</button>
+      <button class="btn btn-sm meta-settings-tab" data-meta-tab="manual">Manual Entry</button>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="metaAccountInput">Ad Account ID</label>
-      <input type="text" class="form-input" id="metaAccountInput" placeholder="act_..." value="${escapeHtml(savedAccount)}">
+
+    <div class="meta-settings-panel" id="metaSettingsApi">
+      <div class="form-group">
+        <label class="form-label" for="metaTokenInput">Access Token</label>
+        <input type="password" class="form-input" id="metaTokenInput" placeholder="EAA..." value="${escapeHtml(savedToken)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="metaAccountInput">Ad Account ID</label>
+        <input type="text" class="form-input" id="metaAccountInput" placeholder="act_..." value="${escapeHtml(savedAccount)}">
+      </div>
+      <div class="text-xs text-secondary" style="margin-top:var(--space-2)">
+        Get your token from Meta Business Suite &rarr; Settings &rarr; Ad Account.
+      </div>
+    </div>
+
+    <div class="meta-settings-panel" id="metaSettingsManual" hidden>
+      <div class="form-group">
+        <label class="form-label" for="manualDateRange">Date Range</label>
+        <select class="form-select" id="manualDateRange">
+          <option value="last_7d">Last 7 Days</option>
+          <option value="last_30d">Last 30 Days</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="manualSpend">Total Spend ($)</label>
+        <input type="number" class="form-input" id="manualSpend" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="manualLeads">Total Leads</label>
+        <input type="number" class="form-input" id="manualLeads" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="manualRevenue">Revenue ($)</label>
+        <input type="number" class="form-input" id="manualRevenue" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="manualImpressions">Impressions</label>
+        <input type="number" class="form-input" id="manualImpressions" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="manualCampaigns">Campaign Breakdown (CSV: Name, Spend, Leads)</label>
+        <textarea class="form-input" id="manualCampaigns" rows="4" placeholder="Campaign 1, 500, 12&#10;Campaign 2, 300, 8"></textarea>
+      </div>
     </div>
   `;
+
+  // Tab switching within modal
+  body.addEventListener('click', (e) => {
+    const tab = e.target.closest('.meta-settings-tab');
+    if (!tab) return;
+    const target = tab.dataset.metaTab;
+    body.querySelectorAll('.meta-settings-tab').forEach(t => t.classList.toggle('is-active', t === tab));
+    const apiPanel = $('#metaSettingsApi');
+    const manualPanel = $('#metaSettingsManual');
+    if (apiPanel) apiPanel.hidden = target !== 'api';
+    if (manualPanel) manualPanel.hidden = target !== 'manual';
+  });
 
   openModal('settingsModal');
 
   const saveBtn = $('#saveSettingsBtn');
   if (saveBtn) {
     const handler = () => {
-      const token = ($('#metaTokenInput'))?.value?.trim() || '';
-      const account = ($('#metaAccountInput'))?.value?.trim() || '';
-      localStorage.setItem('forge-meta-token', token);
-      localStorage.setItem('forge-meta-account', account);
-      closeModal('settingsModal');
-      showToast('Meta Ads settings saved');
+      const activeTab = body.querySelector('.meta-settings-tab.is-active');
+      const isApi = activeTab?.dataset.metaTab === 'api';
+
+      if (isApi) {
+        const token = ($('#metaTokenInput'))?.value?.trim() || '';
+        const account = ($('#metaAccountInput'))?.value?.trim() || '';
+        localStorage.setItem('forge-meta-token', token);
+        localStorage.setItem('forge-meta-account', account);
+        closeModal('settingsModal');
+        showToast('Meta Ads settings saved');
+        if (token && account) refreshMetaAds();
+      } else {
+        saveManualMetaData();
+        closeModal('settingsModal');
+      }
       saveBtn.removeEventListener('click', handler);
     };
     saveBtn.addEventListener('click', handler);
   }
+}
+
+function saveManualMetaData() {
+  const spend = parseFloat($('#manualSpend')?.value) || 0;
+  const leads = parseInt($('#manualLeads')?.value) || 0;
+  const revenue = parseFloat($('#manualRevenue')?.value) || 0;
+  const impressions = parseInt($('#manualImpressions')?.value) || 0;
+  const period = $('#manualDateRange')?.value || 'last_7d';
+
+  const campaignText = $('#manualCampaigns')?.value || '';
+  const campaigns = campaignText.split('\n').filter(l => l.trim()).map(line => {
+    const parts = line.split(',').map(s => s.trim());
+    return {
+      name: parts[0] || 'Unknown',
+      status: 'ACTIVE',
+      spend: parseFloat(parts[1]) || 0,
+      impressions: 0,
+      clicks: 0,
+      leads: parseInt(parts[2]) || 0,
+    };
+  });
+
+  const meta = {
+    lastUpdated: new Date().toISOString(),
+    summary: {
+      spend,
+      leads,
+      cpl: leads > 0 ? Math.round(spend / leads) : 0,
+      roas: spend > 0 ? revenue / spend : 0,
+      impressions,
+      revenue,
+      period,
+    },
+    campaigns,
+  };
+
+  setState('metaAds', meta);
+  saveLocal('metaAds', meta);
+  showToast('Meta Ads data saved');
 }
 
 async function refreshMetaAds() {
@@ -743,47 +978,80 @@ async function refreshMetaAds() {
 
   try {
     showToast('Fetching Meta Ads data...');
-    const fields = 'campaign_name,spend,impressions,clicks,actions';
-    const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?fields=${fields}&date_preset=last_7d&level=campaign&access_token=${encodeURIComponent(token)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Meta API error: ${res.status}`);
-    const data = await res.json();
 
-    const campaigns = (data.data || []).map(row => {
-      const leads = (row.actions || []).find(a => a.action_type === 'lead')?.value || 0;
-      return {
-        name: row.campaign_name,
-        status: 'ACTIVE',
-        spend: Number(row.spend || 0),
-        impressions: Number(row.impressions || 0),
-        clicks: Number(row.clicks || 0),
-        leads: Number(leads),
-      };
-    });
+    // Try campaign-level first, fall back to account-level
+    let campaigns = [];
+    let usedCampaignLevel = false;
 
-    const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
-    const totalLeads = campaigns.reduce((s, c) => s + c.leads, 0);
-    const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0);
+    try {
+      const campaignFields = 'campaign_name,spend,impressions,clicks,actions';
+      const campaignUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?fields=${campaignFields}&date_preset=last_7d&level=campaign&access_token=${encodeURIComponent(token)}`;
+      const campaignRes = await fetch(campaignUrl);
+      const campaignData = await campaignRes.json();
+
+      if (campaignData.data && campaignData.data.length > 0) {
+        campaigns = campaignData.data.map(row => {
+          const leads = (row.actions || []).find(a => a.action_type === 'lead')?.value || 0;
+          return {
+            name: row.campaign_name,
+            status: 'ACTIVE',
+            spend: Number(row.spend || 0),
+            impressions: Number(row.impressions || 0),
+            clicks: Number(row.clicks || 0),
+            leads: Number(leads),
+          };
+        });
+        usedCampaignLevel = true;
+      }
+    } catch (_) { /* fallback to account level */ }
+
+    // Account-level summary
+    const summaryFields = 'spend,impressions,clicks,cpc,cpm,ctr,actions,action_values';
+    const summaryUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?fields=${summaryFields}&date_preset=last_7d&access_token=${encodeURIComponent(token)}`;
+    const summaryRes = await fetch(summaryUrl);
+    const summaryData = await summaryRes.json();
+
+    if (summaryData.error) {
+      throw new Error(summaryData.error.message || 'API error');
+    }
+
+    const row = (summaryData.data || [])[0] || {};
+    const leads = Number((row.actions || []).find(a => a.action_type === 'lead')?.value || 0);
+    const revenue = Number((row.action_values || []).find(a => a.action_type === 'purchase')?.value || 0);
+    const spend = Number(row.spend || 0);
 
     const meta = {
       lastUpdated: new Date().toISOString(),
       summary: {
-        spend: totalSpend,
-        leads: totalLeads,
-        cpl: totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0,
-        roas: 0,
-        impressions: totalImpressions,
-        revenue: 0,
+        spend,
+        leads,
+        cpl: leads > 0 ? Math.round(spend / leads) : 0,
+        roas: spend > 0 ? revenue / spend : 0,
+        impressions: Number(row.impressions || 0),
+        revenue,
+        clicks: Number(row.clicks || 0),
+        cpc: Number(row.cpc || 0),
+        cpm: Number(row.cpm || 0),
+        ctr: Number(row.ctr || 0),
+        period: 'last_7d',
       },
-      campaigns,
+      campaigns: usedCampaignLevel ? campaigns : [],
     };
 
     setState('metaAds', meta);
-    showToast('Meta Ads data refreshed');
+    saveLocal('metaAds', meta);
+    showToast(usedCampaignLevel ? 'Meta Ads data refreshed (with campaigns)' : 'Meta Ads data refreshed (account-level)');
   } catch (err) {
     console.error('[content] Meta refresh failed:', err);
     showToast('Meta refresh failed: ' + err.message, 'error');
   }
+}
+
+// ── Compact number helper ───────────────────────────────────────────
+function formatCompact(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(n);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -799,7 +1067,6 @@ function bindContentEvents() {
       const target = btn.dataset.subtab;
       if (!target) return;
 
-      // Lazy-load data on first visit to non-overview subtab
       if (!contentDataLoaded && target !== 'content-overview') {
         loadContentData();
       }
@@ -852,10 +1119,38 @@ function bindContentEvents() {
   // Meta Ads buttons
   $('#metaRefreshBtn')?.addEventListener('click', refreshMetaAds);
   $('#metaSettingsBtn')?.addEventListener('click', openMetaSettings);
+  $('#quickAddBtn')?.addEventListener('click', quickAddMetaData);
 
   // Swipe filters
   $('#swipeFilterCompetitor')?.addEventListener('change', () => renderAdSwipes());
   $('#swipeFilterType')?.addEventListener('change', () => renderAdSwipes());
+  $('#swipeFilterCategory')?.addEventListener('change', () => renderAdSwipes());
+
+  // Toggle sections (event delegation on meta panel)
+  const metaPanel = $('#content-meta');
+  if (metaPanel) {
+    metaPanel.addEventListener('click', (e) => {
+      const header = e.target.closest('[data-toggle]');
+      if (header) {
+        const targetId = header.dataset.toggle;
+        const content = $(`#${targetId}`);
+        if (content) {
+          const isCollapsed = content.classList.toggle('is-collapsed');
+          const icon = header.querySelector('.meta-toggle-icon');
+          if (icon) icon.textContent = isCollapsed ? '▸' : '▾';
+        }
+        return;
+      }
+
+      // Swipe card click → open detail modal
+      const card = e.target.closest('.swipe-card');
+      if (card && !e.target.closest('a')) {
+        const swipeId = card.dataset.swipeId;
+        if (swipeId) openSwipeDetail(swipeId);
+        return;
+      }
+    });
+  }
 
   // Idea card expand/collapse (event delegation)
   const overviewPanel = $('#content-overview');
@@ -869,24 +1164,6 @@ function bindContentEvents() {
         hook.removeAttribute('hidden');
       } else {
         hook.setAttribute('hidden', '');
-      }
-    });
-  }
-
-  // Swipe card expand/collapse (event delegation)
-  const swipesGrid = $('#swipesGrid');
-  if (swipesGrid) {
-    swipesGrid.addEventListener('click', (e) => {
-      const card = e.target.closest('.swipe-card');
-      if (!card) return;
-      // Don't toggle if clicking a link
-      if (e.target.closest('a')) return;
-      const notes = card.querySelector('.swipe-notes');
-      if (!notes) return;
-      if (notes.hasAttribute('hidden')) {
-        notes.removeAttribute('hidden');
-      } else {
-        notes.setAttribute('hidden', '');
       }
     });
   }
