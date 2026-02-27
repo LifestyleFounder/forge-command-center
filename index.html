@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center</title>
+  <meta name="description" content="LFG Operations Dashboard">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app">
+
+    <!-- ====== STATUS BAR ====== -->
+    <header class="status-bar" role="banner">
+      <div class="status-bar-left">
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot" data-status="idle"></span>
+          <span class="status-label">Idle</span>
+        </div>
+        <span class="status-divider" aria-hidden="true"></span>
+        <span class="status-task" id="currentTask">Waiting for instructions</span>
+      </div>
+      <div class="status-bar-right">
+        <span class="status-meta" id="lastHeartbeat" title="Last heartbeat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>--</span>
+        </span>
+        <span class="status-meta" id="modelInfo" title="Active model">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>claude-opus-4</span>
+        </span>
+        <button class="btn-icon" id="searchTrigger" aria-label="Search" title="Search (⌘K)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <kbd>⌘K</kbd>
+        </button>
+        <button class="btn-icon" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+          <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+
+      <!-- ====== SIDEBAR ====== -->
+      <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-brand">
+          <span class="brand-icon" aria-hidden="true">🔨</span>
+          <span class="brand-name">Forge</span>
+        </div>
+        <ul class="nav-list" role="tablist" aria-orientation="vertical">
+          <li><button class="nav-item is-active" id="nav-home" role="tab" aria-selected="true" aria-controls="tab-home" data-tab="home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Home</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-projects" role="tab" aria-selected="false" aria-controls="tab-projects" data-tab="projects">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Projects</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-content" role="tab" aria-selected="false" aria-controls="tab-content" data-tab="content">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>Content</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-knowledge" role="tab" aria-selected="false" aria-controls="tab-knowledge" data-tab="knowledge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span>Knowledge</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-chat" role="tab" aria-selected="false" aria-controls="tab-chat" data-tab="chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Chat</span>
+            <span class="nav-badge" id="chatBadge" hidden>0</span>
+          </button></li>
+          <li class="nav-separator" aria-hidden="true"></li>
+          <li><button class="nav-item" id="nav-vip-clients" role="tab" aria-selected="false" aria-controls="tab-vip-clients" data-tab="vip-clients">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>VIP Clients</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-competitors" role="tab" aria-selected="false" aria-controls="tab-competitors" data-tab="competitors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Competitors</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-google-tasks" role="tab" aria-selected="false" aria-controls="tab-google-tasks" data-tab="google-tasks">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>Google Tasks</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-reports" role="tab" aria-selected="false" aria-controls="tab-reports" data-tab="reports">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Reports</span>
+          </button></li>
+          <li><button class="nav-item" id="nav-calendar" role="tab" aria-selected="false" aria-controls="tab-calendar" data-tab="calendar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Calendar</span>
+          </button></li>
+        </ul>
+        <div class="sidebar-footer">
+          <span class="version">Forge v3.0</span>
+        </div>
+      </nav>
+
+      <!-- ====== MOBILE HEADER ====== -->
+      <div class="mobile-header" id="mobileHeader">
+        <button class="btn-icon" id="mobileMenuBtn" aria-label="Open menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="mobile-title" id="mobileTitle">Home</span>
+        <button class="btn-icon" id="mobileSearchBtn" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+
+      <!-- ====== MAIN CONTENT ====== -->
+      <main class="main-content" id="mainContent">
+
+        <!-- HOME TAB -->
+        <section class="tab-panel is-active" id="tab-home" role="tabpanel" aria-labelledby="nav-home">
+          <div class="section-header">
+            <h1 id="homeGreeting">Good morning, Dan</h1>
+            <div class="section-actions">
+              <button class="btn btn-ghost btn-sm" id="refreshAllBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+          <div class="morning-brief" id="morningBrief">
+            <div class="brief-items">
+              <div class="brief-skeleton loading"></div>
+              <div class="brief-skeleton loading"></div>
+              <div class="brief-skeleton loading"></div>
+            </div>
+          </div>
+          <div class="metrics-row" id="metricsRow">
+            <div class="metric-card" data-metric="free"><div class="metric-label">Free Community</div><div class="metric-value" id="metricFree">--</div><div class="metric-trend" id="metricFreeTrend"></div></div>
+            <div class="metric-card" data-metric="premium"><div class="metric-label">Premium</div><div class="metric-value" id="metricPremium">--</div><div class="metric-trend" id="metricPremiumTrend"></div></div>
+            <div class="metric-card" data-metric="vip"><div class="metric-label">VIP</div><div class="metric-value" id="metricVip">--</div><div class="metric-trend" id="metricVipTrend"></div></div>
+            <div class="metric-card" data-metric="oneone"><div class="metric-label">1:1</div><div class="metric-value" id="metricOneone">--</div><div class="metric-trend" id="metricOneoneTrend"></div></div>
+            <div class="metric-card" data-metric="apps"><div class="metric-label">Applications</div><div class="metric-value" id="metricApps">--</div><div class="metric-trend" id="metricAppsTrend">this week</div></div>
+            <div class="metric-card" data-metric="workshop"><div class="metric-label">Workshops</div><div class="metric-value" id="metricWorkshop">--</div><div class="metric-trend" id="metricWorkshopTrend"></div></div>
+          </div>
+          <div class="dashboard-grid" id="dashboardGrid">
+            <div class="card" id="calendarCard">
+              <div class="card-header"><h2>Schedule</h2></div>
+              <div class="card-body"><iframe id="calendarEmbed" title="Google Calendar" loading="lazy" src="https://calendar.google.com/calendar/embed?src=dan%40quantumcollective.com&ctz=America%2FVancouver&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showDate=1"></iframe></div>
+            </div>
+            <div class="card" id="clientsCard">
+              <div class="card-header"><h2>Client Health</h2><span class="staleness" id="clientsStaleness"></span></div>
+              <div class="card-body">
+                <div class="health-summary" id="healthSummary">
+                  <button class="health-stat" data-health="healthy" aria-expanded="false"><span class="health-count" id="clientsHealthy">--</span><span class="health-label">Healthy</span></button>
+                  <button class="health-stat" data-health="warning" aria-expanded="false"><span class="health-count" id="clientsWarning">--</span><span class="health-label">Watch</span></button>
+                  <button class="health-stat" data-health="atRisk" aria-expanded="false"><span class="health-count" id="clientsAtRisk">--</span><span class="health-label">At Risk</span></button>
+                </div>
+                <div class="client-expand" id="clientExpand" hidden>
+                  <div class="client-expand-header"><span id="clientExpandTitle">Clients</span><button class="btn-icon btn-sm" id="closeClientExpand" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+                  <div class="client-expand-items" id="clientExpandItems"></div>
+                </div>
+                <div class="client-alerts" id="clientAlerts"></div>
+              </div>
+            </div>
+            <div class="card" id="pipelineCard">
+              <div class="card-header"><h2>Pipeline</h2></div>
+              <div class="card-body" id="pipelineBody"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROJECTS TAB -->
+        <section class="tab-panel" id="tab-projects" role="tabpanel" aria-labelledby="nav-projects" hidden>
+          <div class="section-header">
+            <h1>Projects</h1>
+            <div class="section-actions">
+              <button class="btn btn-primary btn-sm" id="addTaskBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Task
+              </button>
+            </div>
+          </div>
+          <div class="kanban" id="kanbanBoard">
+            <div class="kanban-column" data-status="inbox">
+              <div class="kanban-column-header"><span class="column-dot" data-color="neutral"></span><span class="column-title">Inbox</span><span class="column-count" id="countInbox">0</span></div>
+              <div class="kanban-cards" data-status="inbox"></div>
+            </div>
+            <div class="kanban-column" data-status="todo">
+              <div class="kanban-column-header"><span class="column-dot" data-color="info"></span><span class="column-title">To Do</span><span class="column-count" id="countTodo">0</span></div>
+              <div class="kanban-cards" data-status="todo"></div>
+            </div>
+            <div class="kanban-column" data-status="progress">
+              <div class="kanban-column-header"><span class="column-dot" data-color="warning"></span><span class="column-title">In Progress</span><span class="column-count" id="countProgress">0</span></div>
+              <div class="kanban-cards" data-status="progress"></div>
+            </div>
+            <div class="kanban-column" data-status="done">
+              <div class="kanban-column-header"><span class="column-dot" data-color="success"></span><span class="column-title">Done</span><span class="column-count" id="countDone">0</span><button class="btn-icon btn-xs" id="toggleDoneBtn" aria-label="Toggle completed tasks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button></div>
+              <div class="kanban-cards" data-status="done"></div>
+            </div>
+          </div>
+          <div class="activity-section" id="activitySection">
+            <div class="section-header">
+              <h2>Recent Activity</h2>
+              <input type="search" class="input-search" id="activitySearch" placeholder="Filter..." aria-label="Filter activity">
+            </div>
+            <div class="activity-list" id="activityList"></div>
+          </div>
+        </section>
+
+        <!-- CONTENT TAB -->
+        <section class="tab-panel" id="tab-content" role="tabpanel" aria-labelledby="nav-content" hidden>
+          <div class="section-header"><h1>Content</h1></div>
+          <div class="subtabs" id="contentSubtabs" role="tablist">
+            <button class="subtab is-active" data-subtab="content-overview" role="tab" aria-selected="true">Overview</button>
+            <button class="subtab" data-subtab="content-youtube" role="tab" aria-selected="false">YouTube</button>
+            <button class="subtab" data-subtab="content-instagram" role="tab" aria-selected="false">Instagram</button>
+            <button class="subtab" data-subtab="content-meta" role="tab" aria-selected="false">Meta Ads</button>
+          </div>
+          <!-- Overview -->
+          <div class="subtab-panel is-active" id="content-overview" role="tabpanel">
+            <div class="content-grid">
+              <div class="card"><div class="card-header"><h2>Trend Radar</h2></div><div class="card-body"><div class="trend-group"><h3>Hot Now</h3><div class="tags" id="hotTrends"></div></div><div class="trend-group"><h3>Rising</h3><div class="tags tags-muted" id="risingTrends"></div></div></div></div>
+              <div class="card"><div class="card-header"><h2>Outlier Communities</h2></div><div class="card-body"><div class="outlier-list" id="outlierList"></div></div></div>
+              <div class="card card-full"><div class="card-header"><h2>YouTube Ideas</h2></div><div class="card-body"><div class="ideas-grid" id="youtubeIdeas"></div></div></div>
+              <div class="card card-full"><div class="card-header"><h2>Instagram Ideas</h2></div><div class="card-body"><div class="ideas-grid" id="instagramIdeas"></div></div></div>
+            </div>
+          </div>
+          <!-- YouTube -->
+          <div class="subtab-panel" id="content-youtube" role="tabpanel" hidden>
+            <div class="stats-row" id="ytStatsRow">
+              <div class="stat-card"><span class="stat-label">Subscribers</span><span class="stat-value" id="ytSubs">--</span></div>
+              <div class="stat-card"><span class="stat-label">Total Views</span><span class="stat-value" id="ytViews">--</span></div>
+              <div class="stat-card"><span class="stat-label">Videos</span><span class="stat-value" id="ytVideos">--</span></div>
+              <div class="stat-card"><span class="stat-label">Avg Views</span><span class="stat-value" id="ytAvgViews">--</span></div>
+            </div>
+            <div class="card"><div class="card-header"><h2>Recent Videos</h2><div class="card-actions"><button class="btn btn-primary btn-sm" id="ytRefreshBtn">Refresh</button><button class="btn btn-ghost btn-sm" id="ytConfigBtn">Configure</button></div></div><div class="card-body"><div class="video-list" id="ytVideoList"><div class="empty-state"><p>Connect your YouTube API key to see analytics.</p></div></div></div></div>
+          </div>
+          <!-- Instagram -->
+          <div class="subtab-panel" id="content-instagram" role="tabpanel" hidden>
+            <div class="subtabs subtabs-sm" id="igSubtabs" role="tablist">
+              <button class="subtab is-active" data-subtab="ig-feed" role="tab" aria-selected="true">Feed</button>
+              <button class="subtab" data-subtab="ig-creators" role="tab" aria-selected="false">Creators</button>
+              <button class="subtab" data-subtab="ig-top" role="tab" aria-selected="false">Top Posts</button>
+            </div>
+            <div class="section-actions"><button class="btn btn-primary btn-sm" id="addCreatorBtn">Add Creator</button></div>
+            <div class="subtab-panel is-active" id="ig-feed" role="tabpanel"><div class="ig-grid" id="igFeedGrid"><div class="empty-state"><p>Add creators and run the scraper to see posts here.</p></div></div></div>
+            <div class="subtab-panel" id="ig-creators" role="tabpanel" hidden>
+              <div class="table-wrap"><table class="data-table"><thead><tr><th>Creator</th><th>Followers</th><th>Following</th><th>Posts</th><th>Eng. Rate</th><th>Avg Likes</th><th>Last Scraped</th><th></th></tr></thead><tbody id="igCreatorsBody"><tr><td colspan="8" class="empty-cell">No creators tracked yet.</td></tr></tbody></table></div>
+            </div>
+            <div class="subtab-panel" id="ig-top" role="tabpanel" hidden>
+              <div class="filter-row"><select class="form-select" id="igTopCreatorFilter" aria-label="Filter by creator"><option value="">All Creators</option></select><select class="form-select" id="igTopSortBy" aria-label="Sort by"><option value="likes">Likes</option><option value="comments">Comments</option><option value="views">Views</option></select></div>
+              <div class="table-wrap"><table class="data-table"><thead><tr><th></th><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th></tr></thead><tbody id="igTopPostsBody"><tr><td colspan="8" class="empty-cell">No posts yet.</td></tr></tbody></table></div>
+            </div>
+          </div>
+          <!-- Meta Ads -->
+          <div class="subtab-panel" id="content-meta" role="tabpanel" hidden>
+            <div class="meta-summary" id="metaSummary">
+              <div class="stats-row">
+                <div class="stat-card"><span class="stat-label">Spend (7d)</span><span class="stat-value" id="metaSpend">$0</span></div>
+                <div class="stat-card"><span class="stat-label">Leads</span><span class="stat-value" id="metaLeads">0</span></div>
+                <div class="stat-card"><span class="stat-label">CPL</span><span class="stat-value" id="metaCPL">$0</span></div>
+                <div class="stat-card"><span class="stat-label">ROAS</span><span class="stat-value" id="metaROAS">0x</span></div>
+                <div class="stat-card"><span class="stat-label">Impressions</span><span class="stat-value" id="metaImpressions">0</span></div>
+                <div class="stat-card"><span class="stat-label">Revenue</span><span class="stat-value" id="metaRevenue">$0</span></div>
+              </div>
+              <p class="meta-narrative" id="metaNarrative"></p>
+            </div>
+            <div class="card"><div class="card-header"><h2>Campaigns</h2><div class="card-actions"><button class="btn btn-primary btn-sm" id="metaRefreshBtn">Refresh</button><button class="btn btn-ghost btn-sm" id="metaSettingsBtn">Settings</button></div></div><div class="card-body"><div class="table-wrap"><table class="data-table"><thead><tr><th>Campaign</th><th>Status</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Leads</th><th>CPL</th></tr></thead><tbody id="metaCampaignsBody"><tr><td colspan="8" class="empty-cell">Connect Meta Ads to see campaigns.</td></tr></tbody></table></div></div></div>
+            <div class="card"><div class="card-header"><h2>Ad Swipe File</h2><span class="text-sm text-secondary" id="swipeCount">0 ads</span></div><div class="card-body"><div class="filter-row"><select class="form-select" id="swipeFilterCompetitor" aria-label="Competitor"><option value="all">All Competitors</option></select><select class="form-select" id="swipeFilterType" aria-label="Type"><option value="all">All Types</option><option value="image">Image</option><option value="video">Video</option><option value="carousel">Carousel</option></select></div><div class="swipes-grid" id="swipesGrid"><div class="empty-state"><p>No ad swipes yet.</p></div></div></div></div>
+          </div>
+        </section>
+
+        <!-- KNOWLEDGE TAB -->
+        <section class="tab-panel" id="tab-knowledge" role="tabpanel" aria-labelledby="nav-knowledge" hidden>
+          <div class="section-header">
+            <h1>Knowledge</h1>
+            <div class="section-actions" id="knowledgeActions"><button class="btn btn-primary btn-sm" id="newNoteBtn">New Note</button></div>
+          </div>
+          <div class="subtabs" id="knowledgeSubtabs" role="tablist">
+            <button class="subtab is-active" data-subtab="knowledge-library" role="tab" aria-selected="true">Library</button>
+            <button class="subtab" data-subtab="knowledge-notes" role="tab" aria-selected="false">Notes</button>
+          </div>
+          <div class="subtab-panel is-active" id="knowledge-library" role="tabpanel">
+            <div class="knowledge-layout">
+              <div class="knowledge-list" id="knowledgeList"></div>
+              <div class="knowledge-preview" id="knowledgePreview"><div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><p>Select a document to preview</p></div></div>
+            </div>
+          </div>
+          <div class="subtab-panel" id="knowledge-notes" role="tabpanel" hidden>
+            <div class="notes-layout">
+              <div class="notes-sidebar-panel">
+                <div class="notes-tree" id="notesTree"></div>
+                <button class="btn btn-ghost btn-sm" id="newFolderBtn">+ New Folder</button>
+              </div>
+              <div class="notes-main">
+                <div class="notes-list" id="notesList"></div>
+                <div class="notes-editor" id="notesEditor" hidden>
+                  <div class="editor-header">
+                    <input type="text" class="editor-title" id="noteTitleInput" placeholder="Note title..." aria-label="Note title">
+                    <div class="editor-actions"><button class="btn btn-ghost btn-sm" id="cancelNoteBtn">Cancel</button><button class="btn btn-primary btn-sm" id="saveNoteBtn">Save</button></div>
+                  </div>
+                  <div class="editor-toolbar" role="toolbar" aria-label="Formatting">
+                    <button class="toolbar-btn" data-format="bold" aria-label="Bold"><strong>B</strong></button>
+                    <button class="toolbar-btn" data-format="italic" aria-label="Italic"><em>I</em></button>
+                    <button class="toolbar-btn" data-format="underline" aria-label="Underline"><u>U</u></button>
+                    <span class="toolbar-sep" aria-hidden="true"></span>
+                    <button class="toolbar-btn" data-format="insertUnorderedList" aria-label="Bullet list">&#8226;</button>
+                    <button class="toolbar-btn" data-format="insertOrderedList" aria-label="Numbered list">1.</button>
+                    <span class="toolbar-sep" aria-hidden="true"></span>
+                    <button class="toolbar-btn" data-format="h2" aria-label="Heading">H</button>
+                    <button class="toolbar-btn" data-format="blockquote" aria-label="Quote">&ldquo;</button>
+                  </div>
+                  <div class="editor-content" id="noteContent" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note content"></div>
+                  <div class="editor-footer"><span class="editor-meta" id="noteMeta"></span><button class="btn btn-danger btn-sm" id="deleteNoteBtn" hidden>Delete</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CHAT TAB -->
+        <section class="tab-panel" id="tab-chat" role="tabpanel" aria-labelledby="nav-chat" hidden>
+          <div class="chat-layout">
+            <div class="chat-threads" id="chatThreads">
+              <div class="threads-header"><h2>Threads</h2><button class="btn btn-primary btn-sm" id="newThreadBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button></div>
+              <div class="threads-list" id="threadsList"></div>
+            </div>
+            <div class="chat-main">
+              <div class="agent-bar" id="agentBar" role="tablist" aria-label="Select agent"></div>
+              <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"><div class="empty-state"><p>Start a conversation</p><p class="text-secondary">Select an agent and type a message below</p></div></div>
+              <div class="chat-input-area">
+                <div class="mention-dropdown" id="mentionDropdown" role="listbox" hidden></div>
+                <div class="chat-input-wrap">
+                  <textarea id="chatInput" class="chat-input" placeholder="Message Geeves... (@ to mention)" rows="1" aria-label="Chat message"></textarea>
+                  <button class="btn btn-primary btn-icon" id="chatSendBtn" aria-label="Send message">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
+                <div class="chat-input-hint"><span>Enter to send · Shift+Enter for new line</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIP CLIENTS TAB -->
+        <section class="tab-panel" id="tab-vip-clients" role="tabpanel" aria-labelledby="nav-vip-clients" hidden>
+          <div id="vipClientsContainer"></div>
+        </section>
+
+        <!-- COMPETITORS TAB -->
+        <section class="tab-panel" id="tab-competitors" role="tabpanel" aria-labelledby="nav-competitors" hidden>
+          <div id="competitorsContainer"></div>
+        </section>
+
+        <!-- GOOGLE TASKS TAB -->
+        <section class="tab-panel" id="tab-google-tasks" role="tabpanel" aria-labelledby="nav-google-tasks" hidden>
+          <div id="googleTasksContainer"></div>
+        </section>
+
+        <!-- REPORTS TAB -->
+        <section class="tab-panel" id="tab-reports" role="tabpanel" aria-labelledby="nav-reports" hidden>
+          <div id="reportsContainer"></div>
+        </section>
+
+        <!-- CALENDAR TAB (iframe) -->
+        <section class="tab-panel" id="tab-calendar" role="tabpanel" aria-labelledby="nav-calendar" hidden>
+          <div class="iframe-container" id="iframe-google-calendar"></div>
+        </section>
+
+        <!-- PERFORMANCE TRACKER TAB (iframe) -->
+        <section class="tab-panel" id="tab-performance-tracker" role="tabpanel" aria-labelledby="nav-performance-tracker" hidden>
+          <div class="iframe-container" id="iframe-performance-tracker"></div>
+        </section>
+
+        <!-- CONTENT MULTIPLIER TAB (iframe) -->
+        <section class="tab-panel" id="tab-content-multiplier" role="tabpanel" aria-labelledby="nav-content-multiplier" hidden>
+          <div class="iframe-container" id="iframe-content-multiplier"></div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- ====== GLOBAL SEARCH ====== -->
+    <div class="search-overlay" id="searchOverlay" role="dialog" aria-modal="true" aria-label="Search" hidden>
+      <div class="search-container">
+        <div class="search-input-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="globalSearchInput" class="search-field" placeholder="Search tasks, notes, docs, clients..." autocomplete="off" aria-label="Search everything">
+          <kbd>Esc</kbd>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+    </div>
+
+    <!-- ====== MODALS ====== -->
+    <div class="modal-backdrop" id="modalBackdrop" hidden></div>
+
+    <div class="modal" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle" hidden>
+      <div class="modal-header"><h2 id="taskModalTitle">Add Task</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label" for="taskTitleInput">Title</label><input type="text" class="form-input" id="taskTitleInput" placeholder="What needs to be done?"></div>
+        <div class="form-group"><label class="form-label" for="taskDescInput">Description</label><textarea class="form-input" id="taskDescInput" placeholder="Details..." rows="3"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" for="taskPriorityInput">Priority</label><select class="form-select" id="taskPriorityInput"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+          <div class="form-group"><label class="form-label" for="taskDueInput">Due Date</label><input type="date" class="form-input" id="taskDueInput"></div>
+        </div>
+        <div class="form-group"><label class="form-label" for="taskTagsInput">Tags</label><input type="text" class="form-input" id="taskTagsInput" placeholder="lfg, content, system"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveTaskBtn">Save Task</button></div>
+    </div>
+
+    <div class="modal modal-lg" id="taskDetailModal" role="dialog" aria-modal="true" aria-labelledby="taskDetailTitle" hidden>
+      <div class="modal-header"><h2 id="taskDetailTitle">Task</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="modal-body" id="taskDetailBody"></div>
+      <div class="modal-footer"><button class="btn btn-danger" id="deleteTaskBtn">Delete</button><div class="footer-right"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="updateTaskBtn">Save Changes</button></div></div>
+    </div>
+
+    <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+      <div class="modal-header"><h2 id="settingsTitle">Settings</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="modal-body" id="settingsBody"></div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveSettingsBtn">Save</button></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
