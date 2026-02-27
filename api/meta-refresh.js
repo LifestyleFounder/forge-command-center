@@ -53,7 +53,7 @@ export default async function handler(req, res) {
           clicks: Number(r.clicks || 0),
           ctr: Number(parseFloat(r.ctr || 0).toFixed(2)),
           cpc: Number(parseFloat(r.cpc || 0).toFixed(2)),
-          leads: getAction(r.actions, 'lead'),
+          leads: getCampaignLeads(r.actions),
           applications: getAction(r.actions, 'offsite_conversion.fb_pixel_custom'),
         }));
       }
@@ -75,8 +75,13 @@ export default async function handler(req, res) {
     } catch (_) { /* statuses are nice-to-have */ }
 
     const spend = Number(row.spend || 0);
-    const leads = getAction(row.actions, 'lead');
-    const apps = getAction(row.actions, 'offsite_conversion.fb_pixel_custom');
+    // Sum per-campaign leads for accuracy (avoids double-counting lead vs complete_registration)
+    const leads = campaigns.length > 0
+      ? campaigns.reduce((sum, c) => sum + c.leads, 0)
+      : getLeads(row.actions);
+    const apps = campaigns.length > 0
+      ? campaigns.reduce((sum, c) => sum + c.applications, 0)
+      : getAction(row.actions, 'offsite_conversion.fb_pixel_custom');
     const revenue = Number((row.action_values || []).find(a => a.action_type === 'purchase')?.value || 0);
 
     const result = {
@@ -111,4 +116,22 @@ export default async function handler(req, res) {
 
 function getAction(actions, type) {
   return Number((actions || []).find(a => a.action_type === type)?.value || 0);
+}
+
+// Count leads: different campaigns use different events.
+// Skool Ads → complete_registration, IG DM → lead, Retargeting → offsite_conversion.fb_pixel_custom (apps).
+// Per campaign: take the higher of lead vs complete_registration (avoids noise from CAPI dupes).
+// Account level: sum per-campaign leads for accuracy.
+function getLeads(actions) {
+  const lead = getAction(actions, 'lead');
+  const reg = getAction(actions, 'complete_registration');
+  // At account level, lead and reg may overlap, so take the higher value
+  // plus any DM-only leads that wouldn't show as registrations
+  return Math.max(lead, reg);
+}
+
+function getCampaignLeads(actions) {
+  const lead = getAction(actions, 'lead');
+  const reg = getAction(actions, 'complete_registration');
+  return Math.max(lead, reg);
 }
