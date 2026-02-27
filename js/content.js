@@ -579,12 +579,19 @@ function renderMetaNarrative(summary) {
   const spend = formatNumber(summary.spend || 0);
   const impressions = formatCompact(summary.impressions || 0);
   const leads = summary.leads || 0;
-  const cpl = leads > 0 ? '$' + formatNumber(Math.round(summary.spend / leads)) : 'N/A';
+  const apps = summary.applications || 0;
+  const cpl = leads > 0 ? '$' + (summary.spend / leads).toFixed(2) : 'N/A';
   const period = summary.period === 'last_30d' ? 'the last 30 days' : 'the last 7 days';
 
   let text = `Over ${period}: $${spend} spent across ${impressions} impressions.`;
   if (leads > 0) {
     text += ` ${formatNumber(leads)} leads at ${cpl} CPL.`;
+  }
+  if (apps > 0) {
+    text += ` ${formatNumber(apps)} applications.`;
+  }
+  if (summary.registrations > 0) {
+    text += ` ${formatNumber(summary.registrations)} registrations.`;
   }
   if (summary.revenue > 0) {
     const roas = (summary.revenue / summary.spend).toFixed(1);
@@ -599,13 +606,13 @@ function renderCampaignsTable(campaigns) {
   if (!el) return;
 
   if (!campaigns || campaigns.length === 0) {
-    el.innerHTML = `<tr><td colspan="8" class="empty-cell">Connect Meta Ads to see campaigns, or use Quick Add below.</td></tr>`;
+    el.innerHTML = `<tr><td colspan="9" class="empty-cell">Connect Meta Ads to see campaigns, or use Quick Add below.</td></tr>`;
     return;
   }
 
   el.innerHTML = campaigns.map(c => {
-    const ctr = c.impressions > 0 ? ((c.clicks / c.impressions) * 100).toFixed(2) + '%' : '--';
-    const cpl = c.leads > 0 ? '$' + formatNumber(Math.round(c.spend / c.leads)) : '--';
+    const ctr = c.ctr ? c.ctr.toFixed(2) + '%' : (c.impressions > 0 ? ((c.clicks / c.impressions) * 100).toFixed(2) + '%' : '--');
+    const cpl = c.leads > 0 ? '$' + (c.spend / c.leads).toFixed(2) : '--';
     return `
       <tr>
         <td>${escapeHtml(c.name || '')}</td>
@@ -615,6 +622,7 @@ function renderCampaignsTable(campaigns) {
         <td>${formatNumber(c.clicks || 0)}</td>
         <td>${ctr}</td>
         <td>${formatNumber(c.leads || 0)}</td>
+        <td>${formatNumber(c.applications || 0)}</td>
         <td>${cpl}</td>
       </tr>
     `;
@@ -979,35 +987,41 @@ async function refreshMetaAds() {
   try {
     showToast('Fetching Meta Ads data...');
 
-    // Try campaign-level first, fall back to account-level
+    const getAction = (actions, type) => Number((actions || []).find(a => a.action_type === type)?.value || 0);
+
+    // Helper to build properly encoded URL
+    const buildUrl = (params) => {
+      const qs = new URLSearchParams({ ...params, access_token: token }).toString();
+      return `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?${qs}`;
+    };
+
+    // Try campaign-level first
     let campaigns = [];
     let usedCampaignLevel = false;
 
     try {
-      const campaignFields = 'campaign_name,spend,impressions,clicks,actions';
-      const campaignUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?fields=${campaignFields}&date_preset=last_7d&level=campaign&access_token=${encodeURIComponent(token)}`;
+      const campaignUrl = buildUrl({ fields: 'campaign_name,spend,impressions,clicks,ctr,cpc,actions', date_preset: 'last_7d', level: 'campaign' });
       const campaignRes = await fetch(campaignUrl);
       const campaignData = await campaignRes.json();
 
       if (campaignData.data && campaignData.data.length > 0) {
-        campaigns = campaignData.data.map(row => {
-          const leads = (row.actions || []).find(a => a.action_type === 'lead')?.value || 0;
-          return {
-            name: row.campaign_name,
-            status: 'ACTIVE',
-            spend: Number(row.spend || 0),
-            impressions: Number(row.impressions || 0),
-            clicks: Number(row.clicks || 0),
-            leads: Number(leads),
-          };
-        });
+        campaigns = campaignData.data.map(row => ({
+          name: row.campaign_name,
+          status: 'ACTIVE',
+          spend: Number(row.spend || 0),
+          impressions: Number(row.impressions || 0),
+          clicks: Number(row.clicks || 0),
+          ctr: Number(parseFloat(row.ctr || 0).toFixed(2)),
+          cpc: Number(parseFloat(row.cpc || 0).toFixed(2)),
+          leads: getAction(row.actions, 'lead'),
+          applications: getAction(row.actions, 'offsite_conversion.fb_pixel_custom'),
+        }));
         usedCampaignLevel = true;
       }
     } catch (_) { /* fallback to account level */ }
 
     // Account-level summary
-    const summaryFields = 'spend,impressions,clicks,cpc,cpm,ctr,actions,action_values';
-    const summaryUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/insights?fields=${summaryFields}&date_preset=last_7d&access_token=${encodeURIComponent(token)}`;
+    const summaryUrl = buildUrl({ fields: 'spend,impressions,clicks,cpc,cpm,ctr,actions,action_values', date_preset: 'last_7d' });
     const summaryRes = await fetch(summaryUrl);
     const summaryData = await summaryRes.json();
 
@@ -1016,31 +1030,48 @@ async function refreshMetaAds() {
     }
 
     const row = (summaryData.data || [])[0] || {};
-    const leads = Number((row.actions || []).find(a => a.action_type === 'lead')?.value || 0);
-    const revenue = Number((row.action_values || []).find(a => a.action_type === 'purchase')?.value || 0);
     const spend = Number(row.spend || 0);
+    const leads = getAction(row.actions, 'lead');
+    const apps = getAction(row.actions, 'offsite_conversion.fb_pixel_custom');
+    const revenue = Number((row.action_values || []).find(a => a.action_type === 'purchase')?.value || 0);
+
+    // Try to get campaign statuses
+    try {
+      const statusUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(account)}/campaigns?${new URLSearchParams({ fields: 'name,status', limit: '50', access_token: token })}`;
+      const statusRes = await fetch(statusUrl);
+      const statusData = await statusRes.json();
+      if (statusData.data) {
+        const statusMap = Object.fromEntries(statusData.data.map(c => [c.name, c.status]));
+        campaigns.forEach(c => { if (statusMap[c.name]) c.status = statusMap[c.name]; });
+      }
+    } catch (_) { /* statuses are nice-to-have */ }
 
     const meta = {
       lastUpdated: new Date().toISOString(),
       summary: {
         spend,
         leads,
-        cpl: leads > 0 ? Math.round(spend / leads) : 0,
-        roas: spend > 0 ? revenue / spend : 0,
+        applications: apps,
+        cpl: leads > 0 ? Number((spend / leads).toFixed(2)) : 0,
+        roas: spend > 0 && revenue > 0 ? Number((revenue / spend).toFixed(2)) : 0,
         impressions: Number(row.impressions || 0),
         revenue,
         clicks: Number(row.clicks || 0),
-        cpc: Number(row.cpc || 0),
-        cpm: Number(row.cpm || 0),
-        ctr: Number(row.ctr || 0),
+        cpc: Number(parseFloat(row.cpc || 0).toFixed(2)),
+        cpm: Number(parseFloat(row.cpm || 0).toFixed(2)),
+        ctr: Number(parseFloat(row.ctr || 0).toFixed(2)),
         period: 'last_7d',
+        registrations: getAction(row.actions, 'complete_registration'),
+        landingPageViews: getAction(row.actions, 'landing_page_view'),
+        videoViews: getAction(row.actions, 'video_view'),
+        conversations: getAction(row.actions, 'onsite_conversion.messaging_conversation_started_7d'),
       },
       campaigns: usedCampaignLevel ? campaigns : [],
     };
 
     setState('metaAds', meta);
     saveLocal('metaAds', meta);
-    showToast(usedCampaignLevel ? 'Meta Ads data refreshed (with campaigns)' : 'Meta Ads data refreshed (account-level)');
+    showToast(usedCampaignLevel ? 'Meta Ads refreshed (with campaigns)' : 'Meta Ads refreshed (account-level)');
   } catch (err) {
     console.error('[content] Meta refresh failed:', err);
     showToast('Meta refresh failed: ' + err.message, 'error');
