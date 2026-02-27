@@ -1,0 +1,48 @@
+{
+  "lastUpdated": "2026-02-06T22:30:00Z",
+  "handle": "@iamdanharrison",
+  "currentStats": {
+    "followers": 20800,
+    "following": 485,
+    "posts": 711,
+    "avgLikes": 142,
+    "avgComments": 8,
+    "engagementRate": 0.72,
+    "snapshotDate": "2026-02-06"
+  },
+  "history": [
+    {
+      "date": "2026-02-06",
+      "followers": 20800,
+      "following": 485,
+      "posts": 711,
+      "avgLikes": 142,
+      "engagementRate": 0.72
+    },
+    {
+      "date": "2026-01-30",
+      "followers": 20650,
+      "following": 512,
+      "posts": 708,
+      "avgLikes": 138,
+      "engagementRate": 0.69
+    },
+    {
+      "date": "2026-01-23",
+      "followers": 20480,
+      "following": 535,
+      "posts": 705,
+      "avgLikes": 135,
+      "engagementRate": 0.68
+    },
+    {
+      "date": "2026-01-16",
+      "followers": 20310,
+      "following": 558,
+      "posts": 702,
+      "avgLikes": 131,
+      "engagementRate": 0.66
+    }
+  ],
+  "topPosts": []
+}

@@ -1,0 +1,526 @@
+{
+  "lastSynced": "2026-02-21T21:03:15.547Z",
+  "clients": [
+    {
+      "id": "30a237e1-2a2c-812c-9b7d-eae9dd518a62",
+      "name": "Andres Mego",
+      "status": "Active",
+      "program": [
+        "1:1 VIP",
+        "Special Deal"
+      ],
+      "payment": "1k/month",
+      "pif": "$12,500",
+      "joined": "2025-09-30",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "mego.andres1@gmail.com",
+      "notionUrl": "https://www.notion.so/Andres-Mego-30a237e12a2c812c9b7deae9dd518a62"
+    },
+    {
+      "id": "30a237e1-2a2c-8131-a69c-f8c04847580a",
+      "name": "Ben Hartley",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-01-17",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "jbenhartley@gmail.com",
+      "notionUrl": "https://www.notion.so/Ben-Hartley-30a237e12a2c8131a69cf8c04847580a"
+    },
+    {
+      "id": "30a237e1-2a2c-819a-a78b-faf342b35685",
+      "name": "Bradley Rix",
+      "status": "Active",
+      "program": [
+        "Needs Attention"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-15",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "",
+      "notionUrl": "https://www.notion.so/Bradley-Rix-30a237e12a2c819aa78bfaf342b35685"
+    },
+    {
+      "id": "30a237e1-2a2c-812b-bfe1-dea89d49e257",
+      "name": "Brian Rushalski",
+      "status": "Active",
+      "program": [
+        "Needs Attention"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-14",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "brian@proactive-taxes.com",
+      "notionUrl": "https://www.notion.so/Brian-Rushalski-30a237e12a2c812bbfe1dea89d49e257"
+    },
+    {
+      "id": "30a237e1-2a2c-81fe-bbfc-f265e3d9c7bf",
+      "name": "Bryan Lieser",
+      "status": "Active",
+      "program": [
+        "Paused"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-20",
+      "programLength": "",
+      "todo": [],
+      "email": "blieser85@gmail.com",
+      "notionUrl": "https://www.notion.so/Bryan-Lieser-30a237e12a2c81febbfcf265e3d9c7bf"
+    },
+    {
+      "id": "30a237e1-2a2c-8155-b09b-c1bea7151c17",
+      "name": "Cameron Watt",
+      "status": "Active",
+      "program": [
+        "Needs Attention"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-13",
+      "programLength": "",
+      "todo": [],
+      "email": "camfwatt@gmail.com",
+      "notionUrl": "https://www.notion.so/Cameron-Watt-30a237e12a2c8155b09bc1bea7151c17"
+    },
+    {
+      "id": "30a237e1-2a2c-8109-8149-e5cbc4755561",
+      "name": "Carole Scott",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-01-23",
+      "programLength": "",
+      "todo": [],
+      "email": "coach.carole614@gmail.com",
+      "notionUrl": "https://www.notion.so/Carole-Scott-30a237e12a2c81098149e5cbc4755561"
+    },
+    {
+      "id": "30a237e1-2a2c-812b-89b3-e0ace7d97fcb",
+      "name": "Cheri Baumann Roberts",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "PIF",
+      "pif": "$8,000",
+      "joined": "2026-01-15",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "cheribaumannroberts@gmail.com",
+      "notionUrl": "https://www.notion.so/Cheri-Baumann-Roberts-30a237e12a2c812b89b3e0ace7d97fcb"
+    },
+    {
+      "id": "30a237e1-2a2c-81be-ae9a-e7691a8320ed",
+      "name": "David Ruiz",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "3k PIF/Year",
+      "pif": "$3,000",
+      "joined": "2026-01-14",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "richiruix.14@gmail.com",
+      "notionUrl": "https://www.notion.so/David-Ruiz-30a237e12a2c81beae9ae7691a8320ed"
+    },
+    {
+      "id": "30a237e1-2a2c-81cc-a0c5-eda571a79343",
+      "name": "Drew Taddia",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "3k PIF/Year",
+      "pif": "$0",
+      "joined": "2026-01-14",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "drewtaddia@gmail.com",
+      "notionUrl": "https://www.notion.so/Drew-Taddia-30a237e12a2c81cca0c5eda571a79343"
+    },
+    {
+      "id": "30a237e1-2a2c-81d7-91ea-dbcfa3666e7e",
+      "name": "Flynn Sizemore",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-01-18",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "healqst@gmail.com",
+      "notionUrl": "https://www.notion.so/Flynn-Sizemore-30a237e12a2c81d791eadbcfa3666e7e"
+    },
+    {
+      "id": "30a237e1-2a2c-81f0-b467-f8761cafa2f3",
+      "name": "Gabriele Aprile",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "3k PIF/Year",
+      "pif": "$0",
+      "joined": "2025-11-11",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "aprilegabriele@gmail.com",
+      "notionUrl": "https://www.notion.so/Gabriele-Aprile-30a237e12a2c81f0b467f8761cafa2f3"
+    },
+    {
+      "id": "30a237e1-2a2c-8142-a2eb-f909d448996f",
+      "name": "Graham Duval",
+      "status": "Active",
+      "program": [
+        "1:1 VIP",
+        "VIP DAY"
+      ],
+      "payment": "1k/month",
+      "pif": "$8,000",
+      "joined": "2026-01-12",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "duvalgraham@gmail.com",
+      "notionUrl": "https://www.notion.so/Graham-Duval-30a237e12a2c8142a2ebf909d448996f"
+    },
+    {
+      "id": "30a237e1-2a2c-8128-ae2d-d1f47fd4f0b2",
+      "name": "Greg Chambers",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "3k PIF/Year",
+      "pif": "$0",
+      "joined": "2026-01-14",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "greg.c.knight@gmail.com",
+      "notionUrl": "https://www.notion.so/Greg-Chambers-30a237e12a2c8128ae2dd1f47fd4f0b2"
+    },
+    {
+      "id": "30a237e1-2a2c-81c1-89c5-d8564ea44ac1",
+      "name": "Janeen Sam",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$3,000",
+      "joined": "2025-10-02",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "hello@auroraempower.com",
+      "notionUrl": "https://www.notion.so/Janeen-Sam-30a237e12a2c81c189c5d8564ea44ac1"
+    },
+    {
+      "id": "30a237e1-2a2c-8150-8853-f1d8a1878a72",
+      "name": "Jon Cooke",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-01-14",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "jongoku2@hotmail.com",
+      "notionUrl": "https://www.notion.so/Jon-Cooke-30a237e12a2c81508853f1d8a1878a72"
+    },
+    {
+      "id": "30a237e1-2a2c-816b-aa95-cdca6bc0abd0",
+      "name": "Juan Tavares",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "3k PIF/Year",
+      "pif": "$0",
+      "joined": "2026-01-26",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "tavaresjuan@mac.com",
+      "notionUrl": "https://www.notion.so/Juan-Tavares-30a237e12a2c816baa95cdca6bc0abd0"
+    },
+    {
+      "id": "30a237e1-2a2c-81d4-bb9a-c2f9be74ccd4",
+      "name": "Kay Z",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$3,000",
+      "joined": "2025-09-01",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "kay@thepeakawakening.com",
+      "notionUrl": "https://www.notion.so/Kay-Z-30a237e12a2c81d4bb9ac2f9be74ccd4"
+    },
+    {
+      "id": "30a237e1-2a2c-8194-ab4f-c0914bfdcf58",
+      "name": "Kyle Pearce",
+      "status": "Churned",
+      "program": [
+        "Cancelled"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-19",
+      "programLength": "",
+      "todo": [],
+      "email": "kyle@diygenius.com",
+      "notionUrl": "https://www.notion.so/Kyle-Pearce-30a237e12a2c8194ab4fc0914bfdcf58"
+    },
+    {
+      "id": "30a237e1-2a2c-81e6-91a0-f4bd9e96d5dd",
+      "name": "Maireni Yael Peguero",
+      "status": "Churned",
+      "program": [
+        "Cancelled"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2025-12-25",
+      "programLength": "",
+      "todo": [],
+      "email": "admin@unfilteredmillionaire.com",
+      "notionUrl": "https://www.notion.so/Maireni-Yael-Peguero-30a237e12a2c81e691a0f4bd9e96d5dd"
+    },
+    {
+      "id": "30a237e1-2a2c-815f-af13-faf1ef92c4c6",
+      "name": "Margaret Kabwe",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "+1",
+      "pif": "$0",
+      "joined": "2025-10-02",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "margaret@samkabweconsulting.com",
+      "notionUrl": "https://www.notion.so/Margaret-Kabwe-30a237e12a2c815faf13faf1ef92c4c6"
+    },
+    {
+      "id": "30a237e1-2a2c-81b5-bfce-fb5b06e018f7",
+      "name": "Nick Hough",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-02-04",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "nick@nickhough.co",
+      "notionUrl": "https://www.notion.so/Nick-Hough-30a237e12a2c81b5bfcefb5b06e018f7"
+    },
+    {
+      "id": "30a237e1-2a2c-81d2-9c79-ce9c566cf516",
+      "name": "Nissa Rose",
+      "status": "Active",
+      "program": [
+        "1:1 VIP"
+      ],
+      "payment": "PIF",
+      "pif": "$10,000",
+      "joined": "2025-09-17",
+      "programLength": "6 Months",
+      "todo": [
+        "Wrap up"
+      ],
+      "email": "nissarose5d@gmail.com",
+      "notionUrl": "https://www.notion.so/Nissa-Rose-30a237e12a2c81d29c79ce9c566cf516"
+    },
+    {
+      "id": "30a237e1-2a2c-81df-beff-e78678e45051",
+      "name": "Pat Smith",
+      "status": "Churned",
+      "program": [
+        "Graduated"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2025-01-21",
+      "programLength": "",
+      "todo": [],
+      "email": "",
+      "notionUrl": "https://www.notion.so/Pat-Smith-30a237e12a2c81dfbeffe78678e45051"
+    },
+    {
+      "id": "30a237e1-2a2c-8173-ae42-cd7b79ea8df9",
+      "name": "Rachel Sutton",
+      "status": "Active",
+      "program": [
+        "1:1 VIP",
+        "VIP DAY"
+      ],
+      "payment": "PIF",
+      "pif": "$10,500",
+      "joined": "2026-01-20",
+      "programLength": "5 Months",
+      "todo": [
+        "Schedule VIP DAY"
+      ],
+      "email": "rachel@chooseyourbest.org",
+      "notionUrl": "https://www.notion.so/Rachel-Sutton-30a237e12a2c8173ae42cd7b79ea8df9"
+    },
+    {
+      "id": "30a237e1-2a2c-8116-b62d-d4c43ebbdab6",
+      "name": "Samantha Wyatt",
+      "status": "Active",
+      "program": [
+        "Group VIP",
+        "VIP DAY"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-01-31",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "sam@freshlifejourneys.com",
+      "notionUrl": "https://www.notion.so/Samantha-Wyatt-30a237e12a2c8116b62dd4c43ebbdab6"
+    },
+    {
+      "id": "30a237e1-2a2c-8163-b6f7-e9131dabd6c4",
+      "name": "Sameem R",
+      "status": "Churned",
+      "program": [
+        "Cancelled"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-14",
+      "programLength": "",
+      "todo": [],
+      "email": "sameem822@gmail.com",
+      "notionUrl": "https://www.notion.so/Sameem-R-30a237e12a2c8163b6f7e9131dabd6c4"
+    },
+    {
+      "id": "30a237e1-2a2c-8144-917f-fc2e4d451625",
+      "name": "Sarah Robbins",
+      "status": "At Risk",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "",
+      "pif": "$0",
+      "joined": "2026-01-26",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "sarah@sarahrobbinsmd.com",
+      "notionUrl": "https://www.notion.so/Sarah-Robbins-30a237e12a2c8144917ffc2e4d451625"
+    },
+    {
+      "id": "30a237e1-2a2c-8173-b8ef-cd594a467093",
+      "name": "Scott Jagodzinski",
+      "status": "Active",
+      "program": [
+        "1:1 VIP"
+      ],
+      "payment": "PIF",
+      "pif": "$10,000",
+      "joined": "2025-10-16",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "scott@jagodzinski.net",
+      "notionUrl": "https://www.notion.so/Scott-Jagodzinski-30a237e12a2c8173b8efcd594a467093"
+    },
+    {
+      "id": "30a237e1-2a2c-8194-9d5b-cfd7c8902bbb",
+      "name": "Sheldon Victorine",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "PIF",
+      "pif": "$0",
+      "joined": "2026-01-14",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "sheldon@sheldonmbt.com",
+      "notionUrl": "https://www.notion.so/Sheldon-Victorine-30a237e12a2c81949d5bcfd7c8902bbb"
+    },
+    {
+      "id": "30a237e1-2a2c-81ae-9b23-e653fac77686",
+      "name": "Sigri Reyes",
+      "status": "Active",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "$0",
+      "joined": "2026-01-21",
+      "programLength": "12 Months",
+      "todo": [],
+      "email": "bumpfitandrehab@gmail.com",
+      "notionUrl": "https://www.notion.so/Sigri-Reyes-30a237e12a2c81ae9b23e653fac77686"
+    },
+    {
+      "id": "30a237e1-2a2c-8194-bd92-cad62c8add1e",
+      "name": "Siloh Moses",
+      "status": "At Risk",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "+1",
+      "pif": "$0",
+      "joined": "2026-01-19",
+      "programLength": "",
+      "todo": [],
+      "email": "getfocused@gmail.com",
+      "notionUrl": "https://www.notion.so/Siloh-Moses-30a237e12a2c8194bd92cad62c8add1e"
+    },
+    {
+      "id": "30d237e1-2a2c-805b-a2d0-ca6c777af05f",
+      "name": "TIffany Spraque",
+      "status": "Onboarding",
+      "program": [
+        "Group VIP"
+      ],
+      "payment": "1k/month",
+      "pif": "",
+      "joined": "",
+      "programLength": "12 Months",
+      "todo": [
+        "Schedule VIP DAY",
+        "Gameplan Call"
+      ],
+      "email": "mmade.for.moree@gmail.com",
+      "notionUrl": "https://www.notion.so/TIffany-Spraque-30d237e12a2c805ba2d0ca6c777af05f"
+    },
+    {
+      "id": "30a237e1-2a2c-8189-9653-f09e13bbc690",
+      "name": "Ziva Olup",
+      "status": "Active",
+      "program": [
+        "VIP Accelerator"
+      ],
+      "payment": "3k PIF/Year",
+      "pif": "$0",
+      "joined": "2026-01-18",
+      "programLength": "3 Months",
+      "todo": [],
+      "email": "ziva.olup@gmail.com",
+      "notionUrl": "https://www.notion.so/Ziva-Olup-30a237e12a2c81899653f09e13bbc690"
+    }
+  ]
+}

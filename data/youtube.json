@@ -1,0 +1,22 @@
+{
+  "lastUpdated": "2026-02-06T22:30:00Z",
+  "config": {
+    "apiKey": "",
+    "channelId": "UCsaposjX2IR0HY3YhrkUnMg",
+    "channelHandle": "@iamdanharrison"
+  },
+  "channelStats": {
+    "subscribers": null,
+    "totalViews": null,
+    "totalVideos": null,
+    "lastFetched": null
+  },
+  "recentVideos": [],
+  "manualStats": {
+    "subscribers": 12500,
+    "totalViews": 850000,
+    "totalVideos": 89,
+    "avgViewsPerVideo": 9550,
+    "lastUpdated": "2026-02-06"
+  }
+}

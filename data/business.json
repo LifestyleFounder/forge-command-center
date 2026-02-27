@@ -1,0 +1,201 @@
+{
+  "free": {
+    "total": 10200,
+    "last30Days": 150
+  },
+  "workshop": {
+    "sales": 0,
+    "cashCollected": 0
+  },
+  "premium": {
+    "total": 85,
+    "lastMonth": 12
+  },
+  "vip": {
+    "total": 43,
+    "lastMonth": 3
+  },
+  "oneone": {
+    "total": 8,
+    "cap": 12
+  },
+  "applications": {
+    "thisWeek": 1
+  },
+  "clients": {
+    "healthy": [
+      {
+        "name": "Andres Mego",
+        "type": "1:1 VIP, Special Deal",
+        "note": "1k/month"
+      },
+      {
+        "name": "Ben Hartley",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Bryan Lieser",
+        "type": "Paused",
+        "note": ""
+      },
+      {
+        "name": "Carole Scott",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Cheri Baumann Roberts",
+        "type": "Group VIP",
+        "note": "PIF"
+      },
+      {
+        "name": "David Ruiz",
+        "type": "VIP Accelerator",
+        "note": "3k PIF/Year"
+      },
+      {
+        "name": "Drew Taddia",
+        "type": "VIP Accelerator",
+        "note": "3k PIF/Year"
+      },
+      {
+        "name": "Flynn Sizemore",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Gabriele Aprile",
+        "type": "VIP Accelerator",
+        "note": "3k PIF/Year"
+      },
+      {
+        "name": "Graham Duval",
+        "type": "1:1 VIP, VIP DAY",
+        "note": "1k/month"
+      },
+      {
+        "name": "Greg Chambers",
+        "type": "VIP Accelerator",
+        "note": "3k PIF/Year"
+      },
+      {
+        "name": "Janeen Sam",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Jon Cooke",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Juan Tavares",
+        "type": "VIP Accelerator",
+        "note": "3k PIF/Year"
+      },
+      {
+        "name": "Kay Z",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Margaret Kabwe",
+        "type": "Group VIP",
+        "note": "+1"
+      },
+      {
+        "name": "Nick Hough",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Nissa Rose",
+        "type": "1:1 VIP",
+        "note": "PIF"
+      },
+      {
+        "name": "Rachel Sutton",
+        "type": "1:1 VIP, VIP DAY",
+        "note": "PIF"
+      },
+      {
+        "name": "Samantha Wyatt",
+        "type": "Group VIP, VIP DAY",
+        "note": "1k/month"
+      },
+      {
+        "name": "Scott Jagodzinski",
+        "type": "1:1 VIP",
+        "note": "PIF"
+      },
+      {
+        "name": "Sheldon Victorine",
+        "type": "VIP Accelerator",
+        "note": "PIF"
+      },
+      {
+        "name": "Sigri Reyes",
+        "type": "Group VIP",
+        "note": "1k/month"
+      },
+      {
+        "name": "Ziva Olup",
+        "type": "VIP Accelerator",
+        "note": "3k PIF/Year"
+      }
+    ],
+    "warning": [
+      {
+        "name": "Bradley Rix",
+        "type": "Needs Attention",
+        "note": "Needs attention"
+      },
+      {
+        "name": "Brian Rushalski",
+        "type": "Needs Attention",
+        "note": "Needs attention"
+      },
+      {
+        "name": "Cameron Watt",
+        "type": "Needs Attention",
+        "note": "Needs attention"
+      }
+    ],
+    "atRisk": [
+      {
+        "name": "Kyle Pearce",
+        "type": "Cancelled",
+        "note": "Churned"
+      },
+      {
+        "name": "Maireni Yael Peguero",
+        "type": "Cancelled",
+        "note": "Churned"
+      },
+      {
+        "name": "Pat Smith",
+        "type": "Graduated",
+        "note": "Churned"
+      },
+      {
+        "name": "Sameem R",
+        "type": "Cancelled",
+        "note": "Churned"
+      },
+      {
+        "name": "Sarah Robbins",
+        "type": "Group VIP",
+        "note": "At Risk"
+      },
+      {
+        "name": "Siloh Moses",
+        "type": "Group VIP",
+        "note": "At Risk"
+      }
+    ],
+    "alerts": []
+  },
+  "lastUpdated": "2026-02-09",
+  "vipClients": 28
+}

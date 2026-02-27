@@ -1,0 +1,187 @@
+{
+  "lastUpdated": "2026-02-06T20:51:00Z",
+  "trends": {
+    "hot": [
+      "Anti-bro marketing movement",
+      "Community vs courses debate",
+      "AI-assisted, human-delivered",
+      "3-minute Reels",
+      "Long-form YouTube comeback",
+      "Skool Games competition"
+    ],
+    "rising": [
+      "Premium memberships ($297-$997)",
+      "Fewer members, higher value",
+      "Creator burnout & sustainability",
+      "20-image carousels",
+      "FaceTime style content",
+      "Retention > acquisition"
+    ]
+  },
+  "youtubeIdeas": [
+    {
+      "id": "yt-1",
+      "title": "How I Won the Skool Games 3 Times",
+      "hook": "Most people can't win once. I've won three times. Here's exactly what I did differently.",
+      "type": "Credibility",
+      "status": "new"
+    },
+    {
+      "id": "yt-2",
+      "title": "The Anti-Bro Marketing Playbook",
+      "hook": "I've made over $X without countdown timers, fake scarcity, or income screenshots. Here's my playbook.",
+      "type": "Contrarian",
+      "status": "new"
+    },
+    {
+      "id": "yt-3",
+      "title": "Why Most Coaching Communities Fail in 90 Days",
+      "hook": "I've seen hundreds of communities crash and burn. They all make the same 3 mistakes.",
+      "type": "Problem",
+      "status": "new"
+    },
+    {
+      "id": "yt-4",
+      "title": "How to Price Your Skool Community Without Undercharging",
+      "hook": "Stop charging $29/month. Here's the pricing psychology that 6-figure communities use.",
+      "type": "Tactical",
+      "status": "new"
+    },
+    {
+      "id": "yt-5",
+      "title": "My Exact Content System for Running a Community on 10 Hours/Week",
+      "hook": "I used to work 60-hour weeks. Now I work 10 and make more. This system changed everything.",
+      "type": "Lifestyle",
+      "status": "new"
+    },
+    {
+      "id": "yt-6",
+      "title": "The Retention Metrics That Actually Matter",
+      "hook": "Most community owners track the wrong numbers. Here are the 3 metrics that predict success.",
+      "type": "Data",
+      "status": "new"
+    },
+    {
+      "id": "yt-7",
+      "title": "Skool vs Circle vs Kajabi: My Honest Take",
+      "hook": "I've tried them all. Here's why I chose Skool (and who shouldn't).",
+      "type": "Comparison",
+      "status": "new"
+    },
+    {
+      "id": "yt-8",
+      "title": "How to Get Your First 100 Paying Members",
+      "hook": "Your first 100 members will make or break your community. Here's the strategy that works.",
+      "type": "Milestone",
+      "status": "new"
+    },
+    {
+      "id": "yt-9",
+      "title": "What $30K/Month Actually Looks Like (No BS)",
+      "hook": "I'm pulling back the curtain on what a real $30K/month coaching business looks like — the good and the ugly.",
+      "type": "Transparency",
+      "status": "new"
+    },
+    {
+      "id": "yt-10",
+      "title": "The Death of Online Courses (And What's Replacing Them)",
+      "hook": "Courses had their moment. Here's what smart coaches are building instead.",
+      "type": "Thought Leadership",
+      "status": "new"
+    }
+  ],
+  "instagramIdeas": [
+    {
+      "id": "ig-1",
+      "format": "Reel",
+      "concept": "Day in the life of a 3x Skool Games Winner",
+      "hook": "Show morning routine, community management, calls — casual, behind-the-scenes",
+      "status": "new"
+    },
+    {
+      "id": "ig-2",
+      "format": "Carousel",
+      "concept": "5 Signs You're Ready for a Community (Not Another Course)",
+      "hook": "You might be leaving money on the table...",
+      "status": "new"
+    },
+    {
+      "id": "ig-3",
+      "format": "Reel",
+      "concept": "POV: You just realized your course business isn't scalable",
+      "hook": "Trending audio + text overlay, relatable scenario",
+      "status": "new"
+    },
+    {
+      "id": "ig-4",
+      "format": "Carousel",
+      "concept": "The Community Pricing Ladder",
+      "hook": "Visual framework showing pricing tiers ($29 → $99 → $297 → $997)",
+      "status": "new"
+    },
+    {
+      "id": "ig-5",
+      "format": "Reel",
+      "concept": "Things I stopped doing when I hit $30K/month",
+      "hook": "List format with text overlays, casual talking head",
+      "status": "new"
+    },
+    {
+      "id": "ig-6",
+      "format": "Carousel",
+      "concept": "How to Write a Skool Post That Gets 100+ Comments",
+      "hook": "Step-by-step framework, tactical, screenshot examples",
+      "status": "new"
+    },
+    {
+      "id": "ig-7",
+      "format": "Reel",
+      "concept": "Send this to a coach who's still selling $27 courses",
+      "hook": "Humor + truth, shareable, drives engagement",
+      "status": "new"
+    },
+    {
+      "id": "ig-8",
+      "format": "Carousel",
+      "concept": "Bro Marketing vs Real Marketing",
+      "hook": "Side-by-side comparisons (countdown timer vs. genuine urgency, etc.)",
+      "status": "new"
+    },
+    {
+      "id": "ig-9",
+      "format": "Reel",
+      "concept": "Unpopular opinion: You don't need a funnel",
+      "hook": "Controversial hook, explains community-first growth",
+      "status": "new"
+    },
+    {
+      "id": "ig-10",
+      "format": "Carousel",
+      "concept": "My 90-Day Community Launch Roadmap",
+      "hook": "Visual timeline, actionable steps, save-worthy",
+      "status": "new"
+    }
+  ],
+  "outliers": [
+    {
+      "name": "Free Skool Course (Max)",
+      "members": "43.9K",
+      "insight": "2x winner, claims $4M in 2 years. Free + massive value."
+    },
+    {
+      "name": "Synthesizer (Kirby)",
+      "members": "34.9K",
+      "insight": "First Skool investor, 500K YT subs. Weekly live calls."
+    },
+    {
+      "name": "AI Automation Society",
+      "members": "#2 Discovery",
+      "insight": "Hot topic timing + clear niche positioning."
+    },
+    {
+      "name": "School of Mentors",
+      "members": "#12 Discovery",
+      "insight": "Bold '#1 Entrepreneurship Community' claim + weekly mentorship."
+    }
+  ]
+}

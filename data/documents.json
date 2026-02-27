@@ -1,0 +1,52 @@
+{
+  "lastUpdated": "2026-02-07T21:00:00Z",
+  "notionSync": {
+    "enabled": true,
+    "lastSync": "2026-02-07T21:00:00Z",
+    "databaseId": "1b3ff8c6-2c63-4941-bad2-1876bd405333"
+  },
+  "documents": [
+    {
+      "id": "doc-1",
+      "name": "LFG Offer Stack",
+      "type": "local",
+      "category": "brand",
+      "content": "# LFG Offer Stack\n\n## Free Community\n- Top of funnel\n- Free Skool access\n- Community-driven growth\n\n## Premium ($100/mo)\n- Weekly group calls\n- Playbooks & templates\n- BackPak CRM access\n- Monthly workshops\n\n## VIP ($1,000/mo)\n- 100-day accelerator\n- 2x/week coaching calls\n- 1:1 Slack access to Dan\n- Quarterly retreats\n\n## 12-Month Program ($12K)\n- Daily coaching Mon-Sat\n- Full system build\n- All retreats included\n- White-glove onboarding",
+      "tags": ["offers", "pricing", "tiers"],
+      "createdAt": "2026-02-07T16:00:00Z",
+      "updatedAt": "2026-02-07T16:00:00Z"
+    },
+    {
+      "id": "doc-2",
+      "name": "Brand Voice Guide",
+      "type": "local",
+      "category": "brand",
+      "content": "# LFG Brand Voice\n\n## Tone\n- Direct but warm\n- Confident, not arrogant\n- Anti-bro marketing\n- Slightly contrarian\n- Fun, not corporate\n\n## We Say\n- \"Simple systems that work\"\n- \"Build once, profit forever\"\n- \"Community over courses\"\n- \"Lifestyle first, revenue follows\"\n\n## We Never Say\n- \"Limited spots remaining\" (fake scarcity)\n- \"This is your last chance\"\n- \"Crushing it\" / \"Killing it\"\n- \"6-figure\" / \"7-figure\" hype\n\n## Writing Style\n- Short sentences\n- One idea per paragraph\n- Stories over stats\n- Show, don't tell",
+      "tags": ["brand", "voice", "messaging"],
+      "createdAt": "2026-02-07T16:00:00Z",
+      "updatedAt": "2026-02-07T16:00:00Z"
+    },
+    {
+      "id": "doc-3",
+      "name": "Ideal Client Avatar",
+      "type": "local",
+      "category": "strategy",
+      "content": "# LFG Ideal Client\n\n## Demographics\n- Age: 35-52\n- Current revenue: $5K-$40K/month\n- Experience: Established coach/consultant\n- Platform: Primarily Instagram, some YouTube\n\n## Psychographics\n- Tired of the hustle\n- Values freedom over status\n- Wants systems that work without them\n- Anti-bro marketing mindset\n- Family/lifestyle focused\n\n## Pain Points\n- Trading time for money\n- Launch fatigue\n- Client acquisition rollercoaster\n- Tech overwhelm\n- Inconsistent revenue\n\n## Desires\n- Predictable monthly revenue\n- 4-day workweeks\n- Community-based business model\n- Simple, elegant systems\n- Impact + income",
+      "tags": ["avatar", "strategy", "targeting"],
+      "createdAt": "2026-02-07T16:00:00Z",
+      "updatedAt": "2026-02-07T16:00:00Z"
+    }
+  ],
+  "notionDocs": [
+    {
+      "id": "300237e1-2a2c-8197-ba46-f98cda9cb0f4",
+      "name": "Content Intelligence Report — Feb 2026",
+      "type": "notion",
+      "category": "content",
+      "content": "# Executive Summary\nThe coaching and community-based business space is experiencing significant shifts in early 2026. Key trends include:\n- Long-form content is returning — platforms are favoring 2-3 minute videos over ultra-short clips\n- AI integration is table stakes — but authenticity is the differentiator\n- Community > courses — the market has firmly shifted toward membership models\n- \"FaceTime\" content wins — casual, conversational content outperforms polished productions\n- SEO on social matters more than ever — Gen Z uses TikTok/IG instead of Google\n\n# 📺 Part 1: YouTube Research\n\n## What's Working on YouTube\n1. Long-form content is back — YouTube is rewarding 10-20 minute videos again. Shorts drive discovery, long-form converts.\n2. Consistency beats virality — VidIQ research confirms 3-4x/week posting outperforms sporadic \"viral attempts.\"\n3. YouTube SEO is critical — Search-driven content compounds over time.\n4. Educational \"edutainment\" — 31.3% seek how-to videos, 29.8% want educational content.\n\n## 🔥 Hot Topics in Coaching/Skool Space\n\n# 📸 Part 2: Instagram Research\n\n## Major Platform Shifts (2026)\n1. Video dominates — First posts in feed are now Reels. Algorithm heavily favors video.\n2. Bigger carousels — Now up to 20 images/videos per carousel. Photo dumps thriving.\n3. 3-minute Reels — New feature allows longer storytelling. Early adopters have advantage.\n4. Trial Reels — Test content with non-followers before publishing.\n5. 5 links in bio — No more Linktree necessity.\n\n## Reels Formats That Perform\n- Video Memes — Remixing trending audio with text overlay → Reach & relatability\n- POV Videos — \"When you...\" scenarios → Engagement & shares\n- \"Send this to...\" — Prompts sharing → Viral reach\n- Behind-the-scenes — Raw, unpolished → Trust & authenticity\n- Talking head (simple) — Just you + text overlay → Authority\n\n# 🎯 Strategic Recommendations\n\n## Your Unique Advantages\n1. 3x Skool Games Winner — Rare, verifiable credibility\n2. Community-first approach — Not course-bro, not webinar-hustler\n3. Anti-bro marketing stance — Resonates with mature audience tired of manipulation\n4. Target demo (35-52, $5-40K/mo coaches) — Underserved middle market\n\n## Content Pillars\n1. Community Strategy — How to build, engage, retain members\n2. Anti-Bro Marketing — Ethical selling, authentic growth\n3. Skool Mastery — Platform-specific tactics, Skool Games insights\n4. Lifestyle Business Design — Sustainable income without burnout\n5. Behind-the-Scenes — Your journey, wins, lessons\n\n# 📺 Top 10 YouTube Video Ideas\n\n# 📸 Top 10 Instagram Ideas\n\n# ✅ Action Items\n\n## Immediate (Next 7 Days)\n\n## This Month",
+      "notionUrl": "https://notion.so/300237e12a2c8197ba46f98cda9cb0f4",
+      "tags": ["content", "research", "youtube", "instagram"],
+      "lastSynced": "2026-02-07T21:00:00Z"
+    }
+  ]
+}

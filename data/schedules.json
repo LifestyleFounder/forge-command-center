@@ -1,0 +1,65 @@
+{
+  "lastUpdated": "2026-02-06T22:30:00Z",
+  "schedules": [
+    {
+      "id": "daily-brief",
+      "name": "Daily Brief",
+      "description": "Morning briefing with calendar, metrics, and priorities",
+      "schedule": "0 4 * * 1-4",
+      "humanSchedule": "4:00 AM PT, Mon-Thu",
+      "enabled": true,
+      "lastRun": "2026-02-06T04:02:00Z",
+      "lastStatus": "success",
+      "nextRun": "2026-02-07T04:00:00Z",
+      "channel": "telegram"
+    },
+    {
+      "id": "gabby-report",
+      "name": "Gabby Report",
+      "description": "Daily report for Gabby with community metrics",
+      "schedule": "0 17 * * 1-4",
+      "humanSchedule": "5:00 PM PT, Mon-Thu",
+      "enabled": true,
+      "lastRun": "2026-02-05T17:18:00Z",
+      "lastStatus": "success",
+      "nextRun": "2026-02-06T17:00:00Z",
+      "channel": "telegram"
+    },
+    {
+      "id": "heartbeat",
+      "name": "Heartbeat Check",
+      "description": "Periodic check for emails, calendar, and notifications",
+      "schedule": "*/30 * * * *",
+      "humanSchedule": "Every 30 minutes",
+      "enabled": true,
+      "lastRun": "2026-02-06T22:00:00Z",
+      "lastStatus": "success",
+      "nextRun": "2026-02-06T22:30:00Z",
+      "channel": "internal"
+    },
+    {
+      "id": "context-checkpoint",
+      "name": "Context Checkpoint",
+      "description": "Save ACTIVE.md state for continuity",
+      "schedule": "*/5 * * * *",
+      "humanSchedule": "Every 5 minutes",
+      "enabled": true,
+      "lastRun": "2026-02-06T22:25:00Z",
+      "lastStatus": "success",
+      "nextRun": "2026-02-06T22:30:00Z",
+      "channel": "internal"
+    },
+    {
+      "id": "weekly-review",
+      "name": "Weekly Review",
+      "description": "Comprehensive weekly summary and planning",
+      "schedule": "0 4 * * 1",
+      "humanSchedule": "4:00 AM PT, Monday",
+      "enabled": true,
+      "lastRun": "2026-02-03T04:00:00Z",
+      "lastStatus": "success",
+      "nextRun": "2026-02-10T04:00:00Z",
+      "channel": "telegram"
+    }
+  ]
+}

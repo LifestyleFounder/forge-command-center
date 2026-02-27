@@ -1,0 +1,197 @@
+{
+  "lastUpdated": "2026-02-19T15:45:00Z",
+  "updatedBy": "geeves",
+  "tasks": [
+    {
+      "id": "openai-api-key",
+      "title": "Get OpenAI API Key for Command Center",
+      "description": "Go to platform.openai.com/api-keys, create a key, add it to Command Center chat settings. Enables GPT-4o and GPT-4 Turbo for agents.",
+      "priority": "medium",
+      "status": "todo",
+      "due": "",
+      "createdAt": "2026-02-07T14:00:00Z",
+      "tags": [
+        "geeves",
+        "system",
+        "api"
+      ]
+    },
+    {
+      "id": "ctx-backup-system",
+      "title": "Context backup system",
+      "description": "5-min cron checkpoint + ACTIVE.md tracking",
+      "priority": "high",
+      "status": "done",
+      "due": "2026-02-02",
+      "createdAt": "2026-02-02T15:40:00Z",
+      "completedAt": "2026-02-02T15:45:00Z",
+      "tags": [
+        "geeves",
+        "system"
+      ]
+    },
+    {
+      "id": "kanban-rebuild",
+      "title": "Rebuild Kanban board",
+      "description": "File-based JSON storage, Geeves can read/write",
+      "priority": "high",
+      "status": "done",
+      "due": "2026-02-02",
+      "createdAt": "2026-02-02T15:40:00Z",
+      "completedAt": "2026-02-06T22:30:00Z",
+      "tags": [
+        "geeves",
+        "system"
+      ]
+    },
+    {
+      "id": "command-center-build",
+      "title": "Build Geeves Command Center",
+      "description": "Unified dashboard for all Geeves operations - status, kanban, activity, docs, content intel, analytics",
+      "priority": "high",
+      "status": "done",
+      "due": "2026-02-06",
+      "createdAt": "2026-02-06T21:00:00Z",
+      "completedAt": "2026-02-07T06:50:00Z",
+      "tags": [
+        "geeves",
+        "system"
+      ]
+    },
+    {
+      "id": "skool-ghl-middleware",
+      "title": "Skool \u2192 GHL Middleware",
+      "description": "Connect Skool events to GHL webhooks via Make/n8n. Workflows ready, need middleware.",
+      "priority": "high",
+      "status": "todo",
+      "due": "",
+      "createdAt": "2026-02-01T12:00:00Z",
+      "tags": [
+        "geeves",
+        "integration"
+      ]
+    },
+    {
+      "id": "daily-metrics-automation",
+      "title": "Daily Metrics Automation",
+      "description": "Pull Skool, GHL, Meta Ads, Stripe metrics \u2192 automated dashboard",
+      "priority": "high",
+      "status": "todo",
+      "due": "",
+      "createdAt": "2026-01-30T08:00:00Z",
+      "tags": [
+        "geeves",
+        "automation"
+      ]
+    },
+    {
+      "id": "dave-morrow-close",
+      "title": "Close Dave Morrow \u2192 VIP",
+      "description": "Hot lead, understands the math, ready for 90-day offer with 1:1 session",
+      "priority": "high",
+      "status": "todo",
+      "due": "2026-02-03",
+      "createdAt": "2026-02-01T12:00:00Z",
+      "tags": [
+        "lfg",
+        "sales"
+      ]
+    },
+    {
+      "id": "instagram-launch",
+      "title": "Instagram Strategy Launch",
+      "description": "Bio rewrite, unfollow sprints, Week 1 content filmed/scheduled",
+      "priority": "high",
+      "status": "todo",
+      "due": "2026-02-03",
+      "createdAt": "2026-01-30T08:00:00Z",
+      "tags": [
+        "lfg",
+        "content"
+      ]
+    },
+    {
+      "id": "multi-agent-setup",
+      "title": "Set up Specialized Agents",
+      "description": "Create Copy, Close Bot, Workshop, Content agents with specialized prompts and knowledge",
+      "priority": "medium",
+      "status": "todo",
+      "due": "",
+      "createdAt": "2026-02-07T06:50:00Z",
+      "tags": [
+        "geeves",
+        "system"
+      ]
+    },
+    {
+      "id": "token-optimization",
+      "title": "Implement Token Saving Strategy",
+      "description": "Implemented: 1) Daily Brief cron \u2192 Sonnet 4 (was Opus), 2) Weekly Review cron \u2192 Sonnet 4 (was Opus), 3) Gabby cron already on Sonnet. Heartbeat still runs on main session Opus but fires only every 30min. Estimated savings: $15-20/day.",
+      "priority": "medium",
+      "status": "done",
+      "due": "",
+      "createdAt": "2026-02-07T07:05:00Z",
+      "tags": [
+        "geeves",
+        "system",
+        "cost"
+      ],
+      "completedAt": "2026-02-12T06:10:00Z"
+    },
+    {
+      "id": "client-progress-system",
+      "title": "Client Progress Monitoring",
+      "description": "Build system to track who's stuck, who needs attention",
+      "priority": "medium",
+      "status": "inbox",
+      "due": "",
+      "createdAt": "2026-01-30T08:00:00Z",
+      "tags": [
+        "geeves",
+        "system"
+      ]
+    },
+    {
+      "id": "youtube-api-setup",
+      "title": "YouTube API Setup",
+      "description": "Get API key from Google Cloud Console, configure channel tracking",
+      "priority": "medium",
+      "status": "inbox",
+      "due": "",
+      "createdAt": "2026-02-06T20:00:00Z",
+      "tags": [
+        "lfg",
+        "analytics"
+      ]
+    },
+    {
+      "id": "command-center-client-product",
+      "title": "Command Center as Client Product",
+      "description": "Package dashboard for clients: template version, setup guide, white-label option. Potential offers: $297 template, $2-5K done-with-you, $97-297/mo hosted SaaS, $5-10K white-label license.",
+      "priority": "low",
+      "status": "inbox",
+      "due": "",
+      "createdAt": "2026-02-07T06:55:00Z",
+      "tags": [
+        "lfg",
+        "product",
+        "future"
+      ]
+    },
+    {
+      "id": "n8n-content-scraper",
+      "title": "Build n8n Content Intelligence Scraper",
+      "description": "Daily TikTok/IG competitor scrape + AI analysis pipeline. Part 1: Scrape profiles, dedupe, store in Supabase. Part 2: Download video \u2192 Gemini visual analysis (hooks, format) \u2192 transcript pull \u2192 GPT text extraction (hook framework, structure, CTA) \u2192 OpenAI embeddings for semantic search. Based on Noe Varner Creator OS. Docs: specs/n8n-content-analyzer-part2.md. Need: ScrapeCreators API key, competitor handles (5-10), n8n instance, OpenAI key, Gemini key.",
+      "priority": "medium",
+      "status": "todo",
+      "due": "",
+      "createdAt": "2026-02-19T15:31:00Z",
+      "tags": [
+        "lfg",
+        "automation",
+        "content",
+        "n8n"
+      ]
+    }
+  ]
+}
