@@ -3589,6 +3589,30 @@ textarea.form-input {
     display: none;
   }
 
+  /* Knowledge actions — wrap on mobile */
+  #knowledgeActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .notion-sync-status {
+    display: none;
+  }
+
+  .editor-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Home tasks card */
+  #calendarCard {
+    grid-row: auto;
+  }
+
+  #calendarEmbed {
+    height: 300px;
+  }
+
   /* Chat */
   .chat-layout {
     grid-template-columns: 1fr;
