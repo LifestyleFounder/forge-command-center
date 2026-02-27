@@ -145,7 +145,7 @@
           <div id="vipAlerts"></div>
           <div class="dashboard-grid" id="dashboardGrid">
             <div class="card" id="calendarCard">
-              <div class="card-header"><h2>Schedule</h2></div>
+              <div class="card-header"><h2>Schedule</h2><button class="btn btn-ghost btn-xs" id="calendarFullViewBtn">Full View</button></div>
               <div class="card-body"><iframe id="calendarEmbed" title="Google Calendar" loading="lazy" src="https://calendar.google.com/calendar/embed?src=dan%40quantumcollective.com&ctz=America%2FVancouver&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showDate=1"></iframe></div>
             </div>
             <div class="card" id="clientsCard">
@@ -166,6 +166,15 @@
             <div class="card" id="pipelineCard">
               <div class="card-header"><h2>Pipeline</h2></div>
               <div class="card-body" id="pipelineBody"></div>
+            </div>
+            <div class="card" id="upcomingTasksCard">
+              <div class="card-header"><h2>Upcoming Tasks</h2><button class="btn btn-ghost btn-xs" id="tasksViewAllBtn">View All</button></div>
+              <div class="card-body" id="upcomingTasksBody">
+                <div class="home-tasks-list">
+                  <div class="brief-skeleton loading"></div>
+                  <div class="brief-skeleton loading"></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -418,7 +427,14 @@
         <section class="tab-panel" id="tab-knowledge" role="tabpanel" aria-labelledby="nav-knowledge" hidden>
           <div class="section-header">
             <h1>Knowledge</h1>
-            <div class="section-actions" id="knowledgeActions"><button class="btn btn-primary btn-sm" id="newNoteBtn">New Note</button></div>
+            <div class="section-actions" id="knowledgeActions">
+              <span class="notion-sync-status" id="notionSyncStatus"></span>
+              <button class="btn btn-ghost btn-sm" id="syncNotionBtn" title="Sync from Notion">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Sync Notion
+              </button>
+              <button class="btn btn-primary btn-sm" id="newNoteBtn">New Note</button>
+            </div>
           </div>
           <div class="subtabs" id="knowledgeSubtabs" role="tablist">
             <button class="subtab is-active" data-subtab="knowledge-library" role="tab" aria-selected="true">Library</button>
@@ -441,7 +457,14 @@
                 <div class="notes-editor" id="notesEditor" hidden>
                   <div class="editor-header">
                     <input type="text" class="editor-title" id="noteTitleInput" placeholder="Note title..." aria-label="Note title">
-                    <div class="editor-actions"><button class="btn btn-ghost btn-sm" id="cancelNoteBtn">Cancel</button><button class="btn btn-primary btn-sm" id="saveNoteBtn">Save</button></div>
+                    <div class="editor-actions">
+                      <label class="notion-toggle" id="notionToggleLabel" title="Save to Notion">
+                        <input type="checkbox" id="notionToggle">
+                        <span class="notion-toggle-text">Notion</span>
+                      </label>
+                      <button class="btn btn-ghost btn-sm" id="cancelNoteBtn">Cancel</button>
+                      <button class="btn btn-primary btn-sm" id="saveNoteBtn">Save</button>
+                    </div>
                   </div>
                   <div class="editor-toolbar" role="toolbar" aria-label="Formatting">
                     <button class="toolbar-btn" data-format="bold" aria-label="Bold"><strong>B</strong></button>

@@ -16,12 +16,20 @@ let activeDocId = null;
 let activeNoteId = null;
 let activeFolder = null;
 let autoSaveTimer = null;
+let lastNotionSync = null;
+let syncInProgress = false;
 
 const FOLDERS_KEY = 'forge-note-folders';
 const NOTES_KEY  = 'forge-notes-local';
+const SYNC_TS_KEY = 'forge-notion-last-sync';
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initKnowledge() {
+  // Restore last sync timestamp
+  const savedSync = localStorage.getItem(SYNC_TS_KEY);
+  if (savedSync) lastNotionSync = new Date(savedSync);
+
   loadKnowledgeData();
   bindKnowledgeEvents();
 
@@ -29,6 +37,16 @@ export function initKnowledge() {
     if (key === 'documents') renderLibrary();
     if (key === 'notes')     renderNotes();
   });
+}
+
+/** Called by app.js when user switches to Knowledge tab. Auto-syncs if stale. */
+export function onKnowledgeTabVisit() {
+  updateSyncStatus();
+  const now = Date.now();
+  const last = lastNotionSync ? lastNotionSync.getTime() : 0;
+  if (now - last > SYNC_INTERVAL_MS) {
+    syncFromNotion(true);
+  }
 }
 
 // ── Data loading ─────────────────────────────────────────────────────
@@ -317,6 +335,8 @@ function openNoteEditor(noteId) {
 
   activeNoteId = noteId || null;
 
+  const notionToggle = $('#notionToggle');
+
   if (note) {
     titleInput.value = note.title || '';
     contentEl.innerHTML = note.content || '';
@@ -328,11 +348,22 @@ function openNoteEditor(noteId) {
       metaEl.textContent = parts.join(' | ');
     }
     if (deleteBtn) deleteBtn.removeAttribute('hidden');
+    // Notion toggle: checked + disabled for existing Notion notes
+    if (notionToggle) {
+      const isNotion = note.source === 'notion';
+      notionToggle.checked = isNotion;
+      notionToggle.disabled = isNotion;
+    }
   } else {
     titleInput.value = '';
     contentEl.innerHTML = '';
     if (metaEl) metaEl.textContent = '';
     if (deleteBtn) deleteBtn.setAttribute('hidden', '');
+    // Notion toggle: unchecked and enabled for new notes
+    if (notionToggle) {
+      notionToggle.checked = false;
+      notionToggle.disabled = false;
+    }
   }
 
   if (notesList) notesList.setAttribute('hidden', '');
@@ -350,7 +381,7 @@ function closeNoteEditor() {
   renderNotesList();
 }
 
-function saveCurrentNote() {
+async function saveCurrentNote() {
   const titleInput = $('#noteTitleInput');
   const contentEl = $('#noteContent');
   if (!titleInput || !contentEl) return;
@@ -358,6 +389,8 @@ function saveCurrentNote() {
   const title = titleInput.value.trim() || 'Untitled';
   const content = contentEl.innerHTML;
   const now = new Date().toISOString();
+  const notionToggle = $('#notionToggle');
+  const saveToNotion = notionToggle?.checked || false;
 
   let notes = getState('notes') || [];
 
@@ -370,7 +403,36 @@ function saveCurrentNote() {
       return n;
     });
   } else {
-    // Create new
+    // Create new — if Notion toggle is on, try creating in Notion first
+    if (saveToNotion) {
+      const plainContent = stripHtml(content);
+      const created = await notionCreateNote({ title, content: plainContent, folder: activeFolder || 'general' });
+      if (created) {
+        const newNote = {
+          id: created.id,
+          title,
+          content,
+          folder: 'notion',
+          source: 'notion',
+          notionId: created.id,
+          notionUrl: created.notionUrl || null,
+          createdAt: now,
+          updatedAt: now,
+        };
+        activeNoteId = newNote.id;
+        notes.push(newNote);
+        const deleteBtn = $('#deleteNoteBtn');
+        if (deleteBtn) deleteBtn.removeAttribute('hidden');
+        setState('notes', notes);
+        persistNotes(notes);
+        showToast('Saved to Notion', 'success');
+        return;
+      } else {
+        showToast('Notion unavailable — saving locally', 'warning');
+      }
+    }
+
+    // Local-only creation (or Notion fallback)
     const newNote = {
       id: generateId('note'),
       title,
@@ -382,7 +444,6 @@ function saveCurrentNote() {
     };
     activeNoteId = newNote.id;
     notes.push(newNote);
-    // Show delete button now that note exists
     const deleteBtn = $('#deleteNoteBtn');
     if (deleteBtn) deleteBtn.removeAttribute('hidden');
   }
@@ -390,19 +451,29 @@ function saveCurrentNote() {
   setState('notes', notes);
   persistNotes(notes);
 
-  // Push back to Notion if it's a Notion note
+  // Push back to Notion if it's an existing Notion note
   const saved = notes.find(n => n.id === activeNoteId);
   if (saved) pushNoteToNotion(saved);
 
   showToast('Note saved');
 }
 
-function deleteCurrentNote() {
+async function deleteCurrentNote() {
   if (!activeNoteId) return;
 
   if (!confirm('Delete this note? This cannot be undone.')) return;
 
   let notes = getState('notes') || [];
+  const note = notes.find(n => n.id === activeNoteId);
+
+  // Archive in Notion if it's a Notion note
+  if (note && note.source === 'notion' && note.notionId) {
+    const ok = await notionDeleteNote(note.notionId);
+    if (!ok) {
+      showToast('Could not delete from Notion — removed locally only', 'warning');
+    }
+  }
+
   notes = notes.filter(n => n.id !== activeNoteId);
   setState('notes', notes);
   persistNotes(notes);
@@ -416,18 +487,32 @@ function persistNotes(notes) {
 }
 
 // ── Notion Sync ─────────────────────────────────────────────────────
+
+function updateSyncStatus() {
+  const el = $('#notionSyncStatus');
+  if (!el) return;
+  if (!lastNotionSync) {
+    el.textContent = '';
+    return;
+  }
+  el.textContent = `Synced ${formatRelativeTime(lastNotionSync.toISOString())}`;
+}
+
 async function syncFromNotion(silent = false) {
+  if (syncInProgress) return;
+  syncInProgress = true;
+
+  const btn = $('#syncNotionBtn');
+  if (btn) btn.disabled = true;
+
   if (!silent) showToast('Syncing from Notion...');
   try {
-    // notionGetNotes() returns already-normalized notes via notion-notes.js
     const notionNotes = await notionGetNotes();
     if (!notionNotes || notionNotes.length === 0) {
       if (!silent) showToast('No notes found in Notion', 'warning');
       return;
     }
 
-    // Map normalized notes into local format — note: normalizeNote in the
-    // service already sets createdAt/updatedAt/source/notionUrl correctly
     const mapped = notionNotes.map(n => ({
       id: n.id || generateId('notion'),
       title: n.title || 'Untitled',
@@ -444,10 +529,18 @@ async function syncFromNotion(silent = false) {
     const merged = mergeNotes(existing, mapped);
     setState('notes', merged);
     persistNotes(merged);
+
+    lastNotionSync = new Date();
+    localStorage.setItem(SYNC_TS_KEY, lastNotionSync.toISOString());
+    updateSyncStatus();
+
     if (!silent) showToast(`Synced ${mapped.length} notes from Notion`, 'success');
   } catch (err) {
     console.error('[knowledge] Notion sync failed:', err);
-    if (!silent) showToast('Notion sync failed', 'error');
+    if (!silent) showToast('Working offline — Notion unavailable', 'error');
+  } finally {
+    syncInProgress = false;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -608,16 +701,8 @@ function bindKnowledgeEvents() {
   // New Folder
   $('#newFolderBtn')?.addEventListener('click', () => createNewFolder());
 
-  // Notion Sync (add button dynamically if not present)
-  const notesSidebar = $('.notes-sidebar-panel');
-  if (notesSidebar && !$('#notionSyncBtn')) {
-    const syncBtn = document.createElement('button');
-    syncBtn.className = 'btn btn-ghost btn-sm';
-    syncBtn.id = 'notionSyncBtn';
-    syncBtn.textContent = 'Sync Notion';
-    notesSidebar.appendChild(syncBtn);
-    syncBtn.addEventListener('click', syncFromNotion);
-  }
+  // Notion Sync — bind static button from HTML
+  $('#syncNotionBtn')?.addEventListener('click', () => syncFromNotion(false));
 
   // Toolbar formatting (event delegation)
   const toolbar = $('.editor-toolbar');

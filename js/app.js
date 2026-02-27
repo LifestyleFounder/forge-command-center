@@ -6,7 +6,7 @@
 import { initHome } from './home.js';
 import { initProjects } from './projects.js';
 import { initContent } from './content.js';
-import { initKnowledge } from './knowledge.js';
+import { initKnowledge, onKnowledgeTabVisit } from './knowledge.js';
 import { initChat } from './chat.js';
 import { initVipClients } from './vip-clients.js';
 import { initCompetitors, loadCompetitorData } from './competitors.js';
@@ -266,6 +266,9 @@ function switchTab(tabName) {
 
   // Lazy-load data for tabs that need it
   onTabFirstVisit(tabName);
+
+  // Knowledge tab auto-sync check (every visit, not just first)
+  if (tabName === 'knowledge') onKnowledgeTabVisit();
 
   // Close mobile sidebar if open
   if (elCache.sidebar) {

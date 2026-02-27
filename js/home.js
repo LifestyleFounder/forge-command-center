@@ -18,6 +18,10 @@ import {
   setState,
   switchTab
 } from './app.js';
+import { getUpcomingTasks, completeTaskFromHome } from './google-tasks.js';
+
+// ---- Module state ------------------------------------------------
+let upcomingTaskCount = 0;
 
 // ---- DOM Cache (module-scoped) --------------------------------
 
@@ -68,6 +72,7 @@ export function initHome() {
   renderQuickActions();
   renderVipAlerts();
   updateGreeting();
+  renderUpcomingTasks();
 
   // Subscribe to state changes
   subscribe((key) => {
@@ -104,6 +109,43 @@ export function initHome() {
   // Refresh all data
   if (el.refreshAllBtn) {
     el.refreshAllBtn.addEventListener('click', handleRefreshAll);
+  }
+
+  // Tasks card: View All → Google Tasks tab
+  $('#tasksViewAllBtn')?.addEventListener('click', () => switchTab('google-tasks'));
+
+  // Calendar card: Full View → Calendar tab
+  $('#calendarFullViewBtn')?.addEventListener('click', () => switchTab('calendar'));
+
+  // Tasks card: checkbox delegation (complete on click)
+  const tasksBody = $('#upcomingTasksBody');
+  if (tasksBody) {
+    tasksBody.addEventListener('click', async (e) => {
+      const checkbox = e.target.closest('.home-task-checkbox');
+      if (!checkbox) return;
+      const taskId = checkbox.dataset.taskId;
+      const listId = checkbox.dataset.listId;
+      if (!taskId || !listId) return;
+
+      // Visual feedback
+      checkbox.classList.add('is-completing');
+      checkbox.textContent = '\u2713';
+      const row = checkbox.closest('.home-task-item');
+      if (row) row.classList.add('home-task-completing');
+
+      const result = await completeTaskFromHome(listId, taskId);
+      if (result) {
+        setTimeout(() => {
+          renderUpcomingTasks();
+          showToast('Task completed', 'success');
+        }, 500);
+      } else {
+        checkbox.classList.remove('is-completing');
+        checkbox.textContent = '';
+        if (row) row.classList.remove('home-task-completing');
+        showToast('Failed to complete task', 'error');
+      }
+    });
   }
 }
 
@@ -208,6 +250,15 @@ function generateInsights() {
       level: 'neutral',
       icon: '\u2705',
       text: parts.join(', ')
+    });
+  }
+
+  // --- Google Tasks due today ---
+  if (upcomingTaskCount > 0) {
+    insights.push({
+      level: 'neutral',
+      icon: '\u2705',
+      text: `${upcomingTaskCount} task${upcomingTaskCount > 1 ? 's' : ''} due today`
     });
   }
 
@@ -564,6 +615,53 @@ function renderVipAlerts() {
       `).join('')}
     </div>
   `;
+}
+
+// ---- Upcoming Tasks (Google Tasks) ----------------------------
+
+async function renderUpcomingTasks() {
+  const container = $('#upcomingTasksBody');
+  if (!container) return;
+
+  try {
+    const tasks = await getUpcomingTasks();
+
+    if (tasks.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No upcoming tasks</p></div>';
+      upcomingTaskCount = 0;
+      renderMorningBrief(); // re-render to pick up count
+      return;
+    }
+
+    // Count tasks due today
+    const today = new Date().toISOString().slice(0, 10);
+    upcomingTaskCount = tasks.filter(t => t.due && t.due.slice(0, 10) <= today).length;
+
+    const now = new Date();
+    container.innerHTML = `
+      <div class="home-tasks-list">
+        ${tasks.map(t => {
+          const isOverdue = t.due && new Date(t.due) < now;
+          const dueStr = t.due ? formatDate(t.due) : '';
+          return `
+            <div class="home-task-item" data-task-id="${escapeHtml(t.id)}">
+              <button class="home-task-checkbox" data-task-id="${escapeHtml(t.id)}" data-list-id="${escapeHtml(t.listId)}" aria-label="Complete task"></button>
+              <div class="home-task-content">
+                <span class="home-task-title">${escapeHtml(t.title || 'Untitled')}</span>
+              </div>
+              ${dueStr ? `<span class="home-task-due ${isOverdue ? 'home-task-overdue' : ''}">${dueStr}</span>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // Re-render morning brief to include task count
+    renderMorningBrief();
+  } catch (err) {
+    console.warn('[home] Failed to load upcoming tasks', err);
+    container.innerHTML = '<div class="empty-state"><p>Could not load tasks</p></div>';
+  }
 }
 
 // ---- Refresh All Data -----------------------------------------

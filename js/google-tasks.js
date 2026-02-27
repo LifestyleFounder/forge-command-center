@@ -214,6 +214,64 @@ function renderTaskItem(task) {
   `;
 }
 
+// ── Home Dashboard Exports ──────────────────────────────────────────
+
+/**
+ * Fetch upcoming incomplete tasks for the Home dashboard widget.
+ * Returns max 8 tasks sorted by due date (soonest first).
+ */
+export async function getUpcomingTasks() {
+  // Resolve API base if not yet done
+  if (apiBase === LOCAL_API) {
+    try {
+      const res = await fetch(`${LOCAL_API}/tasklists`, { signal: AbortSignal.timeout(2000) });
+      if (!res.ok) apiBase = VERCEL_API;
+    } catch {
+      apiBase = VERCEL_API;
+    }
+  }
+
+  try {
+    // Load task lists if not loaded
+    if (taskLists.length === 0) {
+      const res = await fetch(`${apiBase}/tasklists`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      taskLists = data.items || data || [];
+    }
+
+    if (taskLists.length === 0) return [];
+
+    const listId = taskLists[0].id;
+    const res = await fetch(`${apiBase}/tasklists/${encodeURIComponent(listId)}/tasks`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const allTasks = data.items || data || [];
+
+    // Filter incomplete, sort by due date (soonest first, no-due last)
+    return allTasks
+      .filter(t => t.status !== 'completed')
+      .sort((a, b) => {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return new Date(a.due) - new Date(b.due);
+      })
+      .slice(0, 8)
+      .map(t => ({ ...t, listId }));
+  } catch (err) {
+    console.warn('[google-tasks] getUpcomingTasks failed', err);
+    return [];
+  }
+}
+
+/**
+ * Complete a task from the Home dashboard widget.
+ */
+export async function completeTaskFromHome(listId, taskId) {
+  return apiCompleteTask(listId, taskId);
+}
+
 // ── Events ──────────────────────────────────────────────────────────
 
 function bindGoogleTaskEvents() {
