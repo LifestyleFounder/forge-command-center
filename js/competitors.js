@@ -136,7 +136,10 @@ function renderFeed() {
         const typeIcon = p.type === 'Video' ? '🎬' : p.type === 'Sidecar' ? '📸' : '📷';
         return `
         <div class="ig-card comp-post-card" data-post-id="${escapeHtml(p.id)}">
-          <div class="ig-card-hero">
+          ${p.imageUrl
+            ? `<img class="ig-card-img" src="${escapeHtml(p.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : ''}
+          <div class="ig-card-hero" ${p.imageUrl ? 'style="display:none"' : ''}>
             <span class="ig-card-type-icon">${typeIcon}</span>
             <span class="ig-card-type-label">${escapeHtml(p.type)}</span>
           </div>
@@ -174,11 +177,12 @@ function renderTopPostsTable() {
     <div class="table-wrap">
       <table class="data-table">
         <thead>
-          <tr><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th><th></th></tr>
+          <tr><th></th><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th><th></th></tr>
         </thead>
         <tbody>
           ${topPosts.slice(0, 50).map(p => `
             <tr class="comp-post-row" data-post-id="${escapeHtml(p.id)}">
+              <td>${p.imageUrl ? `<img class="table-thumb" src="${escapeHtml(p.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''}</td>
               <td>@${escapeHtml(p.creator)}</td>
               <td class="caption-cell">${escapeHtml((p.caption || '').slice(0, 80))}${(p.caption || '').length > 80 ? '...' : ''}</td>
               <td><span class="badge badge-type">${escapeHtml(p.type)}</span></td>

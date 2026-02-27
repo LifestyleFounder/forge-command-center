@@ -199,6 +199,10 @@ function normalizeCreator(row) {
 
 function normalizePost(row) {
   const creator = row.ig_creators;
+  // Use Instagram's /media/ endpoint for fresh images (CDN thumbnails expire)
+  const freshImageUrl = row.shortcode
+    ? proxyImageUrl(`https://www.instagram.com/p/${row.shortcode}/media/?size=l`)
+    : '';
   return {
     id: row.id,
     shortcode: row.shortcode,
@@ -206,7 +210,7 @@ function normalizePost(row) {
     creatorPic: proxyImageUrl(creator?.profile_pic_url),
     caption: row.caption || '',
     type: row.post_type || 'post',
-    imageUrl: proxyImageUrl(row.thumbnail_url),
+    imageUrl: freshImageUrl,
     likes: row.likes || 0,
     comments: row.comments || 0,
     views: row.views || 0,
