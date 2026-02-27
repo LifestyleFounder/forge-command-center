@@ -477,14 +477,94 @@ function switchIgSubtab(targetId) {
 // ═══════════════════════════════════════════════════════════════════════
 //  META ADS
 // ═══════════════════════════════════════════════════════════════════════
+let spendChart = null;
+let leadsChart = null;
+
 function renderMetaAds() {
   const meta = getState('metaAds');
   if (!meta) return;
 
   renderMetaSummary(meta.summary);
   renderMetaNarrative(meta.summary);
+  renderMetaCharts(meta);
   renderCampaignsTable(meta.campaigns);
   renderAdSwipes();
+}
+
+function renderMetaCharts(meta) {
+  if (typeof Chart === 'undefined') return;
+  const campaigns = meta.campaigns || [];
+  if (campaigns.length === 0) return;
+
+  // Ensure chart containers exist
+  let chartRow = $('#metaChartRow');
+  if (!chartRow) {
+    const metaPanel = $('#content-meta');
+    if (!metaPanel) return;
+    const narrative = metaPanel.querySelector('.meta-narrative') || metaPanel.querySelector('#metaNarrative');
+    if (!narrative) return;
+    chartRow = document.createElement('div');
+    chartRow.id = 'metaChartRow';
+    chartRow.className = 'meta-chart-row';
+    chartRow.innerHTML = `
+      <div class="meta-chart-wrap"><canvas id="metaSpendChart"></canvas></div>
+      <div class="meta-chart-wrap"><canvas id="metaLeadsChart"></canvas></div>
+    `;
+    narrative.parentNode.insertBefore(chartRow, narrative.nextSibling);
+  }
+
+  const labels = campaigns.map(c => (c.name || '').slice(0, 20));
+  const spendData = campaigns.map(c => c.spend || 0);
+  const leadsData = campaigns.map(c => c.leads || 0);
+
+  const chartColors = {
+    gold: 'rgba(200, 162, 74, 0.8)',
+    goldLight: 'rgba(200, 162, 74, 0.2)',
+    green: 'rgba(16, 185, 129, 0.8)',
+    greenLight: 'rgba(16, 185, 129, 0.2)',
+  };
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#9CA3AF' : '#6B7280';
+
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
+      y: { ticks: { color: textColor }, grid: { color: gridColor } },
+    },
+  };
+
+  // Spend chart
+  const spendCtx = $('#metaSpendChart');
+  if (spendCtx) {
+    if (spendChart) spendChart.destroy();
+    spendChart = new Chart(spendCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label: 'Spend ($)', data: spendData, backgroundColor: chartColors.gold, borderRadius: 4 }],
+      },
+      options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Spend by Campaign', color: textColor } } },
+    });
+  }
+
+  // Leads chart
+  const leadsCtx = $('#metaLeadsChart');
+  if (leadsCtx) {
+    if (leadsChart) leadsChart.destroy();
+    leadsChart = new Chart(leadsCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label: 'Leads', data: leadsData, backgroundColor: chartColors.green, borderRadius: 4 }],
+      },
+      options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Leads by Campaign', color: textColor } } },
+    });
+  }
 }
 
 function renderMetaSummary(summary) {

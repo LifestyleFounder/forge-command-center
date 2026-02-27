@@ -141,6 +141,8 @@
             <div class="metric-card" data-metric="apps"><div class="metric-label">Applications</div><div class="metric-value" id="metricApps">--</div><div class="metric-trend" id="metricAppsTrend">this week</div></div>
             <div class="metric-card" data-metric="workshop"><div class="metric-label">Workshops</div><div class="metric-value" id="metricWorkshop">--</div><div class="metric-trend" id="metricWorkshopTrend"></div></div>
           </div>
+          <div class="quick-actions" id="quickActions"></div>
+          <div id="vipAlerts"></div>
           <div class="dashboard-grid" id="dashboardGrid">
             <div class="card" id="calendarCard">
               <div class="card-header"><h2>Schedule</h2></div>
@@ -425,6 +427,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

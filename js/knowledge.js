@@ -6,6 +6,10 @@ import {
   escapeHtml, formatNumber, formatDate, formatRelativeTime,
   generateId, debounce, $, $$, openModal, closeModal, showToast
 } from './app.js';
+import {
+  getNotes as notionGetNotes, createNote as notionCreateNote,
+  updateNote as notionUpdateNote, deleteNote as notionDeleteNote
+} from './services/notion-notes.js';
 
 // ── State ────────────────────────────────────────────────────────────
 let activeDocId = null;
@@ -382,6 +386,11 @@ function saveCurrentNote() {
 
   setState('notes', notes);
   persistNotes(notes);
+
+  // Push back to Notion if it's a Notion note
+  const saved = notes.find(n => n.id === activeNoteId);
+  if (saved) pushNoteToNotion(saved);
+
   showToast('Note saved');
 }
 
@@ -401,6 +410,48 @@ function deleteCurrentNote() {
 function persistNotes(notes) {
   const localNotes = notes.filter(n => n.source === 'local' || !n.source);
   localStorage.setItem(NOTES_KEY, JSON.stringify(localNotes));
+}
+
+// ── Notion Sync ─────────────────────────────────────────────────────
+async function syncFromNotion() {
+  showToast('Syncing from Notion...');
+  try {
+    const notionNotes = await notionGetNotes();
+    if (!notionNotes || notionNotes.length === 0) {
+      showToast('No notes found in Notion', 'warning');
+      return;
+    }
+
+    const mapped = notionNotes.map(n => ({
+      id: n.id || generateId('notion'),
+      title: n.title || 'Untitled',
+      content: n.content || '',
+      folder: 'notion',
+      source: 'notion',
+      notionId: n.id,
+      createdAt: n.created_time || new Date().toISOString(),
+      updatedAt: n.last_edited_time || new Date().toISOString(),
+    }));
+
+    const existing = getState('notes') || [];
+    const merged = mergeNotes(existing, mapped);
+    setState('notes', merged);
+    persistNotes(merged);
+    showToast(`Synced ${mapped.length} notes from Notion`, 'success');
+  } catch (err) {
+    console.error('[knowledge] Notion sync failed:', err);
+    showToast('Notion sync failed', 'error');
+  }
+}
+
+async function pushNoteToNotion(note) {
+  if (!note || note.source !== 'notion' || !note.notionId) return;
+  try {
+    const plainContent = stripHtml(note.content || '');
+    await notionUpdateNote(note.notionId, { title: note.title, content: plainContent });
+  } catch (err) {
+    console.warn('[knowledge] Failed to push note to Notion:', err);
+  }
 }
 
 function scheduleAutoSave() {
@@ -549,6 +600,17 @@ function bindKnowledgeEvents() {
 
   // New Folder
   $('#newFolderBtn')?.addEventListener('click', () => createNewFolder());
+
+  // Notion Sync (add button dynamically if not present)
+  const notesSidebar = $('.notes-sidebar-panel');
+  if (notesSidebar && !$('#notionSyncBtn')) {
+    const syncBtn = document.createElement('button');
+    syncBtn.className = 'btn btn-ghost btn-sm';
+    syncBtn.id = 'notionSyncBtn';
+    syncBtn.textContent = 'Sync Notion';
+    notesSidebar.appendChild(syncBtn);
+    syncBtn.addEventListener('click', syncFromNotion);
+  }
 
   // Toolbar formatting (event delegation)
   const toolbar = $('.editor-toolbar');

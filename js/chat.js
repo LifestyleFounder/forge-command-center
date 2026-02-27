@@ -6,6 +6,11 @@ import {
   escapeHtml, formatNumber, formatDate, formatRelativeTime,
   generateId, debounce, $, $$, openModal, closeModal, showToast
 } from './app.js';
+import {
+  getThreads as sbGetThreads, createThread as sbCreateThread,
+  archiveThread as sbArchiveThread, updateThreadTitle as sbUpdateTitle,
+  getMessages as sbGetMessages, saveMessage as sbSaveMessage
+} from './services/chat-persistence.js';
 
 // ── Constants ────────────────────────────────────────────────────────
 const THREADS_KEY = 'forge-chat-threads';
@@ -135,6 +140,34 @@ function saveThreads(threads) {
   localStorage.setItem(THREADS_KEY, JSON.stringify(threads));
 }
 
+// ── Supabase Sync (fire-and-forget) ─────────────────────────────
+async function syncThreadToSupabase(thread) {
+  try {
+    await sbCreateThread({
+      id: thread.id,
+      title: thread.title,
+      agent_id: thread.agentId,
+      created_at: thread.createdAt,
+      updated_at: thread.updatedAt,
+    });
+  } catch { /* silent — localStorage is primary */ }
+}
+
+async function syncMessageToSupabase(threadId, msg) {
+  try {
+    await sbSaveMessage({
+      thread_id: threadId,
+      role: msg.role,
+      content: msg.content,
+      created_at: msg.timestamp,
+    });
+  } catch { /* silent */ }
+}
+
+async function syncTitleToSupabase(threadId, title) {
+  try { await sbUpdateTitle(threadId, title); } catch { /* silent */ }
+}
+
 function getActiveThread() {
   if (!activeThreadId) return null;
   const threads = getThreads();
@@ -219,6 +252,7 @@ function createNewThread() {
   renderThreadsList(getThreads());
   renderMessages([]);
   highlightActiveThread();
+  syncThreadToSupabase(thread);
 
   const input = $('#chatInput');
   if (input) input.focus();
@@ -233,6 +267,7 @@ function updateThreadTitle(threadId, firstMessage) {
   saveThreads(threads);
   renderThreadsList(getThreads());
   highlightActiveThread();
+  syncTitleToSupabase(threadId, thread.title);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -378,6 +413,7 @@ async function handleSend() {
 
   // Render and clear input
   appendMessage(userMsg);
+  syncMessageToSupabase(activeThreadId, userMsg);
   input.value = '';
   autoResize();
   closeMentionDropdown();
@@ -413,6 +449,7 @@ async function handleSend() {
     }
 
     appendMessage(assistantMsg);
+    syncMessageToSupabase(activeThreadId, assistantMsg);
     renderThreadsList(getThreads());
     highlightActiveThread();
   } catch (err) {

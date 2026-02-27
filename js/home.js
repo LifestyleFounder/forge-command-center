@@ -15,7 +15,8 @@ import {
   $$,
   showToast,
   loadJSON,
-  setState
+  setState,
+  switchTab
 } from './app.js';
 
 // ---- DOM Cache (module-scoped) --------------------------------
@@ -64,6 +65,8 @@ export function initHome() {
   renderMetrics();
   renderClientHealth();
   renderPipeline();
+  renderQuickActions();
+  renderVipAlerts();
   updateGreeting();
 
   // Subscribe to state changes
@@ -76,6 +79,9 @@ export function initHome() {
     }
     if (key === 'tasks' || key === 'status') {
       renderMorningBrief();
+    }
+    if (key === 'vipClients') {
+      renderVipAlerts();
     }
   });
 
@@ -490,6 +496,73 @@ function renderPipeline() {
         `).join('')}
       </div>
     ` : ''}
+  `;
+}
+
+// ---- Quick Actions --------------------------------------------
+
+function renderQuickActions() {
+  const container = $('#quickActions');
+  if (!container) return;
+
+  const actions = [
+    { label: 'VIP Clients', tab: 'vip-clients', icon: '👥' },
+    { label: 'Google Tasks', tab: 'google-tasks', icon: '✅' },
+    { label: 'Competitors', tab: 'competitors', icon: '🌐' },
+    { label: 'Reports', tab: 'reports', icon: '📊' },
+    { label: 'Calendar', tab: 'calendar', icon: '📅' },
+    { label: 'Chat', tab: 'chat', icon: '💬' },
+  ];
+
+  container.innerHTML = actions.map(a =>
+    `<button class="quick-action-btn" data-quick-tab="${escapeHtml(a.tab)}"><span class="quick-action-icon">${a.icon}</span><span class="quick-action-label">${escapeHtml(a.label)}</span></button>`
+  ).join('');
+
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-quick-tab]');
+    if (btn) switchTab(btn.dataset.quickTab);
+  });
+}
+
+// ---- VIP Client Alerts ----------------------------------------
+
+function renderVipAlerts() {
+  const container = $('#vipAlerts');
+  if (!container) return;
+
+  const data = getState('vipClients');
+  if (!data || !data.clients) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const alerts = [];
+
+  data.clients.forEach(c => {
+    const s = (c.status || '').toLowerCase();
+    if (s === 'at risk') {
+      alerts.push({ name: c.name, type: 'danger', text: 'At Risk' });
+    }
+    if (c.todo && c.todo.length > 0) {
+      alerts.push({ name: c.name, type: 'warning', text: `${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}` });
+    }
+  });
+
+  if (alerts.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="home-section-header"><h3>Client Alerts</h3></div>
+    <div class="vip-alerts-list">
+      ${alerts.slice(0, 6).map(a => `
+        <div class="vip-alert-item vip-alert-${escapeHtml(a.type)}">
+          <span class="vip-alert-name">${escapeHtml(a.name)}</span>
+          <span class="badge badge-${a.type === 'danger' ? 'error' : 'warning'}">${escapeHtml(a.text)}</span>
+        </div>
+      `).join('')}
+    </div>
   `;
 }
 

@@ -4506,6 +4506,91 @@ a:focus:not(:focus-visible) {
   background: var(--bg-hover);
 }
 
+/* ---- Quick Actions ----------------------------------------- */
+.quick-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.quick-action-btn:hover {
+  border-color: var(--color-gold);
+  background: var(--bg-hover);
+}
+
+.quick-action-icon {
+  font-size: var(--text-base);
+}
+
+/* ---- VIP Alerts (Home) ------------------------------------- */
+.home-section-header h3 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.vip-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+}
+
+.vip-alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.vip-alert-danger {
+  border-left: 3px solid var(--color-error);
+}
+
+.vip-alert-warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.vip-alert-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ---- Meta Ads Charts --------------------------------------- */
+.meta-chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.meta-chart-wrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  height: 240px;
+}
+
 /* ---- Responsive (new tabs) --------------------------------- */
 @media (max-width: 768px) {
   .creator-cards-grid {
@@ -4542,5 +4627,14 @@ a:focus:not(:focus-visible) {
 
   .iframe-container {
     height: calc(100vh - 120px);
+  }
+
+  .meta-chart-row {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    overflow-x: auto;
+    flex-wrap: nowrap;
   }
 }
