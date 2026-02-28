@@ -162,6 +162,185 @@ export async function getScrapeRuns(limit = 10) {
   }
 }
 
+// ── Hybrid data source ──────────────────────────────────────────────
+// Tries Supabase first. Falls back to static JSON + localStorage edits.
+
+const LS_KEY = 'forge-creator-edits';
+
+function getLocalEdits() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+function saveLocalEdits(edits) {
+  localStorage.setItem(LS_KEY, JSON.stringify(edits));
+}
+
+export async function getCreatorsWithFallback() {
+  // Fetch Supabase data
+  const sbCreators = await getCreators();
+  const sbPosts = sbCreators.length > 0 ? await getRecentPosts(50) : [];
+
+  // Check if Supabase has RICH creator profiles (followers, bio, engagement)
+  const hasRichProfiles = sbCreators.some(c => c.followers > 0 && c.bio);
+
+  // If Supabase has rich profiles, use it directly
+  if (hasRichProfiles) {
+    return { creators: sbCreators, posts: sbPosts, source: 'supabase' };
+  }
+
+  // Otherwise: load static JSON for rich profiles, merge with Supabase posts
+  try {
+    const res = await fetch('data/creators.json?t=' + Date.now());
+    const data = await res.json();
+    const edits = getLocalEdits();
+    const removed = edits.removed || [];
+    const added = edits.added || [];
+
+    // Start with static creators (rich profiles)
+    let creators = (data.creators || [])
+      .filter(c => !removed.includes(c.username))
+      .map(normalizeStaticCreator);
+
+    // Merge in locally-added creators (placeholders)
+    added.forEach(a => {
+      if (!creators.find(c => c.username === a.username) && !removed.includes(a.username)) {
+        creators.push(a);
+      }
+    });
+
+    // Also merge in any Supabase creators that aren't in static data
+    sbCreators.forEach(sc => {
+      if (!creators.find(c => c.username === sc.username) && !removed.includes(sc.username)) {
+        creators.push(sc);
+      }
+    });
+
+    // Combine posts: static analyzed posts + Supabase scraped posts (deduped)
+    const staticPosts = extractStaticPosts(data.creators || [], removed);
+    const postIds = new Set(staticPosts.map(p => p.id));
+    const mergedPosts = [...staticPosts];
+    sbPosts.forEach(sp => {
+      if (!postIds.has(sp.id)) mergedPosts.push(sp);
+    });
+    mergedPosts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+    return { creators, posts: mergedPosts, source: sbPosts.length > 0 ? 'hybrid' : 'static', lastUpdated: data.lastUpdated };
+  } catch (err) {
+    console.warn('[creator-scraper] Static JSON fallback failed', err);
+    // Last resort: just return whatever Supabase has
+    if (sbCreators.length > 0) return { creators: sbCreators, posts: sbPosts, source: 'supabase' };
+    return { creators: [], posts: [], source: 'none' };
+  }
+}
+
+export function addCreatorLocal(username) {
+  const clean = username.replace(/^@/, '').trim().toLowerCase();
+  if (!clean) return null;
+  const edits = getLocalEdits();
+  if (!edits.added) edits.added = [];
+  if (!edits.removed) edits.removed = [];
+
+  // Remove from "removed" list if it was previously removed
+  edits.removed = edits.removed.filter(u => u !== clean);
+
+  // Add placeholder if not already there
+  if (!edits.added.find(a => a.username === clean)) {
+    const placeholder = {
+      id: 'local-' + clean,
+      username: clean,
+      fullName: '@' + clean,
+      bio: 'Manually added — data will populate when scraper runs.',
+      profilePic: '',
+      followers: 0,
+      following: 0,
+      posts: 0,
+      engagementRate: 0,
+      avgLikes: 0,
+      avgComments: 0,
+      niche: '',
+      isActive: true,
+      lastScraped: new Date().toISOString(),
+      topContent: [],
+    };
+    edits.added.push(placeholder);
+    saveLocalEdits(edits);
+    return placeholder;
+  }
+  saveLocalEdits(edits);
+  return edits.added.find(a => a.username === clean);
+}
+
+export function removeCreatorLocal(username) {
+  const edits = getLocalEdits();
+  if (!edits.removed) edits.removed = [];
+  if (!edits.added) edits.added = [];
+
+  // Add to removed list
+  if (!edits.removed.includes(username)) {
+    edits.removed.push(username);
+  }
+  // Remove from added list
+  edits.added = edits.added.filter(a => a.username !== username);
+  saveLocalEdits(edits);
+  return true;
+}
+
+function normalizeStaticCreator(c) {
+  return {
+    id: c.id,
+    username: c.username,
+    fullName: c.fullName || '',
+    bio: c.bio || '',
+    profilePic: c.profilePic || '',
+    followers: c.followers || 0,
+    following: c.following || 0,
+    posts: c.posts || 0,
+    engagementRate: c.engagementRate || 0,
+    avgLikes: c.avgLikes || 0,
+    avgComments: c.avgComments || 0,
+    niche: c.niche || '',
+    isActive: true,
+    lastScraped: c.lastUpdated || '2026-02-27',
+    topContent: c.topContent || [],
+  };
+}
+
+function extractStaticPosts(creators, removed = []) {
+  const posts = [];
+  creators.forEach(c => {
+    if (removed.includes(c.username)) return;
+    (c.topContent || []).forEach(p => {
+      posts.push({
+        id: p.id,
+        shortcode: '',
+        creator: c.username,
+        creatorPic: c.profilePic || '',
+        caption: p.caption || '',
+        type: (p.type || 'post').toLowerCase(),
+        imageUrl: '',
+        likes: p.likes || 0,
+        comments: p.comments || 0,
+        views: p.views || 0,
+        date: p.date,
+        permalink: p.permalink || '',
+        spokenHook: p.spokenHook || '',
+        textHook: p.textHook || '',
+        hookStructure: p.hookStructure || '',
+        hookFramework: p.hookFramework || '',
+        contentStructure: p.contentStructure || '',
+        visualFormat: p.visualFormat || '',
+        visualHook: p.visualHook || '',
+        topic: p.topic || '',
+        summary: p.summary || '',
+        cta: p.cta || '',
+        topicTag: p.topic || '',
+      });
+    });
+  });
+  return posts.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+}
+
 // ── Proxy helper ─────────────────────────────────────────────────────
 
 export function proxyImageUrl(url) {
@@ -219,7 +398,13 @@ function normalizePost(row) {
     spokenHook: row.spoken_hook || '',
     textHook: row.text_hook || '',
     hookStructure: row.hook_structure || '',
-    topicTag: row.topic_tag || '',
+    hookFramework: row.hook_framework || '',
+    contentStructure: row.content_structure || '',
     visualFormat: row.visual_format || '',
+    visualHook: row.visual_hook || '',
+    topic: row.topic || '',
+    summary: row.summary || '',
+    cta: row.cta || '',
+    topicTag: row.topic_tag || '',
   };
 }

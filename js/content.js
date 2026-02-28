@@ -736,6 +736,8 @@ function filterAndRenderSwipes(data) {
     const typeIcon = s.mediaType === 'video' ? '🎬' : s.mediaType === 'carousel' ? '📸' : '🖼';
     const categoryLabel = (s.category || '').replace(/-/g, ' ');
     const hasImage = s.imageUrl && s.imageUrl.startsWith('http');
+    const hookClass = 'hook-' + ((s.hookType || '').toLowerCase().replace(/\s+/g, '-') || 'default');
+    const elemCount = (s.swipeElements || []).length;
 
     return `
       <div class="swipe-card" data-swipe-id="${escapeHtml(s.id)}">
@@ -748,13 +750,16 @@ function filterAndRenderSwipes(data) {
             <span class="swipe-media-type">${escapeHtml(s.mediaType || 'ad')}</span>
           </div>
           <span class="swipe-type-badge">${escapeHtml(s.mediaType || '')}</span>
+          ${s.hookType ? `<span class="swipe-hook-badge ${hookClass}">${escapeHtml(s.hookType)}</span>` : ''}
         </div>
         <div class="swipe-card-body">
           <span class="swipe-advertiser">${escapeHtml(s.advertiser)}</span>
           <div class="swipe-headline">${escapeHtml(s.headline || (s.primaryText || '').slice(0, 80))}</div>
+          ${s.hookFramework ? `<div class="swipe-hook-preview">"${escapeHtml(s.hookFramework)}"</div>` : ''}
           <div class="swipe-meta-row">
             <span class="badge badge-category">${escapeHtml(categoryLabel)}</span>
             ${s.foundDate ? `<span class="swipe-date">${formatDate(s.foundDate)}</span>` : ''}
+            ${elemCount ? `<span class="swipe-elements-count">${elemCount} elements</span>` : ''}
           </div>
         </div>
       </div>
@@ -791,6 +796,7 @@ function openSwipeDetail(swipeId) {
         <span class="swipe-advertiser">${escapeHtml(swipe.advertiser)}</span>
         <span class="badge badge-type">${escapeHtml(swipe.mediaType || '')}</span>
         <span class="badge badge-category">${escapeHtml((swipe.category || '').replace(/-/g, ' '))}</span>
+        ${swipe.hookType ? `<span class="badge" style="background:rgba(139,92,246,0.1);color:#7c3aed;border:1px solid rgba(139,92,246,0.25)">${escapeHtml(swipe.hookType)}</span>` : ''}
         ${swipe.startDate ? `<span class="text-xs text-tertiary">Running since ${escapeHtml(swipe.startDate)}</span>` : ''}
       </div>
 
@@ -822,17 +828,17 @@ function openSwipeDetail(swipeId) {
         </div>
       ` : ''}
 
-      ${swipe.whyItWorks ? `
-        <div class="swipe-detail-section swipe-detail-highlight">
-          <h3>Why It Works</h3>
-          <p>${escapeHtml(swipe.whyItWorks)}</p>
+      ${swipe.hookFramework ? `
+        <div class="swipe-detail-section swipe-detail-framework">
+          <h3>Hook Framework</h3>
+          <p>"${escapeHtml(swipe.hookFramework)}"</p>
         </div>
       ` : ''}
 
-      ${swipe.hookFramework ? `
+      ${swipe.copyStructure ? `
         <div class="swipe-detail-section">
-          <h3>Hook Framework</h3>
-          <p>${escapeHtml(swipe.hookFramework)}</p>
+          <h3>Copy Structure</h3>
+          <p>${escapeHtml(swipe.copyStructure)}</p>
         </div>
       ` : ''}
 
@@ -840,6 +846,22 @@ function openSwipeDetail(swipeId) {
         <div class="swipe-detail-section">
           <h3>Target Audience</h3>
           <p>${escapeHtml(swipe.targetAudience)}</p>
+        </div>
+      ` : ''}
+
+      ${(swipe.swipeElements && swipe.swipeElements.length) ? `
+        <div class="swipe-detail-section swipe-detail-elements">
+          <h3>Swipeable Elements (${swipe.swipeElements.length})</h3>
+          <ul>
+            ${swipe.swipeElements.map(el => `<li>${escapeHtml(el)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${swipe.whyItWorks ? `
+        <div class="swipe-detail-section swipe-detail-highlight">
+          <h3>Why It Works</h3>
+          <p>${escapeHtml(swipe.whyItWorks)}</p>
         </div>
       ` : ''}
 
