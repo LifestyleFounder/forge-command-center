@@ -500,7 +500,6 @@ function renderMetaAds() {
   const meta = getState('metaAds');
   if (!meta) return;
 
-  renderMetaSummary(meta.summary);
   renderMetaNarrative(meta.summary);
   renderMetaCharts(meta);
   renderCampaignsTable(meta.campaigns);
@@ -546,12 +545,24 @@ function renderMetaCharts(meta) {
     },
   };
 
+  const lineDataset = (label, data, color) => ({
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: color.replace('0.8', '0.15'),
+    fill: true,
+    tension: 0.3,
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    borderWidth: 2,
+  });
+
   const spendCtx = $('#metaSpendChart');
   if (spendCtx) {
     if (spendChart) spendChart.destroy();
     spendChart = new Chart(spendCtx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Spend ($)', data: spendData, backgroundColor: chartColors.gold, borderRadius: 4 }] },
+      type: 'line',
+      data: { labels, datasets: [lineDataset('Spend ($)', spendData, chartColors.gold)] },
       options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Spend by Campaign', color: textColor } } },
     });
   }
@@ -560,8 +571,8 @@ function renderMetaCharts(meta) {
   if (leadsCtx) {
     if (leadsChart) leadsChart.destroy();
     leadsChart = new Chart(leadsCtx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Leads', data: leadsData, backgroundColor: chartColors.green, borderRadius: 4 }] },
+      type: 'line',
+      data: { labels, datasets: [lineDataset('Leads', leadsData, chartColors.green)] },
       options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Leads by Campaign', color: textColor } } },
     });
   }
@@ -570,41 +581,20 @@ function renderMetaCharts(meta) {
   if (appsCtx) {
     if (appsChart) appsChart.destroy();
     appsChart = new Chart(appsCtx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Applications', data: appsData, backgroundColor: chartColors.blue, borderRadius: 4 }] },
+      type: 'line',
+      data: { labels, datasets: [lineDataset('Applications', appsData, chartColors.blue)] },
       options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Applications by Campaign', color: textColor } } },
     });
   }
 }
 
-function renderMetaSummary(summary) {
-  if (!summary) return;
-
-  const spend = summary.spend || 0;
-  const leads = summary.leads || 0;
-  const apps = summary.applications || 0;
-  const cpl = leads > 0 ? spend / leads : 0;
-  const cpa = apps > 0 ? spend / apps : 0;
-  const roas = summary.roas || (summary.revenue && spend ? (summary.revenue / spend) : 0);
-  const impressions = summary.impressions || 0;
-  const revenue = summary.revenue || 0;
-
-  setTextContent('#metaSpend', '$' + formatNumber(spend));
-  setTextContent('#metaLeads', formatNumber(leads));
-  setTextContent('#metaCPL', leads > 0 ? '$' + cpl.toFixed(2) : '--');
-  setTextContent('#metaApps', formatNumber(apps));
-  setTextContent('#metaCPA', apps > 0 ? '$' + cpa.toFixed(2) : '--');
-  setTextContent('#metaROAS', roas > 0 ? roas.toFixed(1) + 'x' : '--');
-  setTextContent('#metaImpressions', formatCompact(impressions));
-  setTextContent('#metaRevenue', revenue > 0 ? '$' + formatNumber(revenue) : '--');
-}
 
 function renderMetaNarrative(summary) {
   const el = $('#metaNarrative');
   if (!el || !summary) return;
 
   if (!summary.spend && !summary.impressions) {
-    el.textContent = 'Connect your Meta Ads account or use Quick Add to enter performance data.';
+    el.textContent = 'No Meta Ads data yet. Hit Refresh to pull latest campaign performance.';
     return;
   }
 
@@ -640,7 +630,7 @@ function renderCampaignsTable(campaigns) {
   if (!el) return;
 
   if (!campaigns || campaigns.length === 0) {
-    el.innerHTML = `<tr><td colspan="9" class="empty-cell">Connect Meta Ads to see campaigns, or use Quick Add below.</td></tr>`;
+    el.innerHTML = `<tr><td colspan="9" class="empty-cell">No campaign data. Hit Refresh to pull from Meta.</td></tr>`;
     return;
   }
 
@@ -663,37 +653,6 @@ function renderCampaignsTable(campaigns) {
   }).join('');
 }
 
-function quickAddMetaData() {
-  const spend = parseFloat($('#quickSpend')?.value) || 0;
-  const leads = parseInt($('#quickLeads')?.value) || 0;
-  const revenue = parseFloat($('#quickRevenue')?.value) || 0;
-
-  if (!spend && !leads && !revenue) {
-    showToast('Enter at least one value', 'warning');
-    return;
-  }
-
-  const meta = getState('metaAds') || { summary: {}, campaigns: [] };
-  const s = meta.summary || {};
-
-  s.spend = (s.spend || 0) + spend;
-  s.leads = (s.leads || 0) + leads;
-  s.revenue = (s.revenue || 0) + revenue;
-  s.cpl = s.leads > 0 ? Math.round(s.spend / s.leads) : 0;
-  s.roas = s.spend > 0 ? s.revenue / s.spend : 0;
-  meta.summary = s;
-  meta.lastUpdated = new Date().toISOString();
-
-  setState('metaAds', { ...meta });
-  saveLocal('metaAds', meta);
-
-  // Clear inputs
-  const qi = $('#quickSpend'); if (qi) qi.value = '';
-  const ql = $('#quickLeads'); if (ql) ql.value = '';
-  const qr = $('#quickRevenue'); if (qr) qr.value = '';
-
-  showToast('Data added to summary');
-}
 
 // ── Ad Swipe File ────────────────────────────────────────────────────
 function renderAdSwipes() {
@@ -892,145 +851,7 @@ function openSwipeDetail(swipeId) {
   openModal('swipeDetailModal');
 }
 
-// ── Meta Settings & Refresh ─────────────────────────────────────────
-function openMetaSettings() {
-  const body = $('#settingsBody');
-  const title = $('#settingsTitle');
-  if (!body) return;
-
-  if (title) title.textContent = 'Meta Ads Settings';
-
-  const savedToken = localStorage.getItem('forge-meta-token') || '';
-  const savedAccount = localStorage.getItem('forge-meta-account') || '';
-
-  body.innerHTML = `
-    <div class="meta-settings-tabs">
-      <button class="btn btn-sm meta-settings-tab is-active" data-meta-tab="api">API Connection</button>
-      <button class="btn btn-sm meta-settings-tab" data-meta-tab="manual">Manual Entry</button>
-    </div>
-
-    <div class="meta-settings-panel" id="metaSettingsApi">
-      <div class="form-group">
-        <label class="form-label" for="metaTokenInput">Access Token</label>
-        <input type="password" class="form-input" id="metaTokenInput" placeholder="EAA..." value="${escapeHtml(savedToken)}">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="metaAccountInput">Ad Account ID</label>
-        <input type="text" class="form-input" id="metaAccountInput" placeholder="act_..." value="${escapeHtml(savedAccount)}">
-      </div>
-      <div class="text-xs text-secondary" style="margin-top:var(--space-2)">
-        Get your token from Meta Business Suite &rarr; Settings &rarr; Ad Account.
-      </div>
-    </div>
-
-    <div class="meta-settings-panel" id="metaSettingsManual" hidden>
-      <div class="form-group">
-        <label class="form-label" for="manualDateRange">Date Range</label>
-        <select class="form-select" id="manualDateRange">
-          <option value="last_7d">Last 7 Days</option>
-          <option value="last_30d">Last 30 Days</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="manualSpend">Total Spend ($)</label>
-        <input type="number" class="form-input" id="manualSpend" step="0.01" placeholder="0.00">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="manualLeads">Total Leads</label>
-        <input type="number" class="form-input" id="manualLeads" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="manualRevenue">Revenue ($)</label>
-        <input type="number" class="form-input" id="manualRevenue" step="0.01" placeholder="0.00">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="manualImpressions">Impressions</label>
-        <input type="number" class="form-input" id="manualImpressions" placeholder="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="manualCampaigns">Campaign Breakdown (CSV: Name, Spend, Leads)</label>
-        <textarea class="form-input" id="manualCampaigns" rows="4" placeholder="Campaign 1, 500, 12&#10;Campaign 2, 300, 8"></textarea>
-      </div>
-    </div>
-  `;
-
-  // Tab switching within modal
-  body.addEventListener('click', (e) => {
-    const tab = e.target.closest('.meta-settings-tab');
-    if (!tab) return;
-    const target = tab.dataset.metaTab;
-    body.querySelectorAll('.meta-settings-tab').forEach(t => t.classList.toggle('is-active', t === tab));
-    const apiPanel = $('#metaSettingsApi');
-    const manualPanel = $('#metaSettingsManual');
-    if (apiPanel) apiPanel.hidden = target !== 'api';
-    if (manualPanel) manualPanel.hidden = target !== 'manual';
-  });
-
-  openModal('settingsModal');
-
-  const saveBtn = $('#saveSettingsBtn');
-  if (saveBtn) {
-    const handler = () => {
-      const activeTab = body.querySelector('.meta-settings-tab.is-active');
-      const isApi = activeTab?.dataset.metaTab === 'api';
-
-      if (isApi) {
-        const token = ($('#metaTokenInput'))?.value?.trim() || '';
-        const account = ($('#metaAccountInput'))?.value?.trim() || '';
-        localStorage.setItem('forge-meta-token', token);
-        localStorage.setItem('forge-meta-account', account);
-        closeModal('settingsModal');
-        showToast('Meta Ads settings saved');
-        if (token && account) refreshMetaAds();
-      } else {
-        saveManualMetaData();
-        closeModal('settingsModal');
-      }
-      saveBtn.removeEventListener('click', handler);
-    };
-    saveBtn.addEventListener('click', handler);
-  }
-}
-
-function saveManualMetaData() {
-  const spend = parseFloat($('#manualSpend')?.value) || 0;
-  const leads = parseInt($('#manualLeads')?.value) || 0;
-  const revenue = parseFloat($('#manualRevenue')?.value) || 0;
-  const impressions = parseInt($('#manualImpressions')?.value) || 0;
-  const period = $('#manualDateRange')?.value || 'last_7d';
-
-  const campaignText = $('#manualCampaigns')?.value || '';
-  const campaigns = campaignText.split('\n').filter(l => l.trim()).map(line => {
-    const parts = line.split(',').map(s => s.trim());
-    return {
-      name: parts[0] || 'Unknown',
-      status: 'ACTIVE',
-      spend: parseFloat(parts[1]) || 0,
-      impressions: 0,
-      clicks: 0,
-      leads: parseInt(parts[2]) || 0,
-    };
-  });
-
-  const meta = {
-    lastUpdated: new Date().toISOString(),
-    summary: {
-      spend,
-      leads,
-      cpl: leads > 0 ? Math.round(spend / leads) : 0,
-      roas: spend > 0 ? revenue / spend : 0,
-      impressions,
-      revenue,
-      period,
-    },
-    campaigns,
-  };
-
-  setState('metaAds', meta);
-  saveLocal('metaAds', meta);
-  showToast('Meta Ads data saved');
-}
-
+// ── Meta Refresh ────────────────────────────────────────────────────
 async function refreshMetaAds(preset) {
   if (preset) activeMetaPreset = preset;
   try {
@@ -1143,8 +964,6 @@ function bindContentEvents() {
 
   // Meta Ads buttons
   $('#metaRefreshBtn')?.addEventListener('click', () => refreshMetaAds());
-  $('#metaSettingsBtn')?.addEventListener('click', openMetaSettings);
-  $('#quickAddBtn')?.addEventListener('click', quickAddMetaData);
 
   // Swipe filters
   $('#swipeFilterCompetitor')?.addEventListener('change', () => renderAdSwipes());

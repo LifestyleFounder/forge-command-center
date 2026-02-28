@@ -279,52 +279,8 @@
             <button class="meta-date-btn" data-preset="last_30d">30 Days</button>
           </div>
 
-          <!-- KPI Summary -->
-          <div class="meta-summary" id="metaSummary">
-            <div class="meta-stats-grid">
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">💰</span>
-                <span class="meta-stat-label">Ad Spend</span>
-                <span class="meta-stat-value" id="metaSpend">$0</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">🎯</span>
-                <span class="meta-stat-label">Leads</span>
-                <span class="meta-stat-value" id="metaLeads">0</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">📊</span>
-                <span class="meta-stat-label">Cost Per Lead</span>
-                <span class="meta-stat-value" id="metaCPL">--</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">📋</span>
-                <span class="meta-stat-label">Applications</span>
-                <span class="meta-stat-value" id="metaApps">0</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">💲</span>
-                <span class="meta-stat-label">Cost Per App</span>
-                <span class="meta-stat-value" id="metaCPA">--</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">👁</span>
-                <span class="meta-stat-label">Impressions</span>
-                <span class="meta-stat-value" id="metaImpressions">0</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">📈</span>
-                <span class="meta-stat-label">ROAS</span>
-                <span class="meta-stat-value" id="metaROAS">--</span>
-              </div>
-              <div class="meta-stat-card">
-                <span class="meta-stat-icon">💵</span>
-                <span class="meta-stat-label">Revenue</span>
-                <span class="meta-stat-value" id="metaRevenue">--</span>
-              </div>
-            </div>
-            <p class="meta-narrative" id="metaNarrative"></p>
-          </div>
+          <!-- Narrative Summary -->
+          <p class="meta-narrative" id="metaNarrative"></p>
 
           <!-- Charts -->
           <div class="meta-chart-row" id="metaChartRow">
@@ -339,7 +295,6 @@
               <h2>Campaign Performance</h2>
               <div class="meta-section-actions">
                 <button class="btn btn-primary btn-sm" id="metaRefreshBtn">Refresh</button>
-                <button class="btn btn-ghost btn-sm" id="metaSettingsBtn">Settings</button>
                 <span class="meta-toggle-icon">▾</span>
               </div>
             </div>
@@ -365,27 +320,6 @@
                 </table>
               </div>
 
-              <!-- Quick Add -->
-              <div class="meta-quick-add" id="metaQuickAdd">
-                <h3>Quick Add Data</h3>
-                <div class="meta-quick-add-row">
-                  <div class="form-group">
-                    <label class="form-label" for="quickSpend">Spend</label>
-                    <input type="number" class="form-input" id="quickSpend" placeholder="0.00" step="0.01">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="quickLeads">Leads</label>
-                    <input type="number" class="form-input" id="quickLeads" placeholder="0">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="quickRevenue">Revenue</label>
-                    <input type="number" class="form-input" id="quickRevenue" placeholder="0.00" step="0.01">
-                  </div>
-                  <div class="form-group form-group-btn">
-                    <button class="btn btn-primary btn-sm" id="quickAddBtn">Add</button>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
