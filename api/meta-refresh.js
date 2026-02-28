@@ -59,6 +59,31 @@ export default async function handler(req, res) {
       }
     } catch (_) { /* campaign level is optional */ }
 
+    // 2b. Daily breakdown for charts
+    let daily = [];
+    try {
+      const dailyParams = new URLSearchParams({
+        fields: 'spend,impressions,clicks,actions',
+        date_preset: preset,
+        time_increment: '1',
+        limit: '31',
+        access_token: token,
+      });
+      const dailyRes = await fetch(`${GRAPH_URL}/${ACCOUNT}/insights?${dailyParams}`);
+      const dailyData = await dailyRes.json();
+
+      if (dailyData.data && dailyData.data.length > 0) {
+        daily = dailyData.data.map(d => ({
+          date: d.date_start,
+          spend: Number(d.spend || 0),
+          impressions: Number(d.impressions || 0),
+          clicks: Number(d.clicks || 0),
+          leads: Math.max(getAction(d.actions, 'lead'), getAction(d.actions, 'complete_registration')),
+          applications: getAction(d.actions, 'offsite_conversion.fb_pixel_custom'),
+        }));
+      }
+    } catch (_) { /* daily is optional */ }
+
     // 3. Campaign statuses
     try {
       const statusParams = new URLSearchParams({
@@ -105,6 +130,7 @@ export default async function handler(req, res) {
         conversations: getAction(row.actions, 'onsite_conversion.messaging_conversation_started_7d'),
       },
       campaigns,
+      daily,
     };
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');

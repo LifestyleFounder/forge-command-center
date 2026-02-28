@@ -491,6 +491,8 @@ function switchIgSubtab(targetId) {
 // ═══════════════════════════════════════════════════════════════════════
 //  META ADS
 // ═══════════════════════════════════════════════════════════════════════
+let maSpendChartInstance = null;
+let maLeadsChartInstance = null;
 let activeMetaPreset = 'last_7d';
 
 function renderMetaAds() {
@@ -498,45 +500,102 @@ function renderMetaAds() {
   if (!meta) return;
 
   renderMetaNarrative(meta.summary);
-  renderMetaTotals(meta);
+  renderMetaCharts(meta.daily);
   renderCampaignsTable(meta.campaigns);
   renderAdSwipes();
 }
 
-function renderMetaTotals(meta) {
-  const s = meta.summary || {};
-  const campaigns = meta.campaigns || [];
+function renderMetaCharts(daily) {
+  if (typeof Chart === 'undefined' || !daily || daily.length === 0) return;
 
-  const row = $('#metaChartRow');
-  if (!row) return;
+  const labels = daily.map(d => {
+    const dt = new Date(d.date + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+  const spendData = daily.map(d => d.spend || 0);
+  const leadsData = daily.map(d => d.leads || 0);
+  const appsData = daily.map(d => d.applications || 0);
 
-  const spend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0) || s.spend || 0;
-  const leads = campaigns.reduce((sum, c) => sum + (c.leads || 0), 0) || s.leads || 0;
-  const apps = campaigns.reduce((sum, c) => sum + (c.applications || 0), 0) || s.applications || 0;
-  const cpl = leads > 0 ? (spend / leads).toFixed(2) : '--';
-  const cpa = apps > 0 ? (spend / apps).toFixed(2) : '--';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const lineColor = isDark ? '#C8A24A' : '#2d5016';
+  const fillColor = isDark ? 'rgba(200,162,74,0.15)' : 'rgba(45,80,22,0.15)';
+  const barColor = isDark ? 'rgba(200,162,74,0.8)' : 'rgba(193,154,72,0.8)';
+  const textColor = isDark ? '#9CA3AF' : '#6B7280';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-  row.innerHTML = `
-    <div class="meta-total-card">
-      <span class="meta-total-label">Total Spend</span>
-      <span class="meta-total-value meta-total--gold">$${formatNumber(spend)}</span>
-    </div>
-    <div class="meta-total-card">
-      <div class="meta-total-split">
-        <div class="meta-total-half">
-          <span class="meta-total-label">Total Leads</span>
-          <span class="meta-total-value meta-total--green">${formatNumber(leads)}</span>
-          <span class="meta-total-sub">${cpl !== '--' ? '$' + cpl + ' CPL' : ''}</span>
-        </div>
-        <div class="meta-total-divider"></div>
-        <div class="meta-total-half">
-          <span class="meta-total-label">Total Applications</span>
-          <span class="meta-total-value meta-total--blue">${formatNumber(apps)}</span>
-          <span class="meta-total-sub">${cpa !== '--' ? '$' + cpa + ' CPA' : ''}</span>
-        </div>
-      </div>
-    </div>
-  `;
+  // ── Spend Over Time ──
+  const spendCtx = $('#maSpendChart');
+  if (spendCtx) {
+    if (maSpendChartInstance) maSpendChartInstance.destroy();
+    maSpendChartInstance = new Chart(spendCtx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Daily Spend',
+          data: spendData,
+          borderColor: lineColor,
+          backgroundColor: fillColor,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: lineColor,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: textColor, callback: v => '$' + v }, grid: { color: gridColor } },
+          x: { ticks: { color: textColor }, grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  // ── Leads (line) & Applications (bar) ──
+  const leadsCtx = $('#maLeadsChart');
+  if (leadsCtx) {
+    if (maLeadsChartInstance) maLeadsChartInstance.destroy();
+    maLeadsChartInstance = new Chart(leadsCtx, {
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'line',
+            label: 'Leads',
+            data: leadsData,
+            borderColor: lineColor,
+            backgroundColor: fillColor,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: lineColor,
+            order: 1,
+          },
+          {
+            type: 'bar',
+            label: 'Applications',
+            data: appsData,
+            backgroundColor: barColor,
+            borderRadius: 4,
+            barPercentage: 0.4,
+            order: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { color: textColor, boxWidth: 12 } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } },
+          x: { ticks: { color: textColor }, grid: { display: false } },
+        },
+      },
+    });
+  }
 }
 
 

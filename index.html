@@ -282,8 +282,17 @@
           <!-- Narrative Summary -->
           <p class="meta-narrative" id="metaNarrative"></p>
 
-          <!-- Totals -->
-          <div class="meta-chart-row meta-chart-row--2col" id="metaChartRow"></div>
+          <!-- Charts -->
+          <div class="meta-chart-row meta-chart-row--2col" id="metaChartRow">
+            <div class="meta-chart-card">
+              <h3>Spend Over Time</h3>
+              <canvas id="maSpendChart"></canvas>
+            </div>
+            <div class="meta-chart-card">
+              <h3>Leads & Applications</h3>
+              <canvas id="maLeadsChart"></canvas>
+            </div>
+          </div>
 
           <!-- Campaign Performance -->
           <div class="meta-section meta-toggle-section" id="metaCampaignSection">

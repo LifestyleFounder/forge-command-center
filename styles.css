@@ -5336,10 +5336,10 @@ a:focus:not(:focus-visible) {
   color: var(--text-primary);
 }
 
-/* ---- Meta Ads Totals --------------------------------------- */
+/* ---- Meta Ads Charts --------------------------------------- */
 .meta-chart-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
   margin: var(--space-4) 0;
 }
@@ -5348,62 +5348,22 @@ a:focus:not(:focus-visible) {
   grid-template-columns: repeat(2, 1fr);
 }
 
-.meta-total-card {
+.meta-chart-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
 }
 
-.meta-total-label {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-}
-
-.meta-total-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-top: var(--space-2);
-}
-
-.meta-total--gold { color: #C8A24A; }
-.meta-total--green { color: #10B981; }
-.meta-total--blue { color: #3B82F6; }
-
-.meta-total-sub {
+.meta-chart-card h3 {
   font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  margin-top: var(--space-1);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
 }
 
-.meta-total-split {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  width: 100%;
-  justify-content: center;
-}
-
-.meta-total-half {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-}
-
-.meta-total-divider {
-  width: 1px;
-  height: 60px;
-  background: var(--border);
+.meta-chart-card canvas {
+  height: 260px !important;
 }
 
 /* ---- Responsive (new tabs) --------------------------------- */
