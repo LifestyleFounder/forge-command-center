@@ -8,8 +8,11 @@ const ENDPOINT = '/api/notion-blocks';
 export async function getPageBlocks(pageId) {
   try {
     const r = await fetch(`${ENDPOINT}?pageId=${encodeURIComponent(pageId)}`);
-    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     const data = await r.json();
+    if (data.error) {
+      console.error('[notion-blocks] getPageBlocks error:', data.error, data.code);
+      return null;
+    }
     return data.blocks || [];
   } catch (err) {
     console.error('[notion-blocks] getPageBlocks failed:', err);

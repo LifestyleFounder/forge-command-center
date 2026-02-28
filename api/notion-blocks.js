@@ -68,6 +68,17 @@ export default async function handler(req, res) {
     // GET ?pageId=xxx — fetch block children (recursive)
     if (req.method === 'GET' && req.query.pageId) {
       const { pageId } = req.query;
+
+      // First check if we can access blocks at all
+      const testR = await fetch(
+        `${NOTION_API}/blocks/${pageId}/children?page_size=1`,
+        { headers }
+      );
+      const testData = await testR.json();
+      if (testData.object === 'error') {
+        return res.status(400).json({ error: testData.message, code: testData.code });
+      }
+
       const blocks = await fetchBlocksRecursive(pageId, headers);
       return res.status(200).json({ blocks });
     }
@@ -127,7 +138,10 @@ async function fetchBlocksRecursive(blockId, headers, depth = 0) {
       { headers }
     );
     const data = await r.json();
-    if (data.object === 'error') break;
+    if (data.object === 'error') {
+      console.error('[notion-blocks] fetchBlocksRecursive error:', data.code, data.message, 'blockId:', blockId);
+      break;
+    }
 
     for (const block of (data.results || [])) {
       const b = { ...block };
