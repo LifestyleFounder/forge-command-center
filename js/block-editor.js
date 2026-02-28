@@ -1,30 +1,49 @@
-// js/block-editor.js — Core Tiptap block editor module
-// Manages the full-screen block editor modal with Notion sync
+// js/block-editor.js — Local-first Tiptap block editor
+// No sidebar, no Notion page browser. Saves to localStorage, backs up to Notion.
 
 import { $, showToast, debounce } from './app.js';
-import { getPageBlocks, updatePageBlocks, searchPages, getPage } from './services/notion-blocks.js';
-import { notionBlocksToTiptap, tiptapToNotionBlocks } from './notion-converter.js';
+import { updatePageBlocks, createPage } from './services/notion-blocks.js';
+import { tiptapToNotionBlocks } from './notion-converter.js';
 import { createSlashCommandSuggestion } from './slash-commands.js';
+
+// ── Workspace Storage (shared keys with knowledge.js) ─────
+const DOCS_KEY = 'forge-workspace-docs';
+const FOLDERS_KEY = 'forge-workspace-folders';
+const DEFAULT_FOLDERS = [
+  { id: 'content', name: 'Content' },
+  { id: 'ideas', name: 'Ideas' },
+  { id: 'business-planning', name: 'Business Planning' },
+];
+
+function getWorkspaceDocs() {
+  try { const raw = localStorage.getItem(DOCS_KEY); return raw ? JSON.parse(raw) : []; }
+  catch { return []; }
+}
+
+function saveWorkspaceDocs(docs) {
+  try { localStorage.setItem(DOCS_KEY, JSON.stringify(docs)); }
+  catch (e) { console.error('[block-editor] Failed to save docs:', e); }
+}
+
+function getWorkspaceFolders() {
+  try { const raw = localStorage.getItem(FOLDERS_KEY); return raw ? JSON.parse(raw) : DEFAULT_FOLDERS; }
+  catch { return DEFAULT_FOLDERS; }
+}
 
 // ── Module state ──────────────────────────────────────────
 let editor = null;
-let currentPageId = null;
-let currentPageTitle = '';
+let currentDocId = null;
+let currentDocTitle = '';
 let isModalOpen = false;
 let isSaving = false;
 let isDirty = false;
-let loadedPages = [];
-let tiptapModules = null; // cached imports
+let tiptapModules = null;
+let onCloseCallback = null;
 
-const PINNED_KEY = 'forge-pinned-notion-page';
-const LOCAL_DRAFT_KEY = 'forge-block-editor-draft';
 const AUTOSAVE_DELAY = 2000;
 
 // ── Public API ────────────────────────────────────────────
 
-/**
- * Initialize block editor — called once on boot
- */
 export async function initBlockEditor() {
   bindModalEvents();
 }
@@ -32,15 +51,16 @@ export async function initBlockEditor() {
 /**
  * Open the block editor modal
  * @param {Object} opts
- * @param {string} opts.pageId - Notion page ID to load
- * @param {string} opts.title - Page title
- * @param {string} opts.mode - 'modal' (default) or 'inline'
+ * @param {string} opts.docId   - Existing doc ID to edit
+ * @param {string} opts.folder  - Default folder for new docs
+ * @param {Function} opts.onClose - Callback when editor closes
  */
 export async function openBlockEditor(opts = {}) {
   const modal = $('#blockEditorModal');
   const backdrop = $('#blockEditorBackdrop');
   if (!modal || !backdrop) return;
 
+  onCloseCallback = opts.onClose || null;
   isModalOpen = true;
   modal.hidden = false;
   backdrop.hidden = false;
@@ -63,7 +83,7 @@ export async function openBlockEditor(opts = {}) {
     } catch (err) {
       console.error('[block-editor] Failed to create editor:', err);
       setSyncStatus('error', 'Editor failed to load');
-      showToast('Editor initialization failed — check console', 'error');
+      showToast('Editor initialization failed', 'error');
       return;
     }
   }
@@ -73,52 +93,54 @@ export async function openBlockEditor(opts = {}) {
     return;
   }
 
-  // Always load page list in sidebar
-  refreshPageList();
+  // Populate folder selector
+  populateFolderSelector(opts.folder || null);
 
-  // Load page
-  const pageId = opts.pageId || getPinnedPageId();
-  if (pageId) {
-    await loadPage(pageId, opts.title);
+  // Load existing doc or start fresh
+  if (opts.docId) {
+    loadDoc(opts.docId);
   } else {
-    // No pinned page — show empty editor
+    // New note
+    currentDocId = null;
+    currentDocTitle = '';
     setEditorTitle('');
-    editor.commands.setContent('<p>Select a page from the sidebar, or search for one.</p>');
-    setSyncStatus('idle', 'No page selected');
+    editor.commands.clearContent();
+    isDirty = false;
+    setSyncStatus('idle', 'New note');
+
+    // Set folder from opts
+    const folderSelect = $('#beDocFolder');
+    if (folderSelect && opts.folder) {
+      folderSelect.value = opts.folder;
+    }
   }
 
-  // Focus editor
   setTimeout(() => editor?.commands.focus(), 100);
 }
 
-/**
- * Close the block editor modal
- */
 export function closeBlockEditor() {
-  const modal = $('#blockEditorModal');
-  const backdrop = $('#blockEditorBackdrop');
-
-  // Save before closing if dirty
-  if (isDirty && currentPageId) {
-    saveDraftToLocal();
+  // Auto-save locally if dirty
+  if (isDirty) {
+    saveToLocal();
   }
 
+  const modal = $('#blockEditorModal');
+  const backdrop = $('#blockEditorBackdrop');
   if (modal) modal.hidden = true;
   if (backdrop) backdrop.hidden = true;
   document.body.classList.remove('block-editor-open');
   isModalOpen = false;
+
+  if (onCloseCallback) {
+    onCloseCallback();
+    onCloseCallback = null;
+  }
 }
 
-/**
- * Get the editor instance (for knowledge.js integration)
- */
 export function getEditorInstance() {
   return editor;
 }
 
-/**
- * Check if modal is currently open
- */
 export function isEditorModalOpen() {
   return isModalOpen;
 }
@@ -128,17 +150,9 @@ export function isEditorModalOpen() {
 async function loadTiptap() {
   try {
     const [
-      coreModule,
-      starterKitModule,
-      taskListModule,
-      taskItemModule,
-      placeholderModule,
-      highlightModule,
-      linkModule,
-      colorModule,
-      textStyleModule,
-      underlineModule,
-      textAlignModule,
+      coreModule, starterKitModule, taskListModule, taskItemModule,
+      placeholderModule, highlightModule, linkModule, colorModule,
+      textStyleModule, underlineModule, textAlignModule,
     ] = await Promise.all([
       import('https://esm.sh/@tiptap/core@2.11.5'),
       import('https://esm.sh/@tiptap/starter-kit@2.11.5'),
@@ -153,7 +167,6 @@ async function loadTiptap() {
       import('https://esm.sh/@tiptap/extension-text-align@2.11.5'),
     ]);
 
-    // Use named exports with default fallback
     const Editor = coreModule.Editor;
     const Extension = coreModule.Extension;
     const StarterKit = starterKitModule.StarterKit || starterKitModule.default;
@@ -167,9 +180,7 @@ async function loadTiptap() {
     const Underline = underlineModule.Underline || underlineModule.default;
     const TextAlign = textAlignModule.TextAlign || textAlignModule.default;
 
-    // Verify critical modules loaded
     if (!Editor || !Extension || !StarterKit) {
-      console.error('[block-editor] Missing critical Tiptap modules:', { Editor: !!Editor, Extension: !!Extension, StarterKit: !!StarterKit });
       throw new Error('Core Tiptap modules failed to load');
     }
 
@@ -196,45 +207,33 @@ function createEditorInstance() {
   const mountEl = $('#blockEditorContent');
   if (!mountEl) return;
 
-  // Create slash command extension
   const SlashCommands = createSlashExtension(Extension);
 
   editor = new Editor({
     element: mountEl,
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Placeholder.configure({
-        placeholder: 'Type "/" for commands...',
-      }),
+      Placeholder.configure({ placeholder: 'Type "/" for commands...' }),
       Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false }),
-      TextStyle,
-      TxtColor,
-      Underline,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
+      TextStyle, TxtColor, Underline,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       SlashCommands,
     ],
     content: '<p></p>',
     autofocus: false,
     editorProps: {
-      attributes: {
-        class: 'block-editor-prose',
-      },
+      attributes: { class: 'block-editor-prose' },
     },
     onUpdate: () => {
       isDirty = true;
       setSyncStatus('editing', 'Editing...');
-      debouncedSave();
+      debouncedAutoSave();
     },
   });
 
-  // Update toolbar active states on selection change
   editor.on('selectionUpdate', updateToolbarState);
   editor.on('transaction', updateToolbarState);
 }
@@ -244,13 +243,11 @@ function createEditorInstance() {
 function createSlashExtension(Extension) {
   return Extension.create({
     name: 'slashCommands',
-
     addKeyboardShortcuts() {
       return {
         '/': () => {
-          // Show slash menu after the "/" character is inserted
           setTimeout(() => showSlashMenu(), 10);
-          return false; // let the "/" character be typed
+          return false;
         },
       };
     },
@@ -262,16 +259,13 @@ let slashMenuQuery = '';
 let slashMenuEl = null;
 
 function showSlashMenu() {
-  if (slashMenuVisible) return;
-  if (!editor) return;
+  if (slashMenuVisible || !editor) return;
 
   const { from } = editor.state.selection;
   const coords = editor.view.coordsAtPos(from);
 
   slashMenuVisible = true;
   slashMenuQuery = '';
-
-  const items = createSlashCommandSuggestion().items({ query: '' });
 
   slashMenuEl = document.createElement('div');
   slashMenuEl.className = 'slash-command-menu';
@@ -297,14 +291,8 @@ function showSlashMenu() {
           <span class="slash-command-desc">${item.description}</span>
         </span>
       `;
-      btn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        selectItem(filtered, index);
-      });
-      btn.addEventListener('mouseenter', () => {
-        selectedIndex = index;
-        render();
-      });
+      btn.addEventListener('mousedown', (e) => { e.preventDefault(); selectItem(filtered, index); });
+      btn.addEventListener('mouseenter', () => { selectedIndex = index; render(); });
       slashMenuEl.appendChild(btn);
     });
   }
@@ -312,82 +300,40 @@ function showSlashMenu() {
   function selectItem(filtered, index) {
     const item = filtered[index];
     if (!item) return;
-
-    // Delete the "/" and any query text
     const { from: curFrom } = editor.state.selection;
-    const textBefore = editor.state.doc.textBetween(Math.max(0, curFrom - slashMenuQuery.length - 1), curFrom);
     const slashPos = curFrom - slashMenuQuery.length - 1;
-
     editor.chain().focus().deleteRange({ from: Math.max(0, slashPos), to: curFrom }).run();
     item.command({ editor, range: { from: Math.max(0, slashPos), to: Math.max(0, slashPos) } });
-
     hideSlashMenu();
   }
 
   function handleKeydown(e) {
     const filtered = createSlashCommandSuggestion().items({ query: slashMenuQuery });
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      selectedIndex = (selectedIndex + 1) % Math.max(filtered.length, 1);
-      render();
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      selectedIndex = (selectedIndex - 1 + filtered.length) % Math.max(filtered.length, 1);
-      render();
-      return;
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      selectItem(filtered, selectedIndex);
-      return;
-    }
-    if (e.key === 'Escape' || e.key === ' ') {
-      hideSlashMenu();
-      return;
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); selectedIndex = (selectedIndex + 1) % Math.max(filtered.length, 1); render(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); selectedIndex = (selectedIndex - 1 + filtered.length) % Math.max(filtered.length, 1); render(); return; }
+    if (e.key === 'Enter') { e.preventDefault(); selectItem(filtered, selectedIndex); return; }
+    if (e.key === 'Escape' || e.key === ' ') { hideSlashMenu(); return; }
     if (e.key === 'Backspace') {
-      if (slashMenuQuery.length > 0) {
-        slashMenuQuery = slashMenuQuery.slice(0, -1);
-        selectedIndex = 0;
-        render();
-      } else {
-        hideSlashMenu();
-      }
+      if (slashMenuQuery.length > 0) { slashMenuQuery = slashMenuQuery.slice(0, -1); selectedIndex = 0; render(); }
+      else { hideSlashMenu(); }
       return;
     }
-    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
-      slashMenuQuery += e.key;
-      selectedIndex = 0;
-      render();
-    }
+    if (e.key.length === 1 && !e.metaKey && !e.ctrlKey) { slashMenuQuery += e.key; selectedIndex = 0; render(); }
   }
 
   render();
-
   slashMenuEl.style.position = 'fixed';
   slashMenuEl.style.left = `${coords.left}px`;
   slashMenuEl.style.top = `${coords.bottom + 4}px`;
   slashMenuEl.style.zIndex = '10000';
   document.body.appendChild(slashMenuEl);
 
-  // Listen for keypresses to filter
   document.addEventListener('keydown', handleKeydown, true);
+  slashMenuEl._cleanup = () => { document.removeEventListener('keydown', handleKeydown, true); };
 
-  // Store cleanup ref
-  slashMenuEl._cleanup = () => {
-    document.removeEventListener('keydown', handleKeydown, true);
-  };
-
-  // Close on click outside
   setTimeout(() => {
     const closeOnClick = (e) => {
-      if (!slashMenuEl?.contains(e.target)) {
-        hideSlashMenu();
-        document.removeEventListener('mousedown', closeOnClick);
-      }
+      if (!slashMenuEl?.contains(e.target)) { hideSlashMenu(); document.removeEventListener('mousedown', closeOnClick); }
     };
     document.addEventListener('mousedown', closeOnClick);
     slashMenuEl._closeOnClick = closeOnClick;
@@ -397,9 +343,7 @@ function showSlashMenu() {
 function hideSlashMenu() {
   if (slashMenuEl) {
     slashMenuEl._cleanup?.();
-    if (slashMenuEl._closeOnClick) {
-      document.removeEventListener('mousedown', slashMenuEl._closeOnClick);
-    }
+    if (slashMenuEl._closeOnClick) document.removeEventListener('mousedown', slashMenuEl._closeOnClick);
     slashMenuEl.remove();
     slashMenuEl = null;
   }
@@ -407,132 +351,153 @@ function hideSlashMenu() {
   slashMenuQuery = '';
 }
 
-// ── Page Loading ──────────────────────────────────────────
+// ── Doc Loading (from localStorage) ──────────────────────
 
-async function loadPage(pageId, title) {
-  if (!editor) {
-    console.error('[block-editor] No editor instance — cannot load page');
+function loadDoc(docId) {
+  if (!editor) return;
+
+  const docs = getWorkspaceDocs();
+  const doc = docs.find(d => d.id === docId);
+
+  if (!doc) {
+    showToast('Document not found', 'error');
     return;
   }
 
-  currentPageId = pageId;
-  currentPageTitle = title || '';
+  currentDocId = doc.id;
+  currentDocTitle = doc.title || '';
   isDirty = false;
 
-  setSyncStatus('loading', 'Loading...');
-  setEditorTitle(title || 'Loading...');
+  setEditorTitle(doc.title || '');
 
-  // Check for local draft first
-  const draft = getLocalDraft(pageId);
-
-  // Fetch from Notion
-  const blocks = await getPageBlocks(pageId);
-  console.log('[block-editor] Loaded blocks:', blocks?.length, 'for page:', pageId);
-
-  if (blocks && blocks.length > 0) {
-    try {
-      const tiptapDoc = notionBlocksToTiptap(blocks);
-      console.log('[block-editor] Converted to Tiptap:', JSON.stringify(tiptapDoc).slice(0, 200));
-      editor.commands.setContent(tiptapDoc);
-    } catch (err) {
-      console.error('[block-editor] Failed to convert/set content:', err);
-      setSyncStatus('error', 'Content conversion failed');
-      return;
-    }
-    setSyncStatus('saved', 'Synced with Notion');
-
-    // Get page title if not provided
-    if (!title) {
-      const page = await getPage(pageId);
-      if (page) {
-        currentPageTitle = page.title;
-        setEditorTitle(page.title);
-      }
-    }
-  } else if (blocks && blocks.length === 0) {
-    // Page exists but has no block content (empty page or database entry)
-    editor.commands.setContent('<p><em>This page has no editable content. It may be a database entry or empty page.</em></p>');
-    setSyncStatus('idle', 'Empty page');
-    // Still get the title
-    if (!title) {
-      const page = await getPage(pageId);
-      if (page) {
-        currentPageTitle = page.title;
-        setEditorTitle(page.title);
-      }
-    }
-  } else if (draft) {
-    // Fallback to local draft
-    editor.commands.setContent(draft.content);
-    setSyncStatus('offline', 'Working offline');
+  if (doc.content && typeof doc.content === 'object') {
+    editor.commands.setContent(doc.content);
+  } else if (doc.content && typeof doc.content === 'string') {
+    editor.commands.setContent(doc.content);
   } else {
     editor.commands.clearContent();
-    setSyncStatus('error', 'Failed to load page');
   }
 
-  // Highlight in sidebar
-  highlightActivePage(pageId);
+  // Set folder in dropdown
+  const folderSelect = $('#beDocFolder');
+  if (folderSelect && doc.folder) {
+    folderSelect.value = doc.folder;
+  }
+
+  setSyncStatus('saved', 'Loaded');
   updateToolbarState();
 }
 
 // ── Saving ────────────────────────────────────────────────
 
-const debouncedSave = debounce(async () => {
-  if (!isDirty || !currentPageId) return;
-
-  // Always save to localStorage first (instant)
-  saveDraftToLocal();
-
-  // Then sync to Notion
-  await saveToNotion();
+const debouncedAutoSave = debounce(() => {
+  if (!isDirty) return;
+  saveToLocal();
 }, AUTOSAVE_DELAY);
 
-function saveDraftToLocal() {
-  if (!currentPageId || !editor) return;
-  const data = {
-    pageId: currentPageId,
-    title: currentPageTitle,
-    content: editor.getJSON(),
-    savedAt: Date.now(),
-  };
-  try {
-    localStorage.setItem(`${LOCAL_DRAFT_KEY}-${currentPageId}`, JSON.stringify(data));
-  } catch (e) {
-    // localStorage full — silently fail
+function saveToLocal() {
+  if (!editor) return;
+
+  const titleInput = $('#bePageTitle');
+  const title = titleInput?.value?.trim() || 'Untitled';
+  const folderSelect = $('#beDocFolder');
+  const folder = folderSelect?.value || 'content';
+  const content = editor.getJSON();
+  const now = new Date().toISOString();
+
+  let docs = getWorkspaceDocs();
+
+  if (currentDocId) {
+    // Update existing
+    docs = docs.map(d => {
+      if (d.id === currentDocId) {
+        return { ...d, title, folder, content, updatedAt: now };
+      }
+      return d;
+    });
+  } else {
+    // Create new
+    const newDoc = {
+      id: generateId('doc'),
+      title,
+      folder,
+      content,
+      notionPageId: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    currentDocId = newDoc.id;
+    docs.push(newDoc);
   }
+
+  saveWorkspaceDocs(docs);
+  currentDocTitle = title;
+  isDirty = false;
+  setSyncStatus('saved', 'Saved locally');
 }
 
-function getLocalDraft(pageId) {
-  try {
-    const raw = localStorage.getItem(`${LOCAL_DRAFT_KEY}-${pageId}`);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+async function triggerNotionBackup() {
+  if (!editor || !currentDocId) return;
 
-async function saveToNotion() {
-  if (!currentPageId || !editor || isSaving) return;
+  const docs = getWorkspaceDocs();
+  const doc = docs.find(d => d.id === currentDocId);
+  if (!doc) return;
 
-  isSaving = true;
-  setSyncStatus('saving', 'Saving to Notion...');
+  setSyncStatus('saving', 'Backing up to Notion...');
 
   try {
-    const doc = editor.getJSON();
-    const blocks = tiptapToNotionBlocks(doc);
-    const success = await updatePageBlocks(currentPageId, blocks);
+    const tiptapDoc = editor.getJSON();
+    const blocks = tiptapToNotionBlocks(tiptapDoc);
 
-    if (success) {
-      isDirty = false;
-      setSyncStatus('saved', 'Saved to Notion');
+    if (doc.notionPageId) {
+      // Update existing Notion page
+      const success = await updatePageBlocks(doc.notionPageId, blocks);
+      if (success) {
+        setSyncStatus('saved', 'Backed up to Notion');
+        showToast('Backed up to Notion', 'success');
+      } else {
+        setSyncStatus('error', 'Notion backup failed');
+        showToast('Notion backup failed — saved locally', 'warning');
+      }
     } else {
-      setSyncStatus('error', 'Save failed — draft kept locally');
+      // Create new Notion page
+      const result = await createPage(doc.title || 'Untitled', blocks);
+      if (result && result.pageId) {
+        // Store Notion page ID
+        const updatedDocs = getWorkspaceDocs().map(d => {
+          if (d.id === currentDocId) {
+            return { ...d, notionPageId: result.pageId };
+          }
+          return d;
+        });
+        saveWorkspaceDocs(updatedDocs);
+        setSyncStatus('saved', 'Backed up to Notion');
+        showToast('Backed up to Notion', 'success');
+      } else {
+        setSyncStatus('error', 'Notion backup failed');
+        showToast('Notion backup failed — saved locally', 'warning');
+      }
     }
   } catch (err) {
-    console.error('[block-editor] Save failed:', err);
-    setSyncStatus('error', 'Save failed');
-  } finally {
-    isSaving = false;
+    console.error('[block-editor] Notion backup failed:', err);
+    setSyncStatus('error', 'Notion backup failed');
+    showToast('Notion backup failed', 'error');
+  }
+}
+
+// ── Folder Selector ───────────────────────────────────────
+
+function populateFolderSelector(defaultFolder) {
+  const select = $('#beDocFolder');
+  if (!select) return;
+
+  const folders = getWorkspaceFolders();
+  select.innerHTML = folders.map(f =>
+    `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`
+  ).join('');
+
+  if (defaultFolder) {
+    select.value = defaultFolder;
   }
 }
 
@@ -564,8 +529,6 @@ function updateToolbarState() {
     if (btn) btn.classList.toggle('is-active', active);
   }
 }
-
-// ── Toolbar Commands ──────────────────────────────────────
 
 export function execToolbarCommand(cmd) {
   if (!editor) return;
@@ -599,60 +562,6 @@ export function execToolbarCommand(cmd) {
   if (fn) fn();
 }
 
-// ── Page Browser ──────────────────────────────────────────
-
-async function refreshPageList(query = '') {
-  const listEl = $('#bePageList');
-  if (!listEl) return;
-
-  listEl.innerHTML = '<div class="be-page-loading">Loading pages...</div>';
-
-  const pages = await searchPages(query);
-  loadedPages = pages;
-
-  renderPageList(pages);
-}
-
-function renderPageList(pages) {
-  const listEl = $('#bePageList');
-  if (!listEl) return;
-
-  const pinnedId = getPinnedPageId();
-
-  if (pages.length === 0) {
-    listEl.innerHTML = '<div class="be-page-empty">No pages found</div>';
-    return;
-  }
-
-  listEl.innerHTML = pages.map(p => `
-    <button class="be-page-item ${p.id === currentPageId ? 'is-active' : ''} ${p.id === pinnedId ? 'is-pinned' : ''}"
-            data-page-id="${p.id}" data-page-title="${escapeAttr(p.title)}">
-      <span class="be-page-icon">${p.icon || '📄'}</span>
-      <span class="be-page-title">${escapeHTML(p.title)}</span>
-      ${p.id === pinnedId ? '<span class="be-page-pin" title="Pinned">📌</span>' : ''}
-    </button>
-  `).join('');
-}
-
-function highlightActivePage(pageId) {
-  const items = document.querySelectorAll('.be-page-item');
-  items.forEach(item => {
-    item.classList.toggle('is-active', item.dataset.pageId === pageId);
-  });
-}
-
-// ── Pinned Page ───────────────────────────────────────────
-
-export function getPinnedPageId() {
-  return localStorage.getItem(PINNED_KEY) || '';
-}
-
-export function setPinnedPageId(pageId) {
-  localStorage.setItem(PINNED_KEY, pageId);
-  renderPageList(loadedPages); // re-render to show pin indicator
-  showToast('Page pinned as default', 'success');
-}
-
 // ── Sync Status ───────────────────────────────────────────
 
 function setSyncStatus(state, text) {
@@ -667,7 +576,7 @@ function setSyncStatus(state, text) {
 function setEditorTitle(title) {
   const el = $('#bePageTitle');
   if (el) el.value = title || '';
-  currentPageTitle = title || '';
+  currentDocTitle = title || '';
 }
 
 // ── Event Binding ─────────────────────────────────────────
@@ -693,38 +602,13 @@ function bindModalEvents() {
     });
   }
 
-  // Page list clicks
-  const pageList = $('#bePageList');
-  if (pageList) {
-    pageList.addEventListener('click', (e) => {
-      const item = e.target.closest('[data-page-id]');
-      if (item) {
-        loadPage(item.dataset.pageId, item.dataset.pageTitle);
-      }
-    });
-
-    // Right-click to pin
-    pageList.addEventListener('contextmenu', (e) => {
-      const item = e.target.closest('[data-page-id]');
-      if (item) {
-        e.preventDefault();
-        setPinnedPageId(item.dataset.pageId);
-      }
-    });
-  }
-
-  // Search input
-  const searchInput = $('#bePageSearch');
-  if (searchInput) {
-    const debouncedSearch = debounce((q) => refreshPageList(q), 400);
-    searchInput.addEventListener('input', () => debouncedSearch(searchInput.value));
-  }
-
   // Page title edit
   const titleInput = $('#bePageTitle');
   if (titleInput) {
     titleInput.addEventListener('input', () => {
-      currentPageTitle = titleInput.value;
+      currentDocTitle = titleInput.value;
+      isDirty = true;
+      debouncedAutoSave();
     });
   }
 
@@ -735,48 +619,24 @@ function bindModalEvents() {
     }
   });
 
-  // New page button
-  const newPageBtn = $('#beNewPage');
-  if (newPageBtn) {
-    newPageBtn.addEventListener('click', () => {
-      currentPageId = null;
-      currentPageTitle = '';
-      setEditorTitle('');
-      if (editor) editor.commands.clearContent();
-      isDirty = false;
-      setSyncStatus('idle', 'New document');
-      highlightActivePage('');
-    });
-  }
-
-  // Manual save button
+  // Save button — saves locally + triggers Notion backup
   const saveBtn = $('#beSaveBtn');
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
-      if (currentPageId) {
-        saveDraftToLocal();
-        await saveToNotion();
-      } else {
-        showToast('Open a Notion page first', 'info');
-      }
+      saveToLocal();
+      await triggerNotionBackup();
     });
-  }
-
-  // Refresh pages button
-  const refreshBtn = $('#beRefreshPages');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => refreshPageList());
   }
 }
 
 // ── Helpers ───────────────────────────────────────────────
 
-function escapeHTML(str) {
+function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
 
-function escapeAttr(str) {
-  return (str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+function generateId(prefix = 'doc') {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }

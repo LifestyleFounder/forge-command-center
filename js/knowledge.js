@@ -1,592 +1,244 @@
-// js/knowledge.js — Knowledge tab: Library + Notes
+// js/knowledge.js — Workspace: local-first folders + docs
 // ──────────────────────────────────────────────────────────────────────
 
 import {
-  getState, setState, subscribe, loadJSON, saveLocal,
-  escapeHtml, formatNumber, formatDate, formatRelativeTime,
-  generateId, debounce, $, $$, openModal, closeModal, showToast,
+  escapeHtml, formatRelativeTime, generateId, $, $$, showToast,
   openBlockEditor
 } from './app.js';
-import {
-  getNotes as notionGetNotes, createNote as notionCreateNote,
-  updateNote as notionUpdateNote, deleteNote as notionDeleteNote
-} from './services/notion-notes.js';
 
-// ── State ────────────────────────────────────────────────────────────
-let activeDocId = null;
-let activeNoteId = null;
-let activeFolder = null;
-let autoSaveTimer = null;
-let lastNotionSync = null;
-let syncInProgress = false;
+// ── Storage Keys ────────────────────────────────────────────────────
+const DOCS_KEY = 'forge-workspace-docs';
+const FOLDERS_KEY = 'forge-workspace-folders';
 
-const FOLDERS_KEY = 'forge-note-folders';
-const NOTES_KEY  = 'forge-notes-local';
-const SYNC_TS_KEY = 'forge-notion-last-sync';
-const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_FOLDERS = [
+  { id: 'content', name: 'Content' },
+  { id: 'ideas', name: 'Ideas' },
+  { id: 'business-planning', name: 'Business Planning' },
+];
 
-// ── Public init ──────────────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────────────────
+let activeFolder = null; // null = All Notes
+
+// ── Public API ──────────────────────────────────────────────────────
 export function initKnowledge() {
-  // Restore last sync timestamp
-  const savedSync = localStorage.getItem(SYNC_TS_KEY);
-  if (savedSync) lastNotionSync = new Date(savedSync);
-
-  loadKnowledgeData();
-  bindKnowledgeEvents();
-
-  subscribe((key) => {
-    if (key === 'documents') renderLibrary();
-    if (key === 'notes')     renderNotes();
-  });
+  ensureDefaults();
+  render();
+  bindEvents();
 }
 
-/** Called by app.js when user switches to Knowledge tab. Auto-syncs if stale. */
 export function onKnowledgeTabVisit() {
-  updateSyncStatus();
-  const now = Date.now();
-  const last = lastNotionSync ? lastNotionSync.getTime() : 0;
-  if (now - last > SYNC_INTERVAL_MS) {
-    syncFromNotion(true);
-  }
+  render();
 }
 
-// ── Data loading ─────────────────────────────────────────────────────
-async function loadKnowledgeData() {
+// ── Storage Helpers ─────────────────────────────────────────────────
+export function getWorkspaceDocs() {
   try {
-    const [docsIndex, docsData, notesData] = await Promise.all([
-      loadJSON('docs-index.json'),
-      loadJSON('documents.json'),
-      loadJSON('notes.json'),
-    ]);
+    const raw = localStorage.getItem(DOCS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
 
-    // Merge local docs + notion docs into a single list
-    const allDocs = [
-      ...(docsData?.documents || []),
-      ...(docsData?.notionDocs || []),
-    ];
-
-    setState('docsIndex', docsIndex);
-    setState('documents', allDocs);
-
-    // Merge file-based notes with any locally saved notes
-    const fileNotes = notesData?.notes || [];
-    const localRaw = localStorage.getItem(NOTES_KEY);
-    const localNotes = localRaw ? JSON.parse(localRaw) : [];
-    const merged = mergeNotes(fileNotes, localNotes);
-    setState('notes', merged);
-
-    renderLibrary();
-    renderNotes();
-
-    // Auto-sync Notion notes in background (silent — no toast unless error)
-    syncFromNotion(true);
-  } catch (err) {
-    console.error('[knowledge] Failed to load data:', err);
-    showToast('Failed to load knowledge data', 'error');
+export function saveWorkspaceDocs(docs) {
+  try {
+    localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
+  } catch (e) {
+    console.error('[workspace] Failed to save docs:', e);
   }
 }
 
-function mergeNotes(fileNotes, localNotes) {
-  const map = new Map();
-  fileNotes.forEach(n => map.set(n.id, n));
-  localNotes.forEach(n => map.set(n.id, n));
-  return Array.from(map.values());
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  LIBRARY
-// ═══════════════════════════════════════════════════════════════════════
-function renderLibrary() {
-  const el = $('#knowledgeList');
-  if (!el) return;
-
-  const docs = getState('documents') || [];
-  const searchInput = el.closest('.subtab-panel')?.querySelector('.knowledge-search');
-  const query = searchInput?.value?.toLowerCase().trim() || '';
-
-  let filtered = docs;
-  if (query) {
-    filtered = docs.filter(d =>
-      (d.name || '').toLowerCase().includes(query) ||
-      (d.category || '').toLowerCase().includes(query) ||
-      (d.tags || []).some(t => t.toLowerCase().includes(query))
-    );
-  }
-
-  // Group by category
-  const groups = groupByCategory(filtered);
-  const categories = Object.keys(groups).sort();
-
-  if (categories.length === 0) {
-    el.innerHTML = `<div class="empty-state"><p>No documents found.</p></div>`;
-    return;
-  }
-
-  el.innerHTML = `
-    <div class="knowledge-search-wrap">
-      <input type="search" class="input-search knowledge-search" id="librarySearchInput" placeholder="Search documents..." aria-label="Search documents" value="${escapeHtml(query)}">
-    </div>
-    ${categories.map(cat => `
-      <div class="knowledge-group">
-        <h3 class="knowledge-group-title">${escapeHtml(cat)}</h3>
-        ${groups[cat].map(doc => `
-          <button class="knowledge-item${doc.id === activeDocId ? ' is-active' : ''}" data-doc-id="${escapeHtml(doc.id)}">
-            <span class="knowledge-item-icon">${doc.type === 'notion' ? '📄' : '📋'}</span>
-            <div class="knowledge-item-info">
-              <span class="knowledge-item-title">${escapeHtml(doc.name)}</span>
-              <div class="knowledge-item-tags">
-                ${(doc.tags || []).map(t => `<span class="tag tag-sm">${escapeHtml(t)}</span>`).join('')}
-              </div>
-            </div>
-          </button>
-        `).join('')}
-      </div>
-    `).join('')}
-  `;
-
-  // Re-bind search after render
-  const newSearch = $('#librarySearchInput');
-  if (newSearch) {
-    newSearch.addEventListener('input', debounce(() => renderLibrary(), 300));
-  }
-}
-
-function groupByCategory(docs) {
-  const groups = {};
-  docs.forEach(d => {
-    const cat = d.category || 'uncategorized';
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(d);
-  });
-  return groups;
-}
-
-function renderDocPreview(docId) {
-  const el = $('#knowledgePreview');
-  if (!el) return;
-
-  const docs = getState('documents') || [];
-  const doc = docs.find(d => d.id === docId);
-
-  if (!doc) {
-    el.innerHTML = `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><p>Select a document to preview</p></div>`;
-    return;
-  }
-
-  activeDocId = docId;
-
-  const contentHtml = renderMarkdownBasic(doc.content || '');
-
-  el.innerHTML = `
-    <div class="doc-preview">
-      <div class="doc-preview-header">
-        <h2>${escapeHtml(doc.name)}</h2>
-        <div class="doc-preview-meta">
-          <span class="badge badge-type">${escapeHtml(doc.type || 'local')}</span>
-          <span class="badge badge-category">${escapeHtml(doc.category || '')}</span>
-          ${doc.notionUrl ? `<a href="${escapeHtml(doc.notionUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-xs">Open in Notion</a>` : ''}
-          ${doc.notionId ? `<button class="btn btn-primary btn-xs be-open-doc" data-notion-id="${escapeHtml(doc.notionId)}" data-doc-name="${escapeHtml(doc.name)}">Edit in Block Editor</button>` : ''}
-        </div>
-        <div class="doc-preview-tags">
-          ${(doc.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
-        </div>
-      </div>
-      <div class="doc-preview-content">${contentHtml}</div>
-      <div class="doc-preview-footer">
-        ${doc.createdAt ? `<span>Created: ${formatDate(doc.createdAt)}</span>` : ''}
-        ${doc.updatedAt ? `<span>Updated: ${formatDate(doc.updatedAt)}</span>` : ''}
-        ${doc.lastSynced ? `<span>Synced: ${formatRelativeTime(doc.lastSynced)}</span>` : ''}
-      </div>
-    </div>
-  `;
-
-  // Highlight active item in list
-  $$('#knowledgeList .knowledge-item').forEach(item => {
-    item.classList.toggle('is-active', item.dataset.docId === docId);
-  });
-
-  // Bind "Edit in Block Editor" button
-  const beOpenBtn = el.querySelector('.be-open-doc');
-  if (beOpenBtn) {
-    beOpenBtn.addEventListener('click', () => {
-      const notionId = beOpenBtn.dataset.notionId;
-      const docName = beOpenBtn.dataset.docName;
-      if (notionId) openBlockEditor({ pageId: notionId, title: docName });
-    });
-  }
-}
-
-/** Simple markdown to HTML for doc preview. Escapes HTML first. */
-function renderMarkdownBasic(md) {
-  if (!md) return '';
-
-  let html = escapeHtml(md);
-
-  // Headings (# ## ###)
-  html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>');
-  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>');
-
-  // Bold / italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-  // Unordered list items
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-
-  // Ordered list items
-  html = html.replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>');
-
-  // Paragraphs (double newline)
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br>');
-  html = '<p>' + html + '</p>';
-
-  // Clean up empty paragraphs
-  html = html.replace(/<p>\s*<\/p>/g, '');
-  html = html.replace(/<p>\s*(<h[2-4]>)/g, '$1');
-  html = html.replace(/(<\/h[2-4]>)\s*<\/p>/g, '$1');
-  html = html.replace(/<p>\s*(<ul>)/g, '$1');
-  html = html.replace(/(<\/ul>)\s*<\/p>/g, '$1');
-
-  return html;
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  NOTES
-// ═══════════════════════════════════════════════════════════════════════
-function renderNotes() {
-  renderFolderTree();
-  renderNotesList();
-}
-
-function getFolders() {
+export function getWorkspaceFolders() {
   try {
     const raw = localStorage.getItem(FOLDERS_KEY);
-    return raw ? JSON.parse(raw) : [{ id: 'general', name: 'General' }];
-  } catch {
-    return [{ id: 'general', name: 'General' }];
-  }
+    return raw ? JSON.parse(raw) : DEFAULT_FOLDERS;
+  } catch { return DEFAULT_FOLDERS; }
 }
 
 function saveFolders(folders) {
   localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders));
 }
 
-function renderFolderTree() {
-  const el = $('#notesTree');
+function ensureDefaults() {
+  if (!localStorage.getItem(FOLDERS_KEY)) {
+    saveFolders(DEFAULT_FOLDERS);
+  }
+}
+
+// ── Render ──────────────────────────────────────────────────────────
+function render() {
+  renderFolderSidebar();
+  renderDocsList();
+}
+
+function renderFolderSidebar() {
+  const el = $('#workspaceFolderSidebar');
   if (!el) return;
 
-  const folders = getFolders();
+  const folders = getWorkspaceFolders();
 
   el.innerHTML = `
-    <button class="folder-item${activeFolder === null ? ' is-active' : ''}" data-folder="">
-      <span class="folder-icon">📁</span> All Notes
+    <button class="ws-folder-item${activeFolder === null ? ' is-active' : ''}" data-folder="">
+      <span class="ws-folder-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      </span>
+      All Notes
+      <span class="ws-folder-count">${getWorkspaceDocs().length}</span>
     </button>
-    ${folders.map(f => `
-      <button class="folder-item${activeFolder === f.id ? ' is-active' : ''}" data-folder="${escapeHtml(f.id)}">
-        <span class="folder-icon">📂</span> ${escapeHtml(f.name)}
-      </button>
-    `).join('')}
+    ${folders.map(f => {
+      const count = getWorkspaceDocs().filter(d => d.folder === f.id).length;
+      return `
+        <button class="ws-folder-item${activeFolder === f.id ? ' is-active' : ''}" data-folder="${escapeHtml(f.id)}">
+          <span class="ws-folder-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          </span>
+          ${escapeHtml(f.name)}
+          <span class="ws-folder-count">${count}</span>
+        </button>
+      `;
+    }).join('')}
   `;
 }
 
-function renderNotesList() {
-  const el = $('#notesList');
+function renderDocsList() {
+  const el = $('#workspaceDocsMain');
   if (!el) return;
 
-  const notes = getState('notes') || [];
-  let filtered = notes;
+  let docs = getWorkspaceDocs();
 
   if (activeFolder) {
-    filtered = notes.filter(n => n.folder === activeFolder);
+    docs = docs.filter(d => d.folder === activeFolder);
   }
 
   // Sort by updatedAt descending
-  filtered.sort((a, b) => {
+  docs.sort((a, b) => {
     const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
     const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
     return db - da;
   });
 
-  if (filtered.length === 0) {
-    el.innerHTML = `<div class="empty-state"><p>No notes${activeFolder ? ' in this folder' : ''} yet.</p><p class="text-secondary">Click "New Note" to get started.</p></div>`;
-    return;
-  }
-
-  el.innerHTML = filtered.map(n => {
-    const preview = stripHtml(n.content || '').slice(0, 100);
-    return `
-      <button class="note-item${n.id === activeNoteId ? ' is-active' : ''}" data-note-id="${escapeHtml(n.id)}">
-        <div class="note-item-title">${escapeHtml(n.title || 'Untitled')}</div>
-        <div class="note-item-preview">${escapeHtml(preview)}${preview.length >= 100 ? '...' : ''}</div>
-        <div class="note-item-date">${n.updatedAt ? formatRelativeTime(n.updatedAt) : ''}</div>
-      </button>
+  if (docs.length === 0) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+        <p>No notes${activeFolder ? ' in this folder' : ''} yet.</p>
+        <p class="text-secondary">Click "New Note" to get started.</p>
+      </div>
     `;
-  }).join('');
-}
-
-function stripHtml(html) {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-}
-
-function openNoteEditor(noteId) {
-  const editor = $('#notesEditor');
-  const notesList = $('#notesList');
-  const titleInput = $('#noteTitleInput');
-  const contentEl = $('#noteContent');
-  const metaEl = $('#noteMeta');
-  const deleteBtn = $('#deleteNoteBtn');
-  if (!editor || !titleInput || !contentEl) return;
-
-  const notes = getState('notes') || [];
-  const note = noteId ? notes.find(n => n.id === noteId) : null;
-
-  activeNoteId = noteId || null;
-
-  const notionToggle = $('#notionToggle');
-
-  if (note) {
-    titleInput.value = note.title || '';
-    contentEl.innerHTML = note.content || '';
-    if (metaEl) {
-      const parts = [];
-      if (note.createdAt) parts.push('Created: ' + formatDate(note.createdAt));
-      if (note.updatedAt) parts.push('Updated: ' + formatRelativeTime(note.updatedAt));
-      if (note.folder) parts.push('Folder: ' + escapeHtml(note.folder));
-      metaEl.textContent = parts.join(' | ');
-    }
-    if (deleteBtn) deleteBtn.removeAttribute('hidden');
-    // Notion toggle: checked + disabled for existing Notion notes
-    if (notionToggle) {
-      const isNotion = note.source === 'notion';
-      notionToggle.checked = isNotion;
-      notionToggle.disabled = isNotion;
-    }
-  } else {
-    titleInput.value = '';
-    contentEl.innerHTML = '';
-    if (metaEl) metaEl.textContent = '';
-    if (deleteBtn) deleteBtn.setAttribute('hidden', '');
-    // Notion toggle: unchecked and enabled for new notes
-    if (notionToggle) {
-      notionToggle.checked = false;
-      notionToggle.disabled = false;
-    }
-  }
-
-  if (notesList) notesList.setAttribute('hidden', '');
-  editor.removeAttribute('hidden');
-  titleInput.focus();
-}
-
-function closeNoteEditor() {
-  const editor = $('#notesEditor');
-  const notesList = $('#notesList');
-  if (editor) editor.setAttribute('hidden', '');
-  if (notesList) notesList.removeAttribute('hidden');
-  activeNoteId = null;
-  clearAutoSave();
-  renderNotesList();
-}
-
-async function saveCurrentNote() {
-  const titleInput = $('#noteTitleInput');
-  const contentEl = $('#noteContent');
-  if (!titleInput || !contentEl) return;
-
-  const title = titleInput.value.trim() || 'Untitled';
-  const content = contentEl.innerHTML;
-  const now = new Date().toISOString();
-  const notionToggle = $('#notionToggle');
-  const saveToNotion = notionToggle?.checked || false;
-
-  let notes = getState('notes') || [];
-
-  if (activeNoteId) {
-    // Update existing
-    notes = notes.map(n => {
-      if (n.id === activeNoteId) {
-        return { ...n, title, content, updatedAt: now };
-      }
-      return n;
-    });
-  } else {
-    // Create new — if Notion toggle is on, try creating in Notion first
-    if (saveToNotion) {
-      const plainContent = stripHtml(content);
-      const created = await notionCreateNote({ title, content: plainContent, folder: activeFolder || 'general' });
-      if (created) {
-        const newNote = {
-          id: created.id,
-          title,
-          content,
-          folder: 'notion',
-          source: 'notion',
-          notionId: created.id,
-          notionUrl: created.notionUrl || null,
-          createdAt: now,
-          updatedAt: now,
-        };
-        activeNoteId = newNote.id;
-        notes.push(newNote);
-        const deleteBtn = $('#deleteNoteBtn');
-        if (deleteBtn) deleteBtn.removeAttribute('hidden');
-        setState('notes', notes);
-        persistNotes(notes);
-        showToast('Saved to Notion', 'success');
-        return;
-      } else {
-        showToast('Notion unavailable — saving locally', 'warning');
-      }
-    }
-
-    // Local-only creation (or Notion fallback)
-    const newNote = {
-      id: generateId('note'),
-      title,
-      content,
-      folder: activeFolder || 'general',
-      source: 'local',
-      createdAt: now,
-      updatedAt: now,
-    };
-    activeNoteId = newNote.id;
-    notes.push(newNote);
-    const deleteBtn = $('#deleteNoteBtn');
-    if (deleteBtn) deleteBtn.removeAttribute('hidden');
-  }
-
-  setState('notes', notes);
-  persistNotes(notes);
-
-  // Push back to Notion if it's an existing Notion note
-  const saved = notes.find(n => n.id === activeNoteId);
-  if (saved) pushNoteToNotion(saved);
-
-  showToast('Note saved');
-}
-
-async function deleteCurrentNote() {
-  if (!activeNoteId) return;
-
-  if (!confirm('Delete this note? This cannot be undone.')) return;
-
-  let notes = getState('notes') || [];
-  const note = notes.find(n => n.id === activeNoteId);
-
-  // Archive in Notion if it's a Notion note
-  if (note && note.source === 'notion' && note.notionId) {
-    const ok = await notionDeleteNote(note.notionId);
-    if (!ok) {
-      showToast('Could not delete from Notion — removed locally only', 'warning');
-    }
-  }
-
-  notes = notes.filter(n => n.id !== activeNoteId);
-  setState('notes', notes);
-  persistNotes(notes);
-  showToast('Note deleted');
-  closeNoteEditor();
-}
-
-function persistNotes(notes) {
-  const localNotes = notes.filter(n => n.source === 'local' || !n.source);
-  localStorage.setItem(NOTES_KEY, JSON.stringify(localNotes));
-}
-
-// ── Notion Sync ─────────────────────────────────────────────────────
-
-function updateSyncStatus() {
-  const el = $('#notionSyncStatus');
-  if (!el) return;
-  if (!lastNotionSync) {
-    el.textContent = '';
     return;
   }
-  el.textContent = `Synced ${formatRelativeTime(lastNotionSync.toISOString())}`;
+
+  const folders = getWorkspaceFolders();
+  const folderMap = {};
+  folders.forEach(f => { folderMap[f.id] = f.name; });
+
+  el.innerHTML = `
+    <div class="ws-doc-grid">
+      ${docs.map(doc => {
+        const preview = extractPreview(doc.content);
+        const folderName = folderMap[doc.folder] || doc.folder || '';
+        return `
+          <button class="ws-doc-card" data-doc-id="${escapeHtml(doc.id)}">
+            <div class="ws-doc-card-title">${escapeHtml(doc.title || 'Untitled')}</div>
+            <div class="ws-doc-card-preview">${escapeHtml(preview)}</div>
+            <div class="ws-doc-card-meta">
+              ${folderName ? `<span class="ws-doc-card-folder">${escapeHtml(folderName)}</span>` : ''}
+              <span class="ws-doc-card-time">${doc.updatedAt ? formatRelativeTime(doc.updatedAt) : ''}</span>
+              ${doc.notionPageId ? '<span class="ws-doc-card-backed" title="Backed up to Notion">&#9729;</span>' : ''}
+            </div>
+            <button class="ws-doc-delete" data-delete-id="${escapeHtml(doc.id)}" title="Delete note">&times;</button>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
-async function syncFromNotion(silent = false) {
-  if (syncInProgress) return;
-  syncInProgress = true;
+/** Extract plain-text preview from Tiptap JSON content */
+function extractPreview(content) {
+  if (!content) return '';
+  if (typeof content === 'string') return content.slice(0, 120);
 
-  const btn = $('#syncNotionBtn');
-  if (btn) btn.disabled = true;
+  // Walk Tiptap JSON and collect text
+  const texts = [];
+  function walk(node) {
+    if (texts.join(' ').length > 120) return;
+    if (node.text) texts.push(node.text);
+    if (node.content) node.content.forEach(walk);
+  }
+  walk(content);
+  const full = texts.join(' ');
+  return full.length > 120 ? full.slice(0, 120) + '...' : full;
+}
 
-  if (!silent) showToast('Syncing from Notion...');
-  try {
-    const notionNotes = await notionGetNotes();
-    if (!notionNotes || notionNotes.length === 0) {
-      if (!silent) showToast('No notes found in Notion', 'warning');
-      return;
-    }
+// ── Events ──────────────────────────────────────────────────────────
+function bindEvents() {
+  // Folder sidebar clicks
+  const sidebar = $('#workspaceFolderSidebar');
+  if (sidebar) {
+    sidebar.addEventListener('click', (e) => {
+      const item = e.target.closest('.ws-folder-item');
+      if (!item) return;
+      const folder = item.dataset.folder;
+      activeFolder = folder || null;
+      render();
+    });
+  }
 
-    const mapped = notionNotes.map(n => ({
-      id: n.id || generateId('notion'),
-      title: n.title || 'Untitled',
-      content: n.content || '',
-      folder: 'notion',
-      source: 'notion',
-      notionId: n.id,
-      notionUrl: n.notionUrl || null,
-      createdAt: n.createdAt || new Date().toISOString(),
-      updatedAt: n.updatedAt || new Date().toISOString(),
-    }));
+  // Doc card clicks
+  const main = $('#workspaceDocsMain');
+  if (main) {
+    main.addEventListener('click', (e) => {
+      // Delete button
+      const deleteBtn = e.target.closest('.ws-doc-delete');
+      if (deleteBtn) {
+        e.stopPropagation();
+        const docId = deleteBtn.dataset.deleteId;
+        if (docId) deleteDoc(docId);
+        return;
+      }
 
-    const existing = getState('notes') || [];
-    const merged = mergeNotes(existing, mapped);
-    setState('notes', merged);
-    persistNotes(merged);
+      // Open doc in editor
+      const card = e.target.closest('.ws-doc-card');
+      if (card) {
+        const docId = card.dataset.docId;
+        if (docId) openBlockEditor({ docId, onClose: () => render() });
+      }
+    });
+  }
 
-    lastNotionSync = new Date();
-    localStorage.setItem(SYNC_TS_KEY, lastNotionSync.toISOString());
-    updateSyncStatus();
+  // New Note button
+  const newNoteBtn = $('#wsNewNoteBtn');
+  if (newNoteBtn) {
+    newNoteBtn.addEventListener('click', () => {
+      openBlockEditor({ folder: activeFolder, onClose: () => render() });
+    });
+  }
 
-    if (!silent) showToast(`Synced ${mapped.length} notes from Notion`, 'success');
-  } catch (err) {
-    console.error('[knowledge] Notion sync failed:', err);
-    if (!silent) showToast('Working offline — Notion unavailable', 'error');
-  } finally {
-    syncInProgress = false;
-    if (btn) btn.disabled = false;
+  // New Folder button
+  const newFolderBtn = $('#wsNewFolderBtn');
+  if (newFolderBtn) {
+    newFolderBtn.addEventListener('click', () => createNewFolder());
   }
 }
 
-async function pushNoteToNotion(note) {
-  if (!note || note.source !== 'notion' || !note.notionId) return;
-  try {
-    const plainContent = stripHtml(note.content || '');
-    await notionUpdateNote(note.notionId, { title: note.title, content: plainContent });
-  } catch (err) {
-    console.warn('[knowledge] Failed to push note to Notion:', err);
-  }
-}
-
-function scheduleAutoSave() {
-  clearAutoSave();
-  autoSaveTimer = setTimeout(() => {
-    if (activeNoteId || ($('#noteTitleInput'))?.value?.trim() || ($('#noteContent'))?.innerHTML?.trim()) {
-      saveCurrentNote();
-    }
-  }, 2000);
-}
-
-function clearAutoSave() {
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = null;
-  }
+function deleteDoc(docId) {
+  if (!confirm('Delete this note?')) return;
+  let docs = getWorkspaceDocs();
+  docs = docs.filter(d => d.id !== docId);
+  saveWorkspaceDocs(docs);
+  showToast('Note deleted');
+  render();
 }
 
 function createNewFolder() {
   const name = prompt('Folder name:');
   if (!name || !name.trim()) return;
 
-  const folders = getFolders();
+  const folders = getWorkspaceFolders();
   const id = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
   if (folders.some(f => f.id === id)) {
@@ -596,172 +248,6 @@ function createNewFolder() {
 
   folders.push({ id, name: name.trim() });
   saveFolders(folders);
-  renderFolderTree();
   showToast(`Folder "${name.trim()}" created`);
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  TOOLBAR (Rich Text)
-// ═══════════════════════════════════════════════════════════════════════
-function applyFormat(format) {
-  const contentEl = $('#noteContent');
-  if (!contentEl) return;
-  contentEl.focus();
-
-  if (format === 'link') {
-    const url = prompt('Enter URL:');
-    if (url) document.execCommand('createLink', false, url);
-    return;
-  }
-
-  if (format === 'code') {
-    const sel = window.getSelection();
-    if (sel.rangeCount && !sel.isCollapsed) {
-      const text = sel.toString();
-      document.execCommand('insertHTML', false, '<code>' + escapeHtml(text) + '</code>');
-    } else {
-      document.execCommand('insertHTML', false, '<pre><code>\n</code></pre>');
-    }
-    return;
-  }
-
-  if (format === 'highlight') {
-    const sel = window.getSelection();
-    if (sel.rangeCount && !sel.isCollapsed) {
-      const text = sel.toString();
-      document.execCommand('insertHTML', false, '<mark>' + escapeHtml(text) + '</mark>');
-    }
-    return;
-  }
-
-  if (format === 'h2') {
-    document.execCommand('formatBlock', false, 'h2');
-  } else if (format === 'blockquote') {
-    document.execCommand('formatBlock', false, 'blockquote');
-  } else {
-    document.execCommand(format, false, null);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  EVENTS
-// ═══════════════════════════════════════════════════════════════════════
-function bindKnowledgeEvents() {
-  // Knowledge subtab switching
-  const knowledgeSubtabs = $('#knowledgeSubtabs');
-  if (knowledgeSubtabs) {
-    knowledgeSubtabs.addEventListener('click', (e) => {
-      const btn = e.target.closest('.subtab');
-      if (!btn) return;
-      const target = btn.dataset.subtab;
-      if (!target) return;
-
-      $$('#knowledgeSubtabs .subtab').forEach(b => {
-        const isActive = b === btn;
-        b.classList.toggle('is-active', isActive);
-        b.setAttribute('aria-selected', String(isActive));
-      });
-
-      ['knowledge-library', 'knowledge-notes'].forEach(id => {
-        const panel = $(`#${id}`);
-        if (!panel) return;
-        const active = id === target;
-        panel.classList.toggle('is-active', active);
-        if (active) panel.removeAttribute('hidden');
-        else panel.setAttribute('hidden', '');
-      });
-
-      // Toggle New Note button visibility
-      const noteActions = $('#knowledgeActions');
-      if (noteActions) {
-        const newNoteBtn = $('#newNoteBtn');
-        if (newNoteBtn) {
-          if (target === 'knowledge-notes') {
-            newNoteBtn.removeAttribute('hidden');
-          } else {
-            newNoteBtn.setAttribute('hidden', '');
-          }
-        }
-      }
-    });
-  }
-
-  // Document click (event delegation on knowledgeList)
-  const knowledgeList = $('#knowledgeList');
-  if (knowledgeList) {
-    knowledgeList.addEventListener('click', (e) => {
-      const item = e.target.closest('.knowledge-item');
-      if (!item) return;
-      const docId = item.dataset.docId;
-      if (docId) renderDocPreview(docId);
-    });
-  }
-
-  // Folder tree (event delegation)
-  const notesTree = $('#notesTree');
-  if (notesTree) {
-    notesTree.addEventListener('click', (e) => {
-      const item = e.target.closest('.folder-item');
-      if (!item) return;
-      const folder = item.dataset.folder;
-      activeFolder = folder || null;
-      renderFolderTree();
-      renderNotesList();
-    });
-  }
-
-  // Notes list click (event delegation)
-  const notesList = $('#notesList');
-  if (notesList) {
-    notesList.addEventListener('click', (e) => {
-      const item = e.target.closest('.note-item');
-      if (!item) return;
-      const noteId = item.dataset.noteId;
-      if (noteId) openNoteEditor(noteId);
-    });
-  }
-
-  // New Note
-  $('#newNoteBtn')?.addEventListener('click', () => openNoteEditor(null));
-
-  // Save Note
-  $('#saveNoteBtn')?.addEventListener('click', () => {
-    clearAutoSave();
-    saveCurrentNote();
-  });
-
-  // Cancel Note
-  $('#cancelNoteBtn')?.addEventListener('click', () => closeNoteEditor());
-
-  // Delete Note
-  $('#deleteNoteBtn')?.addEventListener('click', () => deleteCurrentNote());
-
-  // New Folder
-  $('#newFolderBtn')?.addEventListener('click', () => createNewFolder());
-
-  // Notion Sync — bind static button from HTML
-  $('#syncNotionBtn')?.addEventListener('click', () => syncFromNotion(false));
-
-  // Toolbar formatting (event delegation)
-  const toolbar = $('.editor-toolbar');
-  if (toolbar) {
-    toolbar.addEventListener('click', (e) => {
-      const btn = e.target.closest('.toolbar-btn');
-      if (!btn) return;
-      const format = btn.dataset.format;
-      if (format) applyFormat(format);
-    });
-  }
-
-  // Auto-save on content edits
-  const noteContent = $('#noteContent');
-  if (noteContent) {
-    noteContent.addEventListener('input', () => scheduleAutoSave());
-  }
-
-  // Auto-save on title change
-  const noteTitleInput = $('#noteTitleInput');
-  if (noteTitleInput) {
-    noteTitleInput.addEventListener('input', () => scheduleAutoSave());
-  }
+  render();
 }

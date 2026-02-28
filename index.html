@@ -67,7 +67,7 @@
           </button></li>
           <li><button class="nav-item" id="nav-knowledge" role="tab" aria-selected="false" aria-controls="tab-knowledge" data-tab="knowledge">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            <span>Knowledge</span>
+            <span>Workspace</span>
           </button></li>
           <li><button class="nav-item" id="nav-chat" role="tab" aria-selected="false" aria-controls="tab-chat" data-tab="chat">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -373,69 +373,21 @@
           </div>
         </section>
 
-        <!-- KNOWLEDGE TAB -->
+        <!-- WORKSPACE TAB (was Knowledge) -->
         <section class="tab-panel" id="tab-knowledge" role="tabpanel" aria-labelledby="nav-knowledge" hidden>
           <div class="section-header">
-            <h1>Knowledge</h1>
+            <h1>Workspace</h1>
             <div class="section-actions" id="knowledgeActions">
-              <span class="notion-sync-status" id="notionSyncStatus"></span>
-              <button class="btn btn-ghost btn-sm" id="syncNotionBtn" title="Sync from Notion">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                Sync Notion
+              <button class="btn btn-ghost btn-sm" id="wsNewFolderBtn">+ New Folder</button>
+              <button class="btn btn-primary btn-sm" id="wsNewNoteBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Note
               </button>
-              <button class="btn btn-primary btn-sm" id="newNoteBtn">New Note</button>
             </div>
           </div>
-          <div class="subtabs" id="knowledgeSubtabs" role="tablist">
-            <button class="subtab is-active" data-subtab="knowledge-library" role="tab" aria-selected="true">Library</button>
-            <button class="subtab" data-subtab="knowledge-notes" role="tab" aria-selected="false">Notes</button>
-          </div>
-          <div class="subtab-panel is-active" id="knowledge-library" role="tabpanel">
-            <div class="knowledge-layout">
-              <div class="knowledge-list" id="knowledgeList"></div>
-              <div class="knowledge-preview" id="knowledgePreview"><div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><p>Select a document to preview</p></div></div>
-            </div>
-          </div>
-          <div class="subtab-panel" id="knowledge-notes" role="tabpanel" hidden>
-            <div class="notes-layout">
-              <div class="notes-sidebar-panel">
-                <div class="notes-tree" id="notesTree"></div>
-                <button class="btn btn-ghost btn-sm" id="newFolderBtn">+ New Folder</button>
-              </div>
-              <div class="notes-main">
-                <div class="notes-list" id="notesList"></div>
-                <div class="notes-editor" id="notesEditor" hidden>
-                  <div class="editor-header">
-                    <input type="text" class="editor-title" id="noteTitleInput" placeholder="Note title..." aria-label="Note title">
-                    <div class="editor-actions">
-                      <label class="notion-toggle" id="notionToggleLabel" title="Save to Notion">
-                        <input type="checkbox" id="notionToggle">
-                        <span class="notion-toggle-text">Notion</span>
-                      </label>
-                      <button class="btn btn-ghost btn-sm" id="cancelNoteBtn">Cancel</button>
-                      <button class="btn btn-primary btn-sm" id="saveNoteBtn">Save</button>
-                    </div>
-                  </div>
-                  <div class="editor-toolbar" role="toolbar" aria-label="Formatting">
-                    <button class="toolbar-btn" data-format="bold" aria-label="Bold"><strong>B</strong></button>
-                    <button class="toolbar-btn" data-format="italic" aria-label="Italic"><em>I</em></button>
-                    <button class="toolbar-btn" data-format="underline" aria-label="Underline"><u>U</u></button>
-                    <span class="toolbar-sep" aria-hidden="true"></span>
-                    <button class="toolbar-btn" data-format="insertUnorderedList" aria-label="Bullet list">&#8226;</button>
-                    <button class="toolbar-btn" data-format="insertOrderedList" aria-label="Numbered list">1.</button>
-                    <span class="toolbar-sep" aria-hidden="true"></span>
-                    <button class="toolbar-btn" data-format="h2" aria-label="Heading">H</button>
-                    <button class="toolbar-btn" data-format="blockquote" aria-label="Quote">&ldquo;</button>
-                    <span class="toolbar-sep" aria-hidden="true"></span>
-                    <button class="toolbar-btn" data-format="link" aria-label="Link">&#128279;</button>
-                    <button class="toolbar-btn" data-format="code" aria-label="Code">&lt;/&gt;</button>
-                    <button class="toolbar-btn" data-format="highlight" aria-label="Highlight">&#128397;</button>
-                  </div>
-                  <div class="editor-content" id="noteContent" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note content"></div>
-                  <div class="editor-footer"><span class="editor-meta" id="noteMeta"></span><button class="btn btn-danger btn-sm" id="deleteNoteBtn" hidden>Delete</button></div>
-                </div>
-              </div>
-            </div>
+          <div class="ws-layout">
+            <div class="ws-folder-sidebar" id="workspaceFolderSidebar"></div>
+            <div class="ws-docs-main" id="workspaceDocsMain"></div>
           </div>
         </section>
 
@@ -560,27 +512,13 @@
     <!-- ====== BLOCK EDITOR MODAL ====== -->
     <div class="block-editor-backdrop" id="blockEditorBackdrop" hidden></div>
     <div class="block-editor-modal" id="blockEditorModal" role="dialog" aria-modal="true" aria-label="Block Editor" hidden>
-      <div class="be-sidebar">
-        <div class="be-sidebar-header">
-          <h3>Pages</h3>
-          <button class="btn btn-ghost btn-xs" id="beRefreshPages" title="Refresh pages">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          </button>
-        </div>
-        <div class="be-search-wrap">
-          <input type="text" class="form-input be-search-input" id="bePageSearch" placeholder="Search pages..." aria-label="Search Notion pages">
-        </div>
-        <div class="be-page-list" id="bePageList">
-          <div class="be-page-loading">Loading pages...</div>
-        </div>
-        <button class="btn btn-ghost btn-sm be-new-page-btn" id="beNewPage">+ New Document</button>
-      </div>
       <div class="be-main">
         <div class="be-header">
-          <input type="text" class="be-title-input" id="bePageTitle" placeholder="Page title..." aria-label="Page title">
+          <input type="text" class="be-title-input" id="bePageTitle" placeholder="Note title..." aria-label="Note title">
+          <select class="be-folder-select" id="beDocFolder" aria-label="Folder"></select>
           <div class="be-header-actions">
             <span class="be-sync-status" id="beSyncStatus"></span>
-            <button class="btn btn-ghost btn-sm" id="beSaveBtn" title="Save to Notion">Save</button>
+            <button class="btn btn-primary btn-sm" id="beSaveBtn" title="Save &amp; backup to Notion">Save</button>
             <button class="btn-icon be-close-btn" id="blockEditorClose" aria-label="Close editor (Esc)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>

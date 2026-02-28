@@ -40,6 +40,26 @@ export async function updatePageBlocks(pageId, blocks) {
 }
 
 /**
+ * Create a new page in the workspace parent (Notion backup)
+ * Returns { pageId, url } or null
+ */
+export async function createPage(title, blocks = []) {
+  try {
+    const r = await fetch(`${ENDPOINT}?action=create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, blocks }),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    const data = await r.json();
+    return data.pageId ? data : null;
+  } catch (err) {
+    console.error('[notion-blocks] createPage failed:', err);
+    return null;
+  }
+}
+
+/**
  * Search Notion pages by query
  */
 export async function searchPages(query = '') {

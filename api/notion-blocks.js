@@ -83,6 +83,46 @@ export default async function handler(req, res) {
       return res.status(200).json({ blocks });
     }
 
+    // POST ?action=create — create new page under workspace parent
+    if (req.method === 'POST' && req.query.action === 'create') {
+      const { title, blocks } = req.body || {};
+      const parentId = process.env.NOTION_WORKSPACE_PARENT_PAGE;
+      if (!parentId) {
+        return res.status(500).json({ error: 'NOTION_WORKSPACE_PARENT_PAGE not configured' });
+      }
+
+      // Create page
+      const pageBody = {
+        parent: { page_id: parentId },
+        properties: {
+          title: { title: [{ text: { content: title || 'Untitled' } }] },
+        },
+        children: blocks && blocks.length > 0 ? blocks.slice(0, 100) : [],
+      };
+
+      const r = await fetch(`${NOTION_API}/pages`, {
+        method: 'POST', headers, body: JSON.stringify(pageBody),
+      });
+      const data = await r.json();
+      if (data.object === 'error') {
+        return res.status(400).json({ error: data.message });
+      }
+
+      // If more than 100 blocks, append the rest
+      if (blocks && blocks.length > 100) {
+        const remaining = blocks.slice(100);
+        const chunks = chunkArray(remaining, 100);
+        for (const chunk of chunks) {
+          await fetch(`${NOTION_API}/blocks/${data.id}/children`, {
+            method: 'PATCH', headers,
+            body: JSON.stringify({ children: chunk }),
+          });
+        }
+      }
+
+      return res.status(200).json({ pageId: data.id, url: data.url });
+    }
+
     // POST — save blocks to page
     if (req.method === 'POST') {
       const { pageId, blocks } = req.body || {};
