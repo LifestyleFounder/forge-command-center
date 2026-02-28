@@ -3567,6 +3567,10 @@ textarea.form-input {
     display: none;
   }
 
+  .main-layout {
+    flex-direction: column;
+  }
+
   .mobile-header {
     display: flex;
   }
