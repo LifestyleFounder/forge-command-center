@@ -73,16 +73,18 @@ export async function openBlockEditor(opts = {}) {
     return;
   }
 
+  // Always load page list in sidebar
+  refreshPageList();
+
   // Load page
   const pageId = opts.pageId || getPinnedPageId();
   if (pageId) {
     await loadPage(pageId, opts.title);
   } else {
-    // No pinned page — show empty editor and page browser
+    // No pinned page — show empty editor
     setEditorTitle('');
-    editor.commands.clearContent();
-    setSyncStatus('idle', '');
-    refreshPageList();
+    editor.commands.setContent('<p>Select a page from the sidebar, or search for one.</p>');
+    setSyncStatus('idle', 'No page selected');
   }
 
   // Focus editor
@@ -448,9 +450,9 @@ async function loadPage(pageId, title) {
       }
     }
   } else if (blocks && blocks.length === 0) {
-    // Page exists but has no blocks (empty page)
-    editor.commands.clearContent();
-    setSyncStatus('saved', 'Empty page');
+    // Page exists but has no block content (empty page or database entry)
+    editor.commands.setContent('<p><em>This page has no editable content. It may be a database entry or empty page.</em></p>');
+    setSyncStatus('idle', 'Empty page');
     // Still get the title
     if (!title) {
       const page = await getPage(pageId);
