@@ -596,6 +596,32 @@ function applyFormat(format) {
   if (!contentEl) return;
   contentEl.focus();
 
+  if (format === 'link') {
+    const url = prompt('Enter URL:');
+    if (url) document.execCommand('createLink', false, url);
+    return;
+  }
+
+  if (format === 'code') {
+    const sel = window.getSelection();
+    if (sel.rangeCount && !sel.isCollapsed) {
+      const text = sel.toString();
+      document.execCommand('insertHTML', false, '<code>' + escapeHtml(text) + '</code>');
+    } else {
+      document.execCommand('insertHTML', false, '<pre><code>\n</code></pre>');
+    }
+    return;
+  }
+
+  if (format === 'highlight') {
+    const sel = window.getSelection();
+    if (sel.rangeCount && !sel.isCollapsed) {
+      const text = sel.toString();
+      document.execCommand('insertHTML', false, '<mark>' + escapeHtml(text) + '</mark>');
+    }
+    return;
+  }
+
   if (format === 'h2') {
     document.execCommand('formatBlock', false, 'h2');
   } else if (format === 'blockquote') {
