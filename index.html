@@ -164,8 +164,17 @@
 
             <!-- Row 3: Schedule + Client Health (side by side) -->
             <div class="card" id="calendarCard">
-              <div class="card-header"><h2>Schedule</h2><button class="btn btn-ghost btn-xs" id="calendarFullViewBtn">Full View</button></div>
-              <div class="card-body"><iframe id="calendarEmbed" title="Google Calendar" loading="lazy" src="https://calendar.google.com/calendar/embed?src=dan%40quantumcollective.com&ctz=America%2FVancouver&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showDate=1"></iframe></div>
+              <div class="card-header"><h2>Schedule</h2><a href="https://calendar.google.com" target="_blank" class="btn btn-ghost btn-xs" style="text-decoration:none;">Open Calendar</a></div>
+              <div class="card-body" id="scheduleBody">
+                <div class="schedule-list">
+                  <div class="schedule-skeleton">
+                    <div class="skel-row"><div class="skel-time"></div><div class="skel-title"></div></div>
+                    <div class="skel-row"><div class="skel-time"></div><div class="skel-title"></div></div>
+                    <div class="skel-row"><div class="skel-time"></div><div class="skel-title"></div></div>
+                    <div class="skel-row"><div class="skel-time"></div><div class="skel-title"></div></div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="card" id="clientsCard">
               <div class="card-header"><h2>Client Health</h2><span class="staleness" id="clientsStaleness"></span></div>

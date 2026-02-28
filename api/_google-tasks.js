@@ -70,6 +70,16 @@ async function tasksAPI(path, method = 'GET', body = null) {
   return fetchURL(`https://tasks.googleapis.com${path}`, opts);
 }
 
+async function calendarAPI(path, method = 'GET', body = null) {
+  const token = await getAccessToken();
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetchURL(`https://www.googleapis.com${path}`, opts);
+}
+
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -82,4 +92,4 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-module.exports = { tasksAPI, cors, json, getAccessToken };
+module.exports = { tasksAPI, calendarAPI, cors, json, getAccessToken };

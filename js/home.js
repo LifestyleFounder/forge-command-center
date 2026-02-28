@@ -16,6 +16,7 @@ import {
   switchTab
 } from './app.js';
 import { getUpcomingTasks, completeTaskFromHome } from './google-tasks.js';
+import { getUpcomingEvents } from './google-calendar.js';
 
 // ---- DOM Cache (module-scoped) --------------------------------
 
@@ -48,6 +49,7 @@ export function initHome() {
   renderClientNotifications();
   updateGreeting();
   renderUpcomingTasks();
+  renderSchedule();
 
   // Subscribe to state changes
   subscribe((key) => {
@@ -69,8 +71,7 @@ export function initHome() {
   // Tasks card: View All → Google Tasks tab
   $('#tasksViewAllBtn')?.addEventListener('click', () => switchTab('google-tasks'));
 
-  // Calendar card: Full View → Calendar tab
-  $('#calendarFullViewBtn')?.addEventListener('click', () => switchTab('calendar'));
+  // Calendar card: "Open Calendar" is now an <a> link, no JS needed
 
   // Tasks card: checkbox delegation (complete on click)
   const tasksBody = $('#upcomingTasksBody');
@@ -282,6 +283,66 @@ async function renderUpcomingTasks() {
   } catch (err) {
     console.warn('[home] Failed to load upcoming tasks', err);
     container.innerHTML = '<div class="empty-state"><p>Could not load tasks</p></div>';
+  }
+}
+
+// ---- Schedule (Google Calendar) --------------------------------
+
+async function renderSchedule() {
+  const container = $('#scheduleBody');
+  if (!container) return;
+
+  try {
+    const events = await getUpcomingEvents();
+
+    if (events.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No upcoming events</p></div>';
+      return;
+    }
+
+    const now = new Date();
+    let lastDateStr = '';
+
+    const html = events.map(ev => {
+      const startDt = ev.allDay ? new Date(ev.start.date + 'T00:00:00') : new Date(ev.start.dateTime);
+      const endDt = ev.allDay
+        ? new Date(ev.end.date + 'T00:00:00')
+        : (ev.end.dateTime ? new Date(ev.end.dateTime) : null);
+
+      const isNow = !ev.allDay && endDt && now >= startDt && now < endDt;
+
+      let timeStr;
+      if (ev.allDay) {
+        timeStr = 'All day';
+      } else {
+        timeStr = startDt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      }
+
+      // Date separator
+      const dateStr = startDt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      let separator = '';
+      if (dateStr !== lastDateStr) {
+        const isToday = startDt.toDateString() === now.toDateString();
+        const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+        const isTomorrow = startDt.toDateString() === tomorrow.toDateString();
+        const label = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : dateStr;
+        separator = `<div class="schedule-date-sep">${label}</div>`;
+        lastDateStr = dateStr;
+      }
+
+      const title = escapeHtml(ev.title);
+
+      return `${separator}<a href="${escapeHtml(ev.link)}" target="_blank" class="schedule-item${isNow ? ' schedule-now' : ''}">
+        <span class="schedule-time${ev.allDay ? ' schedule-allday' : ''}">${timeStr}</span>
+        <span class="schedule-title">${title}</span>
+      </a>`;
+    }).join('');
+
+    container.innerHTML = `<div class="schedule-list">${html}</div>`;
+
+  } catch (err) {
+    console.warn('[home] Failed to load schedule', err);
+    container.innerHTML = '<div class="empty-state"><p>Calendar unavailable</p></div>';
   }
 }
 
