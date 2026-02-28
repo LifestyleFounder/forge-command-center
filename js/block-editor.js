@@ -58,7 +58,19 @@ export async function openBlockEditor(opts = {}) {
 
   // Create editor instance if needed
   if (!editor) {
-    createEditorInstance();
+    try {
+      createEditorInstance();
+    } catch (err) {
+      console.error('[block-editor] Failed to create editor:', err);
+      setSyncStatus('error', 'Editor failed to load');
+      showToast('Editor initialization failed — check console', 'error');
+      return;
+    }
+  }
+
+  if (!editor) {
+    setSyncStatus('error', 'Editor not available');
+    return;
   }
 
   // Load page
@@ -114,18 +126,17 @@ export function isEditorModalOpen() {
 async function loadTiptap() {
   try {
     const [
-      { Editor },
-      { default: StarterKit },
-      { default: TaskList },
-      { default: TaskItem },
-      { default: Placeholder },
-      { default: Highlight },
-      { default: Link },
-      { default: TxtColor },
-      { default: TextStyle },
-      { default: Underline },
-      { default: TextAlign },
-      { Extension },
+      coreModule,
+      starterKitModule,
+      taskListModule,
+      taskItemModule,
+      placeholderModule,
+      highlightModule,
+      linkModule,
+      colorModule,
+      textStyleModule,
+      underlineModule,
+      textAlignModule,
     ] = await Promise.all([
       import('https://esm.sh/@tiptap/core@2.11.5'),
       import('https://esm.sh/@tiptap/starter-kit@2.11.5'),
@@ -138,9 +149,29 @@ async function loadTiptap() {
       import('https://esm.sh/@tiptap/extension-text-style@2.11.5'),
       import('https://esm.sh/@tiptap/extension-underline@2.11.5'),
       import('https://esm.sh/@tiptap/extension-text-align@2.11.5'),
-      import('https://esm.sh/@tiptap/core@2.11.5'),
     ]);
 
+    // Use named exports with default fallback
+    const Editor = coreModule.Editor;
+    const Extension = coreModule.Extension;
+    const StarterKit = starterKitModule.StarterKit || starterKitModule.default;
+    const TaskList = taskListModule.TaskList || taskListModule.default;
+    const TaskItem = taskItemModule.TaskItem || taskItemModule.default;
+    const Placeholder = placeholderModule.Placeholder || placeholderModule.default;
+    const Highlight = highlightModule.Highlight || highlightModule.default;
+    const Link = linkModule.Link || linkModule.default;
+    const TxtColor = colorModule.Color || colorModule.default;
+    const TextStyle = textStyleModule.TextStyle || textStyleModule.default;
+    const Underline = underlineModule.Underline || underlineModule.default;
+    const TextAlign = textAlignModule.TextAlign || textAlignModule.default;
+
+    // Verify critical modules loaded
+    if (!Editor || !Extension || !StarterKit) {
+      console.error('[block-editor] Missing critical Tiptap modules:', { Editor: !!Editor, Extension: !!Extension, StarterKit: !!StarterKit });
+      throw new Error('Core Tiptap modules failed to load');
+    }
+
+    console.log('[block-editor] Tiptap loaded successfully');
     return {
       Editor, StarterKit, TaskList, TaskItem, Placeholder,
       Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Extension,
@@ -209,17 +240,8 @@ function createEditorInstance() {
 // ── Slash Command Extension ───────────────────────────────
 
 function createSlashExtension(Extension) {
-  const suggestion = createSlashCommandSuggestion();
-
   return Extension.create({
     name: 'slashCommands',
-
-    addProseMirrorPlugins() {
-      const { Plugin, PluginKey } = this.editor.state.constructor.prototype.constructor;
-
-      // Use a simpler approach: listen for "/" keypress and show menu
-      return [];
-    },
 
     addKeyboardShortcuts() {
       return {
@@ -386,6 +408,11 @@ function hideSlashMenu() {
 // ── Page Loading ──────────────────────────────────────────
 
 async function loadPage(pageId, title) {
+  if (!editor) {
+    console.error('[block-editor] No editor instance — cannot load page');
+    return;
+  }
+
   currentPageId = pageId;
   currentPageTitle = title || '';
   isDirty = false;
@@ -398,13 +425,33 @@ async function loadPage(pageId, title) {
 
   // Fetch from Notion
   const blocks = await getPageBlocks(pageId);
+  console.log('[block-editor] Loaded blocks:', blocks?.length, 'for page:', pageId);
 
-  if (blocks) {
-    const tiptapDoc = notionBlocksToTiptap(blocks);
-    editor.commands.setContent(tiptapDoc);
+  if (blocks && blocks.length > 0) {
+    try {
+      const tiptapDoc = notionBlocksToTiptap(blocks);
+      console.log('[block-editor] Converted to Tiptap:', JSON.stringify(tiptapDoc).slice(0, 200));
+      editor.commands.setContent(tiptapDoc);
+    } catch (err) {
+      console.error('[block-editor] Failed to convert/set content:', err);
+      setSyncStatus('error', 'Content conversion failed');
+      return;
+    }
     setSyncStatus('saved', 'Synced with Notion');
 
     // Get page title if not provided
+    if (!title) {
+      const page = await getPage(pageId);
+      if (page) {
+        currentPageTitle = page.title;
+        setEditorTitle(page.title);
+      }
+    }
+  } else if (blocks && blocks.length === 0) {
+    // Page exists but has no blocks (empty page)
+    editor.commands.clearContent();
+    setSyncStatus('saved', 'Empty page');
+    // Still get the title
     if (!title) {
       const page = await getPage(pageId);
       if (page) {
