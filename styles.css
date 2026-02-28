@@ -5327,6 +5327,47 @@ a:focus:not(:focus-visible) {
     align-items: flex-start;
   }
 
+  /* Prevent overflow on narrow screens */
+  .creator-card,
+  .comp-post-card,
+  .hook-swipe-card {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .creator-card-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-1);
+  }
+
+  .comp-subtabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    gap: 0;
+  }
+
+  .comp-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .comp-badges {
+    gap: 4px;
+  }
+
+  .comp-badge {
+    font-size: 9px;
+    padding: 2px 7px;
+  }
+
+  .comp-value {
+    word-break: break-word;
+  }
+
+  .hook-swipe-framework {
+    font-size: 13px;
+  }
+
   .vip-stats-row {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -5382,6 +5423,20 @@ a:focus:not(:focus-visible) {
 
   .swipe-filter-bar {
     flex-direction: column;
+  }
+
+  .swipe-card {
+    min-width: 0;
+  }
+
+  .swipe-hook-badge {
+    font-size: 9px;
+    padding: 2px 7px;
+  }
+
+  .swipe-hook-preview {
+    font-size: 11px;
+    -webkit-line-clamp: 1;
   }
 
   .quick-actions {
