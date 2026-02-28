@@ -8,11 +8,17 @@ module.exports = async (req, res) => {
   try {
     const url = new URL(req.url, `https://${req.headers.host}`);
 
-    // Debug: list all calendars
+    // Debug: list all calendars + raw API response
     if (url.searchParams.get('debug') === 'calendars') {
       const list = await calendarAPI('/calendar/v3/users/me/calendarList');
       const cals = (list.items || []).map(c => ({ id: c.id, summary: c.summary, primary: c.primary || false }));
-      return json(res, 200, { calendars: cals });
+      return json(res, 200, { calendars: cals, raw_error: list.error || null, raw_code: list.code || null });
+    }
+
+    // Debug: return raw Google response
+    if (url.searchParams.get('debug') === 'raw') {
+      const raw = await calendarAPI('/calendar/v3/calendars/primary/events?maxResults=3&singleEvents=true&orderBy=startTime&timeMin=' + encodeURIComponent(new Date().toISOString()));
+      return json(res, 200, { raw });
     }
 
     const calId = url.searchParams.get('cal') || 'primary';
