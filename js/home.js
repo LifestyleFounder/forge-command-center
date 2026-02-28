@@ -1,15 +1,13 @@
 /* ============================================================
    home.js — Forge Command Center Home Tab
-   Morning brief, metrics, client health, pipeline, greeting
+   Tasks, schedule, client health, VIP metrics, greeting
    ============================================================ */
 
 import {
   getState,
   subscribe,
   escapeHtml,
-  formatNumber,
   formatDate,
-  formatRelativeTime,
   daysBetween,
   $,
   $$,
@@ -20,9 +18,6 @@ import {
 } from './app.js';
 import { getUpcomingTasks, completeTaskFromHome } from './google-tasks.js';
 
-// ---- Module state ------------------------------------------------
-let upcomingTaskCount = 0;
-
 // ---- DOM Cache (module-scoped) --------------------------------
 
 let el = {};
@@ -30,21 +25,6 @@ let el = {};
 function cacheHomeElements() {
   el = {
     greeting: $('#homeGreeting'),
-    morningBrief: $('#morningBrief'),
-    briefItems: $('#morningBrief .brief-items'),
-    metricsRow: $('#metricsRow'),
-    metricFree: $('#metricFree'),
-    metricFreeTrend: $('#metricFreeTrend'),
-    metricPremium: $('#metricPremium'),
-    metricPremiumTrend: $('#metricPremiumTrend'),
-    metricVip: $('#metricVip'),
-    metricVipTrend: $('#metricVipTrend'),
-    metricOneone: $('#metricOneone'),
-    metricOneoneTrend: $('#metricOneoneTrend'),
-    metricApps: $('#metricApps'),
-    metricAppsTrend: $('#metricAppsTrend'),
-    metricWorkshop: $('#metricWorkshop'),
-    metricWorkshopTrend: $('#metricWorkshopTrend'),
     healthSummary: $('#healthSummary'),
     clientsHealthy: $('#clientsHealthy'),
     clientsWarning: $('#clientsWarning'),
@@ -55,8 +35,12 @@ function cacheHomeElements() {
     clientExpandItems: $('#clientExpandItems'),
     closeClientExpand: $('#closeClientExpand'),
     clientAlerts: $('#clientAlerts'),
-    pipelineBody: $('#pipelineBody'),
+    clientVipAlerts: $('#clientVipAlerts'),
     refreshAllBtn: $('#refreshAllBtn'),
+    vipActiveCount: $('#vipActiveCount'),
+    vipMrr: $('#vipMrr'),
+    vipAtRiskCount: $('#vipAtRiskCount'),
+    vipToGoal: $('#vipToGoal'),
   };
 }
 
@@ -65,28 +49,19 @@ function cacheHomeElements() {
 export function initHome() {
   cacheHomeElements();
 
-  renderMorningBrief();
-  renderMetrics();
   renderClientHealth();
-  renderPipeline();
-  renderQuickActions();
-  renderVipAlerts();
+  renderVipMetrics();
   updateGreeting();
   renderUpcomingTasks();
 
   // Subscribe to state changes
   subscribe((key) => {
     if (key === 'business') {
-      renderMetrics();
       renderClientHealth();
-      renderPipeline();
-      renderMorningBrief();
-    }
-    if (key === 'tasks' || key === 'status') {
-      renderMorningBrief();
     }
     if (key === 'vipClients') {
       renderVipAlerts();
+      renderVipMetrics();
     }
   });
 
@@ -161,197 +136,23 @@ function updateGreeting() {
   el.greeting.textContent = `Good ${period}, Dan`;
 }
 
-// ---- Morning Brief --------------------------------------------
+// ---- VIP Metrics (4-card row) ---------------------------------
 
-function renderMorningBrief() {
-  if (!el.briefItems) return;
+function renderVipMetrics() {
+  const VIP_GOAL = 72;
+  const data = getState('vipClients');
+  if (!data || !data.clients) return;
 
-  const insights = generateInsights();
+  const clients = data.clients;
+  const activeCount = clients.filter(c => c.status === 'Active').length;
+  const atRiskCount = clients.filter(c => c.status === 'At Risk').length;
+  const mrr = activeCount * 1000;
+  const toGoal = VIP_GOAL - activeCount;
 
-  if (insights.length === 0) {
-    el.briefItems.innerHTML = '<div class="brief-item"><span class="brief-icon">&#9745;</span><span class="brief-text">All clear. No urgent items.</span></div>';
-    return;
-  }
-
-  el.briefItems.innerHTML = insights.map(item => `
-    <div class="brief-item brief-${escapeHtml(item.level)}">
-      <span class="brief-icon">${item.icon}</span>
-      <span class="brief-text">${escapeHtml(item.text)}</span>
-    </div>
-  `).join('');
-}
-
-function generateInsights() {
-  const insights = [];
-  const state = getState();
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-
-  // --- Check overdue tasks ---
-  const tasks = state.tasks?.tasks || [];
-  const overdue = tasks.filter(t =>
-    t.due &&
-    t.status !== 'done' &&
-    new Date(t.due) < now
-  );
-  overdue.forEach(t => {
-    insights.push({
-      level: 'warning',
-      icon: '\u26A0',
-      text: `${t.title} is overdue (due ${formatDate(t.due)})`
-    });
-  });
-
-  // --- Check at-risk clients ---
-  const biz = state.business;
-  if (biz && biz.clients) {
-    const atRisk = biz.clients.atRisk || [];
-    if (atRisk.length > 0) {
-      const names = atRisk.map(c => c.name).join(', ');
-      insights.push({
-        level: 'danger',
-        icon: '\uD83D\uDC65',
-        text: `${atRisk.length} client${atRisk.length > 1 ? 's' : ''} at risk: ${names}`
-      });
-    }
-
-    const warning = biz.clients.warning || [];
-    if (warning.length > 0) {
-      warning.forEach(c => {
-        insights.push({
-          level: 'warning',
-          icon: '\uD83D\uDC41',
-          text: `${c.name} needs attention: ${c.note}`
-        });
-      });
-    }
-  }
-
-  // --- Check data staleness ---
-  if (biz && biz.lastUpdated) {
-    const stale = daysBetween(biz.lastUpdated, today);
-    if (stale !== null && stale > 3) {
-      insights.push({
-        level: 'info',
-        icon: '\uD83D\uDCCA',
-        text: `Business data is ${stale} days old \u2014 consider updating`
-      });
-    }
-  }
-
-  // --- Tasks in progress / backlog summary ---
-  const inProgress = tasks.filter(t => t.status === 'progress').length;
-  const backlog = tasks.filter(t => t.status === 'todo' || t.status === 'inbox').length;
-  if (inProgress > 0 || backlog > 0) {
-    const parts = [];
-    if (inProgress > 0) parts.push(`${inProgress} task${inProgress > 1 ? 's' : ''} in progress`);
-    if (backlog > 0) parts.push(`${backlog} in backlog`);
-    insights.push({
-      level: 'neutral',
-      icon: '\u2705',
-      text: parts.join(', ')
-    });
-  }
-
-  // --- Google Tasks due today ---
-  if (upcomingTaskCount > 0) {
-    insights.push({
-      level: 'neutral',
-      icon: '\u2705',
-      text: `${upcomingTaskCount} task${upcomingTaskCount > 1 ? 's' : ''} due today`
-    });
-  }
-
-  // --- Applications this week ---
-  if (biz && biz.applications) {
-    const apps = biz.applications.thisWeek;
-    if (apps != null) {
-      insights.push({
-        level: 'neutral',
-        icon: '\uD83D\uDCCB',
-        text: `${apps} application${apps !== 1 ? 's' : ''} this week`
-      });
-    }
-  }
-
-  // --- Recent alerts from clients ---
-  if (biz && biz.clients && biz.clients.alerts) {
-    const successAlerts = biz.clients.alerts.filter(a => a.type === 'success');
-    successAlerts.forEach(a => {
-      insights.push({
-        level: 'success',
-        icon: '\uD83C\uDF89',
-        text: a.text
-      });
-    });
-  }
-
-  return insights.slice(0, 6);
-}
-
-// ---- Metrics Row ----------------------------------------------
-
-function renderMetrics() {
-  const biz = getState().business;
-  if (!biz) return;
-
-  // Free Community
-  if (el.metricFree) {
-    el.metricFree.textContent = formatNumber(biz.free?.total);
-  }
-  if (el.metricFreeTrend && biz.free?.last30Days != null) {
-    el.metricFreeTrend.innerHTML = trendHtml(biz.free.last30Days, 'last 30d');
-  }
-
-  // Premium
-  if (el.metricPremium) {
-    el.metricPremium.textContent = formatNumber(biz.premium?.total);
-  }
-  if (el.metricPremiumTrend && biz.premium?.lastMonth != null) {
-    el.metricPremiumTrend.innerHTML = trendHtml(biz.premium.lastMonth, 'last month');
-  }
-
-  // VIP
-  if (el.metricVip) {
-    el.metricVip.textContent = formatNumber(biz.vip?.total);
-  }
-  if (el.metricVipTrend && biz.vip?.lastMonth != null) {
-    el.metricVipTrend.innerHTML = trendHtml(biz.vip.lastMonth, 'last month');
-  }
-
-  // 1:1
-  if (el.metricOneone) {
-    el.metricOneone.textContent = biz.oneone?.total != null ? `${biz.oneone.total}/${biz.oneone.cap || 12}` : '--';
-  }
-  if (el.metricOneoneTrend) {
-    const pct = biz.oneone?.total && biz.oneone?.cap
-      ? Math.round((biz.oneone.total / biz.oneone.cap) * 100)
-      : null;
-    el.metricOneoneTrend.textContent = pct != null ? `${pct}% capacity` : '';
-  }
-
-  // Applications
-  if (el.metricApps) {
-    el.metricApps.textContent = biz.applications?.thisWeek != null ? biz.applications.thisWeek : '--';
-  }
-  if (el.metricAppsTrend) {
-    el.metricAppsTrend.textContent = 'this week';
-  }
-
-  // Workshops
-  if (el.metricWorkshop) {
-    el.metricWorkshop.textContent = biz.workshop?.sales != null ? biz.workshop.sales : '--';
-  }
-  if (el.metricWorkshopTrend && biz.workshop?.cashCollected != null) {
-    el.metricWorkshopTrend.textContent = `$${formatNumber(biz.workshop.cashCollected)} collected`;
-  }
-}
-
-function trendHtml(value, label) {
-  if (value == null) return '';
-  const dir = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
-  const sign = value > 0 ? '+' : '';
-  return `<span class="trend-${escapeHtml(dir)}">${sign}${formatNumber(value)}</span> <span class="trend-label">${escapeHtml(label)}</span>`;
+  if (el.vipActiveCount) el.vipActiveCount.textContent = activeCount;
+  if (el.vipMrr) el.vipMrr.textContent = '$' + mrr.toLocaleString();
+  if (el.vipAtRiskCount) el.vipAtRiskCount.textContent = atRiskCount;
+  if (el.vipToGoal) el.vipToGoal.textContent = toGoal;
 }
 
 // ---- Client Health --------------------------------------------
@@ -473,112 +274,10 @@ function handleHealthClick(e) {
   if (el.clientExpand) el.clientExpand.hidden = false;
 }
 
-// ---- Pipeline -------------------------------------------------
-
-function renderPipeline() {
-  if (!el.pipelineBody) return;
-
-  const biz = getState().business;
-  const tasks = getState().tasks?.tasks || [];
-
-  // Build pipeline data from business + task context
-  const stages = [];
-
-  // Applications
-  const apps = biz?.applications?.thisWeek || 0;
-  stages.push({
-    label: 'Applications',
-    value: apps,
-    status: apps > 0 ? 'active' : 'empty'
-  });
-
-  // Active sales tasks
-  const salesTasks = tasks.filter(t =>
-    t.tags && t.tags.includes('sales') && t.status !== 'done'
-  );
-  stages.push({
-    label: 'Active Sales',
-    value: salesTasks.length,
-    status: salesTasks.length > 0 ? 'active' : 'empty'
-  });
-
-  // Premium members (new last month)
-  const premiumNew = biz?.premium?.lastMonth || 0;
-  stages.push({
-    label: 'New Premium',
-    value: premiumNew,
-    status: premiumNew > 0 ? 'active' : 'empty'
-  });
-
-  // VIP members (new last month)
-  const vipNew = biz?.vip?.lastMonth || 0;
-  stages.push({
-    label: 'New VIP',
-    value: vipNew,
-    status: vipNew > 0 ? 'active' : 'empty'
-  });
-
-  // 1:1 capacity
-  const oneoneTotal = biz?.oneone?.total || 0;
-  const oneoneCap = biz?.oneone?.cap || 12;
-  stages.push({
-    label: '1:1 Slots',
-    value: `${oneoneTotal}/${oneoneCap}`,
-    status: oneoneTotal >= oneoneCap ? 'full' : oneoneTotal > 0 ? 'active' : 'empty'
-  });
-
-  el.pipelineBody.innerHTML = `
-    <div class="pipeline-stages">
-      ${stages.map(s => `
-        <div class="pipeline-stage pipeline-${escapeHtml(s.status)}">
-          <span class="pipeline-value">${escapeHtml(String(s.value))}</span>
-          <span class="pipeline-label">${escapeHtml(s.label)}</span>
-        </div>
-      `).join('<div class="pipeline-arrow" aria-hidden="true">\u2192</div>')}
-    </div>
-    ${salesTasks.length > 0 ? `
-      <div class="pipeline-details">
-        <h3>Active Sales Tasks</h3>
-        ${salesTasks.map(t => `
-          <div class="pipeline-task">
-            <span class="pipeline-task-title">${escapeHtml(t.title)}</span>
-            ${t.due ? `<span class="pipeline-task-due ${new Date(t.due) < new Date() ? 'is-overdue' : ''}">${formatDate(t.due)}</span>` : ''}
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-  `;
-}
-
-// ---- Quick Actions --------------------------------------------
-
-function renderQuickActions() {
-  const container = $('#quickActions');
-  if (!container) return;
-
-  const actions = [
-    { label: 'VIP Clients', tab: 'vip-clients', icon: '👥' },
-    { label: 'Google Tasks', tab: 'google-tasks', icon: '✅' },
-    { label: 'Competitors', tab: 'competitors', icon: '🌐' },
-    { label: 'Reports', tab: 'reports', icon: '📊' },
-    { label: 'Calendar', tab: 'calendar', icon: '📅' },
-    { label: 'Chat', tab: 'chat', icon: '💬' },
-  ];
-
-  container.innerHTML = actions.map(a =>
-    `<button class="quick-action-btn" data-quick-tab="${escapeHtml(a.tab)}"><span class="quick-action-icon">${a.icon}</span><span class="quick-action-label">${escapeHtml(a.label)}</span></button>`
-  ).join('');
-
-  container.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-quick-tab]');
-    if (btn) switchTab(btn.dataset.quickTab);
-  });
-}
-
-// ---- VIP Client Alerts ----------------------------------------
+// ---- VIP Client Alerts (inline in Client Health card) ---------
 
 function renderVipAlerts() {
-  const container = $('#vipAlerts');
+  const container = el.clientVipAlerts;
   if (!container) return;
 
   const data = getState('vipClients');
@@ -592,10 +291,10 @@ function renderVipAlerts() {
   data.clients.forEach(c => {
     const s = (c.status || '').toLowerCase();
     if (s === 'at risk') {
-      alerts.push({ name: c.name, type: 'danger', text: 'At Risk' });
+      alerts.push({ name: c.name, type: 'danger', text: 'At Risk', program: c.program || '' });
     }
     if (c.todo && c.todo.length > 0) {
-      alerts.push({ name: c.name, type: 'warning', text: `${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}` });
+      alerts.push({ name: c.name, type: 'warning', text: `${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}`, program: c.program || '' });
     }
   });
 
@@ -605,15 +304,13 @@ function renderVipAlerts() {
   }
 
   container.innerHTML = `
-    <div class="home-section-header"><h3>Client Alerts</h3></div>
-    <div class="vip-alerts-list">
-      ${alerts.slice(0, 6).map(a => `
-        <div class="vip-alert-item vip-alert-${escapeHtml(a.type)}">
-          <span class="vip-alert-name">${escapeHtml(a.name)}</span>
-          <span class="badge badge-${a.type === 'danger' ? 'error' : 'warning'}">${escapeHtml(a.text)}</span>
-        </div>
-      `).join('')}
-    </div>
+    <div class="client-vip-alerts-header">VIP Alerts</div>
+    ${alerts.slice(0, 6).map(a => `
+      <div class="client-vip-alert-item client-vip-alert-${escapeHtml(a.type)}">
+        <span class="client-vip-alert-name">${escapeHtml(a.name)}</span>
+        <span class="badge badge-${a.type === 'danger' ? 'error' : 'warning'}">${escapeHtml(a.text)}</span>
+      </div>
+    `).join('')}
   `;
 }
 
@@ -628,14 +325,8 @@ async function renderUpcomingTasks() {
 
     if (tasks.length === 0) {
       container.innerHTML = '<div class="empty-state"><p>No upcoming tasks</p></div>';
-      upcomingTaskCount = 0;
-      renderMorningBrief(); // re-render to pick up count
       return;
     }
-
-    // Count tasks due today
-    const today = new Date().toISOString().slice(0, 10);
-    upcomingTaskCount = tasks.filter(t => t.due && t.due.slice(0, 10) <= today).length;
 
     const now = new Date();
     container.innerHTML = `
@@ -656,8 +347,6 @@ async function renderUpcomingTasks() {
       </div>
     `;
 
-    // Re-render morning brief to include task count
-    renderMorningBrief();
   } catch (err) {
     console.warn('[home] Failed to load upcoming tasks', err);
     container.innerHTML = '<div class="empty-state"><p>Could not load tasks</p></div>';

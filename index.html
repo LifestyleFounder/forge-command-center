@@ -130,24 +130,19 @@
               </button>
             </div>
           </div>
-          <div class="morning-brief" id="morningBrief">
-            <div class="brief-items">
-              <div class="brief-skeleton loading"></div>
-              <div class="brief-skeleton loading"></div>
-              <div class="brief-skeleton loading"></div>
-            </div>
-          </div>
-          <div class="metrics-row" id="metricsRow">
-            <div class="metric-card" data-metric="free"><div class="metric-label">Free Community</div><div class="metric-value" id="metricFree">--</div><div class="metric-trend" id="metricFreeTrend"></div></div>
-            <div class="metric-card" data-metric="premium"><div class="metric-label">Premium</div><div class="metric-value" id="metricPremium">--</div><div class="metric-trend" id="metricPremiumTrend"></div></div>
-            <div class="metric-card" data-metric="vip"><div class="metric-label">VIP</div><div class="metric-value" id="metricVip">--</div><div class="metric-trend" id="metricVipTrend"></div></div>
-            <div class="metric-card" data-metric="oneone"><div class="metric-label">1:1</div><div class="metric-value" id="metricOneone">--</div><div class="metric-trend" id="metricOneoneTrend"></div></div>
-            <div class="metric-card" data-metric="apps"><div class="metric-label">Applications</div><div class="metric-value" id="metricApps">--</div><div class="metric-trend" id="metricAppsTrend">this week</div></div>
-            <div class="metric-card" data-metric="workshop"><div class="metric-label">Workshops</div><div class="metric-value" id="metricWorkshop">--</div><div class="metric-trend" id="metricWorkshopTrend"></div></div>
-          </div>
-          <div class="quick-actions" id="quickActions"></div>
-          <div id="vipAlerts"></div>
           <div class="dashboard-grid" id="dashboardGrid">
+            <!-- Row 1: Upcoming Tasks (full width) -->
+            <div class="card dashboard-full-width" id="upcomingTasksCard">
+              <div class="card-header"><h2>Upcoming Tasks</h2><button class="btn btn-ghost btn-xs" id="tasksViewAllBtn">View All</button></div>
+              <div class="card-body" id="upcomingTasksBody">
+                <div class="home-tasks-list">
+                  <div class="brief-skeleton loading"></div>
+                  <div class="brief-skeleton loading"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Schedule + Client Health (side by side) -->
             <div class="card" id="calendarCard">
               <div class="card-header"><h2>Schedule</h2><button class="btn btn-ghost btn-xs" id="calendarFullViewBtn">Full View</button></div>
               <div class="card-body"><iframe id="calendarEmbed" title="Google Calendar" loading="lazy" src="https://calendar.google.com/calendar/embed?src=dan%40quantumcollective.com&ctz=America%2FVancouver&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showDate=1"></iframe></div>
@@ -165,19 +160,27 @@
                   <div class="client-expand-items" id="clientExpandItems"></div>
                 </div>
                 <div class="client-alerts" id="clientAlerts"></div>
+                <div class="client-vip-alerts" id="clientVipAlerts"></div>
               </div>
             </div>
-            <div class="card" id="pipelineCard">
-              <div class="card-header"><h2>Pipeline</h2></div>
-              <div class="card-body" id="pipelineBody"></div>
-            </div>
-            <div class="card" id="upcomingTasksCard">
-              <div class="card-header"><h2>Upcoming Tasks</h2><button class="btn btn-ghost btn-xs" id="tasksViewAllBtn">View All</button></div>
-              <div class="card-body" id="upcomingTasksBody">
-                <div class="home-tasks-list">
-                  <div class="brief-skeleton loading"></div>
-                  <div class="brief-skeleton loading"></div>
-                </div>
+
+            <!-- Row 3: VIP Metrics (4 cards) -->
+            <div class="vip-metrics-row dashboard-full-width">
+              <div class="vip-metric-card">
+                <span class="vip-metric-value" id="vipActiveCount">--</span>
+                <span class="vip-metric-label">Active VIPs</span>
+              </div>
+              <div class="vip-metric-card">
+                <span class="vip-metric-value" id="vipMrr">--</span>
+                <span class="vip-metric-label">Est. MRR</span>
+              </div>
+              <div class="vip-metric-card vip-metric-warning">
+                <span class="vip-metric-value" id="vipAtRiskCount">--</span>
+                <span class="vip-metric-label">At Risk</span>
+              </div>
+              <div class="vip-metric-card vip-metric-goal">
+                <span class="vip-metric-value" id="vipToGoal">--</span>
+                <span class="vip-metric-label">To Goal (72)</span>
               </div>
             </div>
           </div>
