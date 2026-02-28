@@ -2805,6 +2805,630 @@ textarea.form-input {
 
 
 /* ==========================================================================
+   32b. BLOCK EDITOR MODAL
+   ========================================================================== */
+
+/* Backdrop */
+.block-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: beBackdropIn 200ms ease;
+}
+
+@keyframes beBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal (full-screen-ish) */
+.block-editor-modal {
+  position: fixed;
+  top: var(--space-6);
+  left: var(--space-6);
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 1010;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: beModalIn 250ms ease;
+}
+
+@keyframes beModalIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Prevent scroll when editor is open */
+body.block-editor-open {
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.be-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-tertiary);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.be-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.be-sidebar-header h3 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.be-search-wrap {
+  padding: var(--space-2) var(--space-3);
+}
+
+.be-search-input {
+  font-size: var(--text-sm) !important;
+  padding: var(--space-2) var(--space-3) !important;
+}
+
+.be-page-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.be-page-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.be-page-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.be-page-item.is-active {
+  background: var(--color-gold);
+  color: var(--color-forest);
+  font-weight: 500;
+}
+
+.be-page-item.is-pinned {
+  border-left: 2px solid var(--color-gold);
+}
+
+.be-page-icon {
+  flex-shrink: 0;
+  font-size: var(--text-base);
+}
+
+.be-page-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.be-page-pin {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+}
+
+.be-page-loading,
+.be-page-empty {
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.be-new-page-btn {
+  margin: var(--space-2) var(--space-3) var(--space-3);
+}
+
+/* ── Main Area ── */
+.be-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.be-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.be-title-input {
+  flex: 1;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: var(--space-1) 0;
+}
+
+.be-title-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.be-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.be-close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+/* Sync status */
+.be-sync-status {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.be-sync-loading { color: var(--text-tertiary); }
+.be-sync-editing { color: var(--color-warning); }
+.be-sync-saving { color: var(--color-info); }
+.be-sync-saved { color: var(--color-success); }
+.be-sync-error { color: var(--color-error); }
+.be-sync-offline { color: var(--text-tertiary); font-style: italic; }
+.be-sync-idle { color: var(--text-tertiary); }
+
+/* ── Toolbar ── */
+.be-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.be-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.be-toolbar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.be-toolbar-btn.is-active {
+  background: var(--color-gold);
+  color: var(--color-forest);
+}
+
+.be-toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 var(--space-1);
+}
+
+/* ── Editor Content (ProseMirror) ── */
+.be-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.be-content .ProseMirror {
+  min-height: 100%;
+  padding: var(--space-5) var(--space-8);
+  outline: none;
+  font-size: var(--text-base);
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.be-content .ProseMirror > * + * {
+  margin-top: 0.5em;
+}
+
+/* Headings */
+.be-content .ProseMirror h1 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--text-primary);
+}
+
+.be-content .ProseMirror h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+  color: var(--text-primary);
+}
+
+.be-content .ProseMirror h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+  color: var(--text-primary);
+}
+
+/* Paragraphs */
+.be-content .ProseMirror p {
+  margin: 0;
+}
+
+.be-content .ProseMirror p + p {
+  margin-top: 0.75em;
+}
+
+/* Placeholder */
+.be-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Lists */
+.be-content .ProseMirror ul,
+.be-content .ProseMirror ol {
+  padding-left: 1.5em;
+}
+
+.be-content .ProseMirror li {
+  margin: 0.25em 0;
+}
+
+.be-content .ProseMirror li p {
+  margin: 0;
+}
+
+/* Task list */
+.be-content .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.be-content .ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.be-content .ProseMirror ul[data-type="taskList"] li label {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.be-content .ProseMirror ul[data-type="taskList"] li label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-gold);
+  cursor: pointer;
+}
+
+.be-content .ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.be-content .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div p {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+/* Blockquote */
+.be-content .ProseMirror blockquote {
+  border-left: 3px solid var(--color-gold);
+  padding-left: var(--space-4);
+  margin: 0.75em 0;
+  color: var(--text-secondary);
+}
+
+/* Code */
+.be-content .ProseMirror code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-error);
+}
+
+.be-content .ProseMirror pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.be-content .ProseMirror pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+/* Horizontal rule */
+.be-content .ProseMirror hr {
+  border: none;
+  border-top: 2px solid var(--border);
+  margin: 1.5em 0;
+}
+
+/* Links */
+.be-content .ProseMirror a {
+  color: var(--color-gold);
+  text-decoration: underline;
+  text-decoration-color: var(--color-gold-light);
+  text-underline-offset: 2px;
+}
+
+/* Highlight / mark */
+.be-content .ProseMirror mark {
+  background: #fef08a;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+/* Strikethrough */
+.be-content .ProseMirror s {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+/* ── Slash Command Menu ── */
+.slash-command-menu {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 280px;
+  overflow-y: auto;
+  min-width: 220px;
+  padding: var(--space-1);
+}
+
+.slash-command-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.slash-command-item:hover,
+.slash-command-item.is-selected {
+  background: var(--bg-hover);
+}
+
+.slash-command-item.is-selected {
+  background: var(--color-gold);
+  color: var(--color-forest);
+}
+
+.slash-command-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.slash-command-item.is-selected .slash-command-icon {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--color-forest);
+}
+
+.slash-command-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.slash-command-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.slash-command-desc {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.slash-command-item.is-selected .slash-command-title,
+.slash-command-item.is-selected .slash-command-desc {
+  color: var(--color-forest);
+}
+
+.slash-command-empty {
+  padding: var(--space-3);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── FAB Button ── */
+.block-editor-fab {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-forest);
+  color: var(--color-cream);
+  border: none;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  z-index: 100;
+}
+
+.block-editor-fab:hover {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-xl);
+  background: var(--color-gold);
+  color: var(--color-forest);
+}
+
+body.block-editor-open .block-editor-fab {
+  display: none;
+}
+
+[data-theme="dark"] .block-editor-fab {
+  background: var(--color-gold);
+  color: var(--color-forest);
+}
+
+[data-theme="dark"] .block-editor-fab:hover {
+  background: var(--color-gold-light);
+}
+
+/* ── Dark Mode Overrides ── */
+[data-theme="dark"] .slash-command-menu {
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .be-content .ProseMirror mark {
+  background: #854d0e;
+  color: #fef9c3;
+}
+
+/* ── Mobile (375px) ── */
+@media (max-width: 640px) {
+  .block-editor-modal {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .be-sidebar {
+    display: none;
+  }
+
+  .block-editor-modal.sidebar-open .be-sidebar {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    width: 100%;
+  }
+
+  .be-toolbar {
+    flex-wrap: wrap;
+    padding: var(--space-1) var(--space-2);
+    gap: 1px;
+  }
+
+  .be-toolbar-btn {
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-xs);
+  }
+
+  .be-toolbar-sep {
+    display: none;
+  }
+
+  .be-header {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .be-title-input {
+    font-size: var(--text-base);
+  }
+
+  .be-content .ProseMirror {
+    padding: var(--space-4);
+  }
+
+  .block-editor-fab {
+    bottom: var(--space-4);
+    right: var(--space-4);
+    width: 44px;
+    height: 44px;
+  }
+
+  .slash-command-menu {
+    min-width: 180px;
+    max-height: 200px;
+  }
+}
+
+
+/* ==========================================================================
    33. CHAT: LAYOUT
    ========================================================================== */
 

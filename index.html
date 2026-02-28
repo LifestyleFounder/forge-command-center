@@ -557,6 +557,66 @@
       </div>
     </div>
 
+    <!-- ====== BLOCK EDITOR MODAL ====== -->
+    <div class="block-editor-backdrop" id="blockEditorBackdrop" hidden></div>
+    <div class="block-editor-modal" id="blockEditorModal" role="dialog" aria-modal="true" aria-label="Block Editor" hidden>
+      <div class="be-sidebar">
+        <div class="be-sidebar-header">
+          <h3>Pages</h3>
+          <button class="btn btn-ghost btn-xs" id="beRefreshPages" title="Refresh pages">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+        <div class="be-search-wrap">
+          <input type="text" class="form-input be-search-input" id="bePageSearch" placeholder="Search pages..." aria-label="Search Notion pages">
+        </div>
+        <div class="be-page-list" id="bePageList">
+          <div class="be-page-loading">Loading pages...</div>
+        </div>
+        <button class="btn btn-ghost btn-sm be-new-page-btn" id="beNewPage">+ New Document</button>
+      </div>
+      <div class="be-main">
+        <div class="be-header">
+          <input type="text" class="be-title-input" id="bePageTitle" placeholder="Page title..." aria-label="Page title">
+          <div class="be-header-actions">
+            <span class="be-sync-status" id="beSyncStatus"></span>
+            <button class="btn btn-ghost btn-sm" id="beSaveBtn" title="Save to Notion">Save</button>
+            <button class="btn-icon be-close-btn" id="blockEditorClose" aria-label="Close editor (Esc)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="be-toolbar" id="beToolbar" role="toolbar" aria-label="Formatting">
+          <button class="be-toolbar-btn" id="be-bold" data-cmd="bold" title="Bold (Cmd+B)"><strong>B</strong></button>
+          <button class="be-toolbar-btn" id="be-italic" data-cmd="italic" title="Italic (Cmd+I)"><em>I</em></button>
+          <button class="be-toolbar-btn" id="be-underline" data-cmd="underline" title="Underline (Cmd+U)"><u>U</u></button>
+          <button class="be-toolbar-btn" id="be-strike" data-cmd="strike" title="Strikethrough"><s>S</s></button>
+          <span class="be-toolbar-sep" aria-hidden="true"></span>
+          <button class="be-toolbar-btn" id="be-h1" data-cmd="h1" title="Heading 1">H1</button>
+          <button class="be-toolbar-btn" id="be-h2" data-cmd="h2" title="Heading 2">H2</button>
+          <button class="be-toolbar-btn" id="be-h3" data-cmd="h3" title="Heading 3">H3</button>
+          <span class="be-toolbar-sep" aria-hidden="true"></span>
+          <button class="be-toolbar-btn" id="be-bullet" data-cmd="bullet" title="Bullet list">&#8226;</button>
+          <button class="be-toolbar-btn" id="be-ordered" data-cmd="ordered" title="Numbered list">1.</button>
+          <button class="be-toolbar-btn" id="be-task" data-cmd="task" title="Task list">&#9745;</button>
+          <span class="be-toolbar-sep" aria-hidden="true"></span>
+          <button class="be-toolbar-btn" id="be-quote" data-cmd="quote" title="Quote">&ldquo;</button>
+          <button class="be-toolbar-btn" id="be-code-block" data-cmd="code-block" title="Code block">&lt;/&gt;</button>
+          <button class="be-toolbar-btn" id="be-code" data-cmd="code" title="Inline code"><code>c</code></button>
+          <button class="be-toolbar-btn" id="be-highlight" data-cmd="highlight" title="Highlight">&#128397;</button>
+          <button class="be-toolbar-btn" id="be-link" data-cmd="link" title="Link">&#128279;</button>
+          <span class="be-toolbar-sep" aria-hidden="true"></span>
+          <button class="be-toolbar-btn" id="be-divider" data-cmd="divider" title="Divider">&mdash;</button>
+        </div>
+        <div class="be-content" id="blockEditorContent"></div>
+      </div>
+    </div>
+
+    <!-- BLOCK EDITOR FAB -->
+    <button class="block-editor-fab" id="blockEditorFab" title="Open Block Editor (⌘E)" aria-label="Open Block Editor">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+
     <!-- Toast -->
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
   </div>

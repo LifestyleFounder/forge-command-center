@@ -4,7 +4,8 @@
 import {
   getState, setState, subscribe, loadJSON, saveLocal,
   escapeHtml, formatNumber, formatDate, formatRelativeTime,
-  generateId, debounce, $, $$, openModal, closeModal, showToast
+  generateId, debounce, $, $$, openModal, closeModal, showToast,
+  openBlockEditor
 } from './app.js';
 import {
   getNotes as notionGetNotes, createNote as notionCreateNote,
@@ -184,6 +185,7 @@ function renderDocPreview(docId) {
           <span class="badge badge-type">${escapeHtml(doc.type || 'local')}</span>
           <span class="badge badge-category">${escapeHtml(doc.category || '')}</span>
           ${doc.notionUrl ? `<a href="${escapeHtml(doc.notionUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-xs">Open in Notion</a>` : ''}
+          ${doc.notionId ? `<button class="btn btn-primary btn-xs be-open-doc" data-notion-id="${escapeHtml(doc.notionId)}" data-doc-name="${escapeHtml(doc.name)}">Edit in Block Editor</button>` : ''}
         </div>
         <div class="doc-preview-tags">
           ${(doc.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
@@ -202,6 +204,16 @@ function renderDocPreview(docId) {
   $$('#knowledgeList .knowledge-item').forEach(item => {
     item.classList.toggle('is-active', item.dataset.docId === docId);
   });
+
+  // Bind "Edit in Block Editor" button
+  const beOpenBtn = el.querySelector('.be-open-doc');
+  if (beOpenBtn) {
+    beOpenBtn.addEventListener('click', () => {
+      const notionId = beOpenBtn.dataset.notionId;
+      const docName = beOpenBtn.dataset.docName;
+      if (notionId) openBlockEditor({ pageId: notionId, title: docName });
+    });
+  }
 }
 
 /** Simple markdown to HTML for doc preview. Escapes HTML first. */

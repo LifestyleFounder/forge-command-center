@@ -13,6 +13,7 @@ import { initCompetitors, loadCompetitorData } from './competitors.js';
 import { initGoogleTasks, loadGoogleTaskData } from './google-tasks.js';
 import { initReports, loadReportData } from './reports.js';
 import { initIframes, loadIframe } from './iframes.js';
+import { initBlockEditor, openBlockEditor, closeBlockEditor, isEditorModalOpen } from './block-editor.js';
 
 // ---- State Management ----------------------------------------
 
@@ -647,6 +648,17 @@ function showToast(message, type, duration) {
 
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
+    // Cmd+E / Ctrl+E: open block editor
+    if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+      e.preventDefault();
+      if (isEditorModalOpen()) {
+        closeBlockEditor();
+      } else {
+        openBlockEditor();
+      }
+      return;
+    }
+
     // Cmd+K / Ctrl+K: open search
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
@@ -787,6 +799,13 @@ async function init() {
   initGoogleTasks();
   initReports();
   initIframes();
+  initBlockEditor();
+
+  // FAB button to open block editor
+  const blockEditorFab = document.getElementById('blockEditorFab');
+  if (blockEditorFab) {
+    blockEditorFab.addEventListener('click', () => openBlockEditor());
+  }
 
   // Update status bar
   updateStatusBar();
@@ -822,5 +841,6 @@ export {
   openModal,
   closeModal,
   showToast,
-  switchTab
+  switchTab,
+  openBlockEditor
 };
