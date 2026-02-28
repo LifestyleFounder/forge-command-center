@@ -492,13 +492,23 @@ function populateFolderSelector(defaultFolder) {
   if (!select) return;
 
   const folders = getWorkspaceFolders();
-  select.innerHTML = folders.map(f =>
-    `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`
-  ).join('');
+  select.innerHTML = buildFolderOptions(folders, null, 0);
 
   if (defaultFolder) {
     select.value = defaultFolder;
   }
+}
+
+function buildFolderOptions(folders, parentId, depth) {
+  const children = folders
+    .filter(f => (f.parentId || null) === parentId)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  return children.map(f => {
+    const indent = '\u00A0\u00A0'.repeat(depth);
+    const option = `<option value="${escapeHtml(f.id)}">${indent}${escapeHtml(f.name)}</option>`;
+    return option + buildFolderOptions(folders, f.id, depth + 1);
+  }).join('');
 }
 
 // ── Toolbar ───────────────────────────────────────────────

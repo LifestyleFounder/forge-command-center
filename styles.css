@@ -2534,6 +2534,93 @@ textarea.form-input {
   border-color: var(--color-error);
 }
 
+/* ── Folder Tree: Drag & Drop + Nesting ── */
+.ws-folder-row {
+  position: relative;
+}
+
+.ws-folder-row[draggable="true"] {
+  cursor: grab;
+}
+
+.ws-folder-row.is-dragging {
+  opacity: 0.4;
+}
+
+.ws-folder-row.ws-folder-drop-before {
+  border-top: 2px solid var(--color-gold);
+}
+
+.ws-folder-row.ws-folder-drop-after {
+  border-bottom: 2px solid var(--color-gold);
+}
+
+.ws-folder-row.ws-folder-drop-inside {
+  background: rgba(200, 162, 74, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.ws-folder-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.ws-folder-toggle.is-expanded {
+  transform: rotate(90deg);
+}
+
+.ws-folder-toggle-spacer {
+  display: inline-block;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.ws-folder-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-folder-delete {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  padding: 0;
+  z-index: 1;
+}
+
+.ws-folder-row:hover .ws-folder-delete {
+  opacity: 1;
+}
+
+.ws-folder-delete:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
 /* Base tag styles */
 .tag {
   display: inline-flex;
@@ -4039,6 +4126,7 @@ body.block-editor-open .block-editor-fab {
 
   .ws-folder-sidebar {
     flex-direction: row;
+    align-items: center;
     overflow-x: auto;
     gap: var(--space-2);
     padding-bottom: var(--space-2);
@@ -4047,6 +4135,28 @@ body.block-editor-open .block-editor-fab {
   .ws-folder-item {
     white-space: nowrap;
     flex-shrink: 0;
+    width: auto;
+  }
+
+  .ws-folder-row {
+    display: contents;
+  }
+
+  .ws-folder-children {
+    display: contents;
+  }
+
+  .ws-folder-toggle,
+  .ws-folder-toggle-spacer {
+    display: none;
+  }
+
+  .ws-folder-delete {
+    display: none;
+  }
+
+  .ws-folder-item[style] {
+    padding-left: var(--space-3) !important;
   }
 
   .chat-layout {
@@ -4177,6 +4287,7 @@ body.block-editor-open .block-editor-fab {
 
   .ws-folder-sidebar {
     flex-direction: row;
+    align-items: center;
     overflow-x: auto;
     gap: var(--space-2);
     padding-bottom: var(--space-2);
@@ -4187,10 +4298,33 @@ body.block-editor-open .block-editor-fab {
   .ws-folder-item {
     white-space: nowrap;
     flex-shrink: 0;
+    width: auto;
     padding: var(--space-1) var(--space-3);
   }
 
   .ws-folder-count {
+    display: none;
+  }
+
+  /* Mobile: no drag, flatten nesting, delete always visible */
+  .ws-folder-row {
+    display: contents;
+  }
+
+  .ws-folder-toggle,
+  .ws-folder-toggle-spacer {
+    display: none;
+  }
+
+  .ws-folder-children {
+    display: contents;
+  }
+
+  .ws-folder-item[style] {
+    padding-left: var(--space-3) !important;
+  }
+
+  .ws-folder-delete {
     display: none;
   }
 
