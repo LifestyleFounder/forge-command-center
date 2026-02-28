@@ -28,24 +28,38 @@ export function initContent() {
   });
 }
 
-// ── Lazy data loader (called on first tab visit) ─────────────────────
+// ── Lazy data loader (called on first Content tab visit) ─────────────
 export async function loadContentData() {
   if (contentDataLoaded) return;
   try {
-    const [youtube, instagram, metaAds, adSwipes] = await Promise.all([
+    const [youtube, instagram] = await Promise.all([
       loadJSON('youtube.json'),
       loadJSON('instagram.json'),
-      loadJSON('meta-ads.json'),
-      loadJSON('ad-swipes.json'),
     ]);
     setState('youtube', youtube);
     setState('instagram', instagram);
-    setState('metaAds', metaAds);
-    setState('adSwipes', adSwipes);
     contentDataLoaded = true;
   } catch (err) {
     console.error('[content] Failed to load content data:', err);
     showToast('Failed to load content data', 'error');
+  }
+}
+
+// ── Meta Ads data loader (called on first Meta Ads tab visit) ────────
+let metaAdsLoaded = false;
+export async function loadMetaAdsData() {
+  if (metaAdsLoaded) return;
+  try {
+    const [metaAds, adSwipes] = await Promise.all([
+      loadJSON('meta-ads.json'),
+      loadJSON('ad-swipes.json'),
+    ]);
+    setState('metaAds', metaAds);
+    setState('adSwipes', adSwipes);
+    metaAdsLoaded = true;
+  } catch (err) {
+    console.error('[content] Failed to load Meta Ads data:', err);
+    showToast('Failed to load Meta Ads data', 'error');
   }
 }
 
@@ -761,6 +775,7 @@ function filterAndRenderSwipes(data) {
             ${s.foundDate ? `<span class="swipe-date">${formatDate(s.foundDate)}</span>` : ''}
             ${elemCount ? `<span class="swipe-elements-count">${elemCount} elements</span>` : ''}
           </div>
+          ${s.adsLibraryUrl ? `<a href="${escapeHtml(s.adsLibraryUrl)}" target="_blank" rel="noopener noreferrer" class="swipe-source-link" onclick="event.stopPropagation()">View Source ↗</a>` : ''}
         </div>
       </div>
     `;
@@ -1076,7 +1091,7 @@ function bindContentEvents() {
         b.setAttribute('aria-selected', String(isActive));
       });
 
-      ['content-overview', 'content-youtube', 'content-instagram', 'content-meta'].forEach(id => {
+      ['content-overview', 'content-youtube', 'content-instagram'].forEach(id => {
         const panel = $(`#${id}`);
         if (!panel) return;
         const active = id === target;
@@ -1137,7 +1152,7 @@ function bindContentEvents() {
   $('#swipeFilterCategory')?.addEventListener('change', () => renderAdSwipes());
 
   // Toggle sections (event delegation on meta panel)
-  const metaPanel = $('#content-meta');
+  const metaPanel = $('#tab-meta-ads');
   if (metaPanel) {
     metaPanel.addEventListener('click', (e) => {
       const header = e.target.closest('[data-toggle]');

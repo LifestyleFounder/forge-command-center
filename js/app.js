@@ -5,7 +5,7 @@
 
 import { initHome } from './home.js';
 import { initProjects } from './projects.js';
-import { initContent } from './content.js';
+import { initContent, loadMetaAdsData } from './content.js';
 import { initKnowledge, onKnowledgeTabVisit } from './knowledge.js';
 import { initChat } from './chat.js';
 import { initVipClients } from './vip-clients.js';
@@ -209,6 +209,7 @@ const TAB_LABELS = {
   chat: 'Chat',
   'vip-clients': 'VIP Clients',
   competitors: 'Competitors',
+  'meta-ads': 'Meta Ads',
   'google-tasks': 'Google Tasks',
   reports: 'Reports',
   calendar: 'Calendar',
@@ -228,6 +229,7 @@ function onTabFirstVisit(tabName) {
   tabLoaded.add(tabName);
   switch (tabName) {
     case 'competitors': loadCompetitorData(); break;
+    case 'meta-ads': loadMetaAdsData(); break;
     case 'google-tasks': loadGoogleTaskData(); break;
     case 'reports': loadReportData(); break;
     case 'calendar': loadIframe('google-calendar'); break;

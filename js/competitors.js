@@ -260,6 +260,7 @@ function renderHookLibrary() {
                     <span class="text-xs text-tertiary">${formatCompact(p.likes)} likes</span>
                   </div>
                   ${p.textHook ? `<div class="hook-swipe-texthook">"${escapeHtml(p.textHook.slice(0, 100))}${p.textHook.length > 100 ? '...' : ''}"</div>` : ''}
+                  <a href="${escapeHtml(p.permalink || `https://instagram.com/${p.creator}`)}" target="_blank" rel="noopener noreferrer" class="hook-source-link" onclick="event.stopPropagation()">View Profile ↗</a>
                 </div>
               `).join('')}
             </div>

@@ -83,6 +83,10 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span>Competitors</span>
           </button></li>
+          <li><button class="nav-item" id="nav-meta-ads" role="tab" aria-selected="false" aria-controls="tab-meta-ads" data-tab="meta-ads">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            <span>Meta Ads</span>
+          </button></li>
           <li><button class="nav-item" id="nav-google-tasks" role="tab" aria-selected="false" aria-controls="tab-google-tasks" data-tab="google-tasks">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span>Google Tasks</span>
@@ -224,7 +228,6 @@
             <button class="subtab is-active" data-subtab="content-overview" role="tab" aria-selected="true">Overview</button>
             <button class="subtab" data-subtab="content-youtube" role="tab" aria-selected="false">YouTube</button>
             <button class="subtab" data-subtab="content-instagram" role="tab" aria-selected="false">Instagram</button>
-            <button class="subtab" data-subtab="content-meta" role="tab" aria-selected="false">Meta Ads</button>
           </div>
           <!-- Overview -->
           <div class="subtab-panel is-active" id="content-overview" role="tabpanel">
@@ -262,164 +265,165 @@
               <div class="table-wrap"><table class="data-table"><thead><tr><th></th><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th></tr></thead><tbody id="igTopPostsBody"><tr><td colspan="8" class="empty-cell">No posts yet.</td></tr></tbody></table></div>
             </div>
           </div>
-          <!-- Meta Ads -->
-          <div class="subtab-panel" id="content-meta" role="tabpanel" hidden>
+        </section>
 
-            <!-- Date Range Switcher -->
-            <div class="meta-date-switcher" id="metaDateSwitcher">
-              <button class="meta-date-btn" data-preset="today">Today</button>
-              <button class="meta-date-btn" data-preset="yesterday">Yesterday</button>
-              <button class="meta-date-btn is-active" data-preset="last_7d">7 Days</button>
-              <button class="meta-date-btn" data-preset="last_30d">30 Days</button>
-            </div>
+        <!-- META ADS TAB -->
+        <section class="tab-panel" id="tab-meta-ads" role="tabpanel" aria-labelledby="nav-meta-ads" hidden>
+          <div class="section-header"><h1>Meta Ads</h1></div>
 
-            <!-- KPI Summary -->
-            <div class="meta-summary" id="metaSummary">
-              <div class="meta-stats-grid">
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">💰</span>
-                  <span class="meta-stat-label">Ad Spend</span>
-                  <span class="meta-stat-value" id="metaSpend">$0</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">🎯</span>
-                  <span class="meta-stat-label">Leads</span>
-                  <span class="meta-stat-value" id="metaLeads">0</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">📊</span>
-                  <span class="meta-stat-label">Cost Per Lead</span>
-                  <span class="meta-stat-value" id="metaCPL">--</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">📋</span>
-                  <span class="meta-stat-label">Applications</span>
-                  <span class="meta-stat-value" id="metaApps">0</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">💲</span>
-                  <span class="meta-stat-label">Cost Per App</span>
-                  <span class="meta-stat-value" id="metaCPA">--</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">👁</span>
-                  <span class="meta-stat-label">Impressions</span>
-                  <span class="meta-stat-value" id="metaImpressions">0</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">📈</span>
-                  <span class="meta-stat-label">ROAS</span>
-                  <span class="meta-stat-value" id="metaROAS">--</span>
-                </div>
-                <div class="meta-stat-card">
-                  <span class="meta-stat-icon">💵</span>
-                  <span class="meta-stat-label">Revenue</span>
-                  <span class="meta-stat-value" id="metaRevenue">--</span>
-                </div>
+          <!-- Date Range Switcher -->
+          <div class="meta-date-switcher" id="metaDateSwitcher">
+            <button class="meta-date-btn" data-preset="today">Today</button>
+            <button class="meta-date-btn" data-preset="yesterday">Yesterday</button>
+            <button class="meta-date-btn is-active" data-preset="last_7d">7 Days</button>
+            <button class="meta-date-btn" data-preset="last_30d">30 Days</button>
+          </div>
+
+          <!-- KPI Summary -->
+          <div class="meta-summary" id="metaSummary">
+            <div class="meta-stats-grid">
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">💰</span>
+                <span class="meta-stat-label">Ad Spend</span>
+                <span class="meta-stat-value" id="metaSpend">$0</span>
               </div>
-              <p class="meta-narrative" id="metaNarrative"></p>
-            </div>
-
-            <!-- Charts -->
-            <div class="meta-chart-row" id="metaChartRow">
-              <div class="meta-chart-wrap"><canvas id="metaSpendChart"></canvas></div>
-              <div class="meta-chart-wrap"><canvas id="metaLeadsChart"></canvas></div>
-              <div class="meta-chart-wrap"><canvas id="metaAppsChart"></canvas></div>
-            </div>
-
-            <!-- Campaign Performance -->
-            <div class="meta-section meta-toggle-section" id="metaCampaignSection">
-              <div class="meta-section-header" data-toggle="metaCampaignContent">
-                <h2>Campaign Performance</h2>
-                <div class="meta-section-actions">
-                  <button class="btn btn-primary btn-sm" id="metaRefreshBtn">Refresh</button>
-                  <button class="btn btn-ghost btn-sm" id="metaSettingsBtn">Settings</button>
-                  <span class="meta-toggle-icon">▾</span>
-                </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">🎯</span>
+                <span class="meta-stat-label">Leads</span>
+                <span class="meta-stat-value" id="metaLeads">0</span>
               </div>
-              <div class="meta-section-content" id="metaCampaignContent">
-                <div class="table-wrap">
-                  <table class="data-table">
-                    <thead>
-                      <tr>
-                        <th>Campaign</th>
-                        <th>Status</th>
-                        <th>Spend</th>
-                        <th>Impressions</th>
-                        <th>Clicks</th>
-                        <th>CTR</th>
-                        <th>Leads</th>
-                        <th>Apps</th>
-                        <th>CPL</th>
-                      </tr>
-                    </thead>
-                    <tbody id="metaCampaignsBody">
-                      <tr><td colspan="9" class="empty-cell">Connect Meta Ads to see campaigns.</td></tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">📊</span>
+                <span class="meta-stat-label">Cost Per Lead</span>
+                <span class="meta-stat-value" id="metaCPL">--</span>
+              </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">📋</span>
+                <span class="meta-stat-label">Applications</span>
+                <span class="meta-stat-value" id="metaApps">0</span>
+              </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">💲</span>
+                <span class="meta-stat-label">Cost Per App</span>
+                <span class="meta-stat-value" id="metaCPA">--</span>
+              </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">👁</span>
+                <span class="meta-stat-label">Impressions</span>
+                <span class="meta-stat-value" id="metaImpressions">0</span>
+              </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">📈</span>
+                <span class="meta-stat-label">ROAS</span>
+                <span class="meta-stat-value" id="metaROAS">--</span>
+              </div>
+              <div class="meta-stat-card">
+                <span class="meta-stat-icon">💵</span>
+                <span class="meta-stat-label">Revenue</span>
+                <span class="meta-stat-value" id="metaRevenue">--</span>
+              </div>
+            </div>
+            <p class="meta-narrative" id="metaNarrative"></p>
+          </div>
 
-                <!-- Quick Add -->
-                <div class="meta-quick-add" id="metaQuickAdd">
-                  <h3>Quick Add Data</h3>
-                  <div class="meta-quick-add-row">
-                    <div class="form-group">
-                      <label class="form-label" for="quickSpend">Spend</label>
-                      <input type="number" class="form-input" id="quickSpend" placeholder="0.00" step="0.01">
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label" for="quickLeads">Leads</label>
-                      <input type="number" class="form-input" id="quickLeads" placeholder="0">
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label" for="quickRevenue">Revenue</label>
-                      <input type="number" class="form-input" id="quickRevenue" placeholder="0.00" step="0.01">
-                    </div>
-                    <div class="form-group form-group-btn">
-                      <button class="btn btn-primary btn-sm" id="quickAddBtn">Add</button>
-                    </div>
+          <!-- Charts -->
+          <div class="meta-chart-row" id="metaChartRow">
+            <div class="meta-chart-wrap"><canvas id="metaSpendChart"></canvas></div>
+            <div class="meta-chart-wrap"><canvas id="metaLeadsChart"></canvas></div>
+            <div class="meta-chart-wrap"><canvas id="metaAppsChart"></canvas></div>
+          </div>
+
+          <!-- Campaign Performance -->
+          <div class="meta-section meta-toggle-section" id="metaCampaignSection">
+            <div class="meta-section-header" data-toggle="metaCampaignContent">
+              <h2>Campaign Performance</h2>
+              <div class="meta-section-actions">
+                <button class="btn btn-primary btn-sm" id="metaRefreshBtn">Refresh</button>
+                <button class="btn btn-ghost btn-sm" id="metaSettingsBtn">Settings</button>
+                <span class="meta-toggle-icon">▾</span>
+              </div>
+            </div>
+            <div class="meta-section-content" id="metaCampaignContent">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Campaign</th>
+                      <th>Status</th>
+                      <th>Spend</th>
+                      <th>Impressions</th>
+                      <th>Clicks</th>
+                      <th>CTR</th>
+                      <th>Leads</th>
+                      <th>Apps</th>
+                      <th>CPL</th>
+                    </tr>
+                  </thead>
+                  <tbody id="metaCampaignsBody">
+                    <tr><td colspan="9" class="empty-cell">Connect Meta Ads to see campaigns.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Quick Add -->
+              <div class="meta-quick-add" id="metaQuickAdd">
+                <h3>Quick Add Data</h3>
+                <div class="meta-quick-add-row">
+                  <div class="form-group">
+                    <label class="form-label" for="quickSpend">Spend</label>
+                    <input type="number" class="form-input" id="quickSpend" placeholder="0.00" step="0.01">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="quickLeads">Leads</label>
+                    <input type="number" class="form-input" id="quickLeads" placeholder="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="quickRevenue">Revenue</label>
+                    <input type="number" class="form-input" id="quickRevenue" placeholder="0.00" step="0.01">
+                  </div>
+                  <div class="form-group form-group-btn">
+                    <button class="btn btn-primary btn-sm" id="quickAddBtn">Add</button>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Ad Swipe File -->
-            <div class="meta-section meta-toggle-section" id="metaSwipeSection">
-              <div class="meta-section-header" data-toggle="metaSwipeContent">
-                <h2>Ad Swipe File</h2>
-                <div class="meta-section-actions">
-                  <span class="text-sm text-secondary" id="swipeCount">0 ads</span>
-                  <span class="meta-toggle-icon">▾</span>
-                </div>
-              </div>
-              <div class="meta-section-content" id="metaSwipeContent">
-                <div class="swipe-filter-bar">
-                  <select class="form-select" id="swipeFilterCompetitor" aria-label="Filter by competitor">
-                    <option value="all">All Competitors</option>
-                  </select>
-                  <select class="form-select" id="swipeFilterType" aria-label="Filter by type">
-                    <option value="all">All Types</option>
-                    <option value="image">Image</option>
-                    <option value="video">Video</option>
-                    <option value="carousel">Carousel</option>
-                  </select>
-                  <select class="form-select" id="swipeFilterCategory" aria-label="Filter by category">
-                    <option value="all">All Categories</option>
-                    <option value="hook">Hook</option>
-                    <option value="offer">Strong Offer</option>
-                    <option value="creative">Creative Format</option>
-                    <option value="copy">Copy Inspiration</option>
-                    <option value="social-proof">Social Proof</option>
-                    <option value="retargeting">Retargeting</option>
-                    <option value="coaching">Coaching</option>
-                  </select>
-                </div>
-                <div class="swipes-grid" id="swipesGrid">
-                  <div class="empty-state"><p>No ad swipes yet.</p></div>
-                </div>
+          <!-- Ad Swipe File -->
+          <div class="meta-section meta-toggle-section" id="metaSwipeSection">
+            <div class="meta-section-header" data-toggle="metaSwipeContent">
+              <h2>Ad Swipe File</h2>
+              <div class="meta-section-actions">
+                <span class="text-sm text-secondary" id="swipeCount">0 ads</span>
+                <span class="meta-toggle-icon">▾</span>
               </div>
             </div>
-
+            <div class="meta-section-content" id="metaSwipeContent">
+              <div class="swipe-filter-bar">
+                <select class="form-select" id="swipeFilterCompetitor" aria-label="Filter by competitor">
+                  <option value="all">All Competitors</option>
+                </select>
+                <select class="form-select" id="swipeFilterType" aria-label="Filter by type">
+                  <option value="all">All Types</option>
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                  <option value="carousel">Carousel</option>
+                </select>
+                <select class="form-select" id="swipeFilterCategory" aria-label="Filter by category">
+                  <option value="all">All Categories</option>
+                  <option value="hook">Hook</option>
+                  <option value="offer">Strong Offer</option>
+                  <option value="creative">Creative Format</option>
+                  <option value="copy">Copy Inspiration</option>
+                  <option value="social-proof">Social Proof</option>
+                  <option value="retargeting">Retargeting</option>
+                  <option value="coaching">Coaching</option>
+                </select>
+              </div>
+              <div class="swipes-grid" id="swipesGrid">
+                <div class="empty-state"><p>No ad swipes yet.</p></div>
+              </div>
+            </div>
           </div>
         </section>
 

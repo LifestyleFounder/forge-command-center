@@ -7,11 +7,6 @@ import {
   generateId, debounce, $, $$, showToast
 } from './app.js';
 
-// ── Config ──────────────────────────────────────────────────────────
-const LOCAL_API = 'http://localhost:3010';
-const VERCEL_API = 'https://google-tasks-api.vercel.app';
-let apiBase = LOCAL_API;
-
 // ── State ────────────────────────────────────────────────────────────
 let taskLists = [];
 let activeListId = null;
@@ -30,18 +25,6 @@ export async function loadGoogleTaskData() {
   const container = $('#googleTasksContainer');
   if (container) container.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Connecting to Google Tasks...</span></div>';
 
-  // Try local API first, fall back to Vercel
-  try {
-    const res = await fetch(`${LOCAL_API}/tasklists`, { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
-      apiBase = LOCAL_API;
-    } else {
-      apiBase = VERCEL_API;
-    }
-  } catch {
-    apiBase = VERCEL_API;
-  }
-
   await loadTaskLists();
   loading = false;
   renderGoogleTasks();
@@ -49,10 +32,10 @@ export async function loadGoogleTaskData() {
 
 async function loadTaskLists() {
   try {
-    const res = await fetch(`${apiBase}/tasklists`);
+    const res = await fetch('/api/lists');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    taskLists = data.items || data || [];
+    taskLists = Array.isArray(data) ? data : [];
     if (taskLists.length > 0 && !activeListId) {
       activeListId = taskLists[0].id;
     }
@@ -65,10 +48,10 @@ async function loadTaskLists() {
 
 async function loadTasks(listId) {
   try {
-    const res = await fetch(`${apiBase}/tasklists/${encodeURIComponent(listId)}/tasks`);
+    const res = await fetch(`/api/tasks?list=${encodeURIComponent(listId)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    tasks = (data.items || data || []).sort((a, b) => {
+    tasks = (data.tasks || []).sort((a, b) => {
       // Incomplete first, then by position
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
@@ -84,10 +67,10 @@ async function loadTasks(listId) {
 
 async function apiCreateTask(listId, task) {
   try {
-    const res = await fetch(`${apiBase}/tasklists/${encodeURIComponent(listId)}/tasks`, {
+    const res = await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(task),
+      body: JSON.stringify({ list: listId, title: task.title, notes: task.notes, due: task.due }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -99,10 +82,10 @@ async function apiCreateTask(listId, task) {
 
 async function apiUpdateTask(listId, taskId, updates) {
   try {
-    const res = await fetch(`${apiBase}/tasklists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`, {
-      method: 'PATCH',
+    const res = await fetch('/api/tasks', {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify({ list: listId, taskId, ...updates }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -114,7 +97,7 @@ async function apiUpdateTask(listId, taskId, updates) {
 
 async function apiDeleteTask(listId, taskId) {
   try {
-    const res = await fetch(`${apiBase}/tasklists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`, {
+    const res = await fetch(`/api/tasks?list=${encodeURIComponent(listId)}&taskId=${encodeURIComponent(taskId)}`, {
       method: 'DELETE',
     });
     return res.ok;
@@ -125,11 +108,33 @@ async function apiDeleteTask(listId, taskId) {
 }
 
 async function apiCompleteTask(listId, taskId) {
-  return apiUpdateTask(listId, taskId, { status: 'completed' });
+  try {
+    const res = await fetch('/api/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ list: listId, taskId }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('[google-tasks] Complete failed', err);
+    return null;
+  }
 }
 
 async function apiUncompleteTask(listId, taskId) {
-  return apiUpdateTask(listId, taskId, { status: 'needsAction' });
+  try {
+    const res = await fetch('/api/uncomplete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ list: listId, taskId }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('[google-tasks] Uncomplete failed', err);
+    return null;
+  }
 }
 
 // ── Rendering ───────────────────────────────────────────────────────
@@ -142,7 +147,7 @@ function renderGoogleTasks() {
     container.innerHTML = `
       <div class="empty-state">
         <p>Could not connect to Google Tasks API.</p>
-        <p class="text-secondary">Make sure the local server is running at ${escapeHtml(LOCAL_API)}</p>
+        <p class="text-secondary">Make sure the Vercel env vars (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN) are set.</p>
         <button class="btn btn-primary btn-sm" id="gtRetryBtn">Retry</button>
       </div>
     `;
@@ -221,32 +226,22 @@ function renderTaskItem(task) {
  * Returns max 8 tasks sorted by due date (soonest first).
  */
 export async function getUpcomingTasks() {
-  // Resolve API base if not yet done
-  if (apiBase === LOCAL_API) {
-    try {
-      const res = await fetch(`${LOCAL_API}/tasklists`, { signal: AbortSignal.timeout(2000) });
-      if (!res.ok) apiBase = VERCEL_API;
-    } catch {
-      apiBase = VERCEL_API;
-    }
-  }
-
   try {
     // Load task lists if not loaded
     if (taskLists.length === 0) {
-      const res = await fetch(`${apiBase}/tasklists`);
+      const res = await fetch('/api/lists');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      taskLists = data.items || data || [];
+      taskLists = Array.isArray(data) ? data : [];
     }
 
     if (taskLists.length === 0) return [];
 
     const listId = taskLists[0].id;
-    const res = await fetch(`${apiBase}/tasklists/${encodeURIComponent(listId)}/tasks`);
+    const res = await fetch(`/api/tasks?list=${encodeURIComponent(listId)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const allTasks = data.items || data || [];
+    const allTasks = data.tasks || [];
 
     // Filter incomplete, sort by due date (soonest first, no-due last)
     return allTasks
