@@ -491,8 +491,6 @@ function switchIgSubtab(targetId) {
 // ═══════════════════════════════════════════════════════════════════════
 //  META ADS
 // ═══════════════════════════════════════════════════════════════════════
-let spendChart = null;
-let leadsAppsChart = null;
 let activeMetaPreset = 'last_7d';
 
 function renderMetaAds() {
@@ -500,114 +498,45 @@ function renderMetaAds() {
   if (!meta) return;
 
   renderMetaNarrative(meta.summary);
-  renderMetaCharts(meta);
+  renderMetaTotals(meta);
   renderCampaignsTable(meta.campaigns);
   renderAdSwipes();
 }
 
-function renderMetaCharts(meta) {
-  if (typeof Chart === 'undefined') return;
+function renderMetaTotals(meta) {
+  const s = meta.summary || {};
   const campaigns = meta.campaigns || [];
 
-  const chartRow = $('#metaChartRow');
-  if (!chartRow) return;
+  const row = $('#metaChartRow');
+  if (!row) return;
 
-  if (campaigns.length === 0) {
-    chartRow.style.display = 'none';
-    return;
-  }
-  chartRow.style.display = '';
+  const spend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0) || s.spend || 0;
+  const leads = campaigns.reduce((sum, c) => sum + (c.leads || 0), 0) || s.leads || 0;
+  const apps = campaigns.reduce((sum, c) => sum + (c.applications || 0), 0) || s.applications || 0;
+  const cpl = leads > 0 ? (spend / leads).toFixed(2) : '--';
+  const cpa = apps > 0 ? (spend / apps).toFixed(2) : '--';
 
-  const labels = campaigns.map(c => (c.name || '').slice(0, 20));
-  const spendData = campaigns.map(c => c.spend || 0);
-  const leadsData = campaigns.map(c => c.leads || 0);
-  const appsData = campaigns.map(c => c.applications || 0);
-
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const textColor = isDark ? '#9CA3AF' : '#6B7280';
-
-  // ── Chart 1: Total Spend (line) ──
-  const spendCtx = $('#metaSpendChart');
-  if (spendCtx) {
-    if (spendChart) spendChart.destroy();
-    spendChart = new Chart(spendCtx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Spend ($)',
-          data: spendData,
-          borderColor: 'rgba(200, 162, 74, 0.9)',
-          backgroundColor: 'rgba(200, 162, 74, 0.15)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          borderWidth: 2,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          title: { display: true, text: 'Total Spend', color: textColor },
-        },
-        scales: {
-          x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
-          y: { ticks: { color: textColor, callback: v => '$' + v }, grid: { color: gridColor } },
-        },
-      },
-    });
-  }
-
-  // ── Chart 2: Leads (line) + Applications (bar) ──
-  const leadsAppsCtx = $('#metaLeadsAppsChart');
-  if (leadsAppsCtx) {
-    if (leadsAppsChart) leadsAppsChart.destroy();
-    leadsAppsChart = new Chart(leadsAppsCtx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            type: 'line',
-            label: 'Leads',
-            data: leadsData,
-            borderColor: 'rgba(16, 185, 129, 0.9)',
-            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-            fill: false,
-            tension: 0.3,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            borderWidth: 2,
-            order: 1,
-          },
-          {
-            type: 'bar',
-            label: 'Applications',
-            data: appsData,
-            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-            borderRadius: 4,
-            order: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, position: 'top', labels: { color: textColor, usePointStyle: true, pointStyle: 'circle', padding: 16 } },
-          title: { display: true, text: 'Leads & Applications', color: textColor },
-        },
-        scales: {
-          x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
-          y: { ticks: { color: textColor }, grid: { color: gridColor } },
-        },
-      },
-    });
-  }
+  row.innerHTML = `
+    <div class="meta-total-card">
+      <span class="meta-total-label">Total Spend</span>
+      <span class="meta-total-value meta-total--gold">$${formatNumber(spend)}</span>
+    </div>
+    <div class="meta-total-card">
+      <div class="meta-total-split">
+        <div class="meta-total-half">
+          <span class="meta-total-label">Total Leads</span>
+          <span class="meta-total-value meta-total--green">${formatNumber(leads)}</span>
+          <span class="meta-total-sub">${cpl !== '--' ? '$' + cpl + ' CPL' : ''}</span>
+        </div>
+        <div class="meta-total-divider"></div>
+        <div class="meta-total-half">
+          <span class="meta-total-label">Total Applications</span>
+          <span class="meta-total-value meta-total--blue">${formatNumber(apps)}</span>
+          <span class="meta-total-sub">${cpa !== '--' ? '$' + cpa + ' CPA' : ''}</span>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 
