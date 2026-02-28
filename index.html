@@ -142,29 +142,7 @@
               </div>
             </div>
 
-            <!-- Row 2: Schedule + Client Health (side by side) -->
-            <div class="card" id="calendarCard">
-              <div class="card-header"><h2>Schedule</h2><button class="btn btn-ghost btn-xs" id="calendarFullViewBtn">Full View</button></div>
-              <div class="card-body"><iframe id="calendarEmbed" title="Google Calendar" loading="lazy" src="https://calendar.google.com/calendar/embed?src=dan%40quantumcollective.com&ctz=America%2FVancouver&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showDate=1"></iframe></div>
-            </div>
-            <div class="card" id="clientsCard">
-              <div class="card-header"><h2>Client Health</h2><span class="staleness" id="clientsStaleness"></span></div>
-              <div class="card-body">
-                <div class="health-summary" id="healthSummary">
-                  <button class="health-stat" data-health="healthy" aria-expanded="false"><span class="health-count" id="clientsHealthy">--</span><span class="health-label">Healthy</span></button>
-                  <button class="health-stat" data-health="warning" aria-expanded="false"><span class="health-count" id="clientsWarning">--</span><span class="health-label">Watch</span></button>
-                  <button class="health-stat" data-health="atRisk" aria-expanded="false"><span class="health-count" id="clientsAtRisk">--</span><span class="health-label">At Risk</span></button>
-                </div>
-                <div class="client-expand" id="clientExpand" hidden>
-                  <div class="client-expand-header"><span id="clientExpandTitle">Clients</span><button class="btn-icon btn-sm" id="closeClientExpand" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-                  <div class="client-expand-items" id="clientExpandItems"></div>
-                </div>
-                <div class="client-alerts" id="clientAlerts"></div>
-                <div class="client-vip-alerts" id="clientVipAlerts"></div>
-              </div>
-            </div>
-
-            <!-- Row 3: VIP Metrics (4 cards) -->
+            <!-- Row 2: VIP Metrics (4 cards) -->
             <div class="vip-metrics-row dashboard-full-width">
               <div class="vip-metric-card">
                 <span class="vip-metric-value" id="vipActiveCount">--</span>
@@ -181,6 +159,23 @@
               <div class="vip-metric-card vip-metric-goal">
                 <span class="vip-metric-value" id="vipToGoal">--</span>
                 <span class="vip-metric-label">To Goal (72)</span>
+              </div>
+            </div>
+
+            <!-- Row 3: Schedule + Client Health (side by side) -->
+            <div class="card" id="calendarCard">
+              <div class="card-header"><h2>Schedule</h2><button class="btn btn-ghost btn-xs" id="calendarFullViewBtn">Full View</button></div>
+              <div class="card-body"><iframe id="calendarEmbed" title="Google Calendar" loading="lazy" src="https://calendar.google.com/calendar/embed?src=dan%40quantumcollective.com&ctz=America%2FVancouver&mode=AGENDA&showTitle=0&showNav=1&showPrint=0&showTabs=0&showCalendars=0&showTz=0&showDate=1"></iframe></div>
+            </div>
+            <div class="card" id="clientsCard">
+              <div class="card-header"><h2>Client Health</h2><span class="staleness" id="clientsStaleness"></span></div>
+              <div class="card-body">
+                <div class="health-summary" id="healthSummary">
+                  <div class="health-stat" data-health="healthy"><span class="health-count" id="clientsHealthy">--</span><span class="health-label">Healthy</span></div>
+                  <div class="health-stat" data-health="warning"><span class="health-count" id="clientsWarning">--</span><span class="health-label">Watch</span></div>
+                  <div class="health-stat" data-health="atRisk"><span class="health-count" id="clientsAtRisk">--</span><span class="health-label">At Risk</span></div>
+                </div>
+                <div class="client-notifications" id="clientNotifications"></div>
               </div>
             </div>
           </div>

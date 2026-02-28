@@ -10,7 +10,6 @@ import {
   formatDate,
   daysBetween,
   $,
-  $$,
   showToast,
   loadJSON,
   setState,
@@ -30,12 +29,7 @@ function cacheHomeElements() {
     clientsWarning: $('#clientsWarning'),
     clientsAtRisk: $('#clientsAtRisk'),
     clientsStaleness: $('#clientsStaleness'),
-    clientExpand: $('#clientExpand'),
-    clientExpandTitle: $('#clientExpandTitle'),
-    clientExpandItems: $('#clientExpandItems'),
-    closeClientExpand: $('#closeClientExpand'),
-    clientAlerts: $('#clientAlerts'),
-    clientVipAlerts: $('#clientVipAlerts'),
+    clientNotifications: $('#clientNotifications'),
     refreshAllBtn: $('#refreshAllBtn'),
     vipActiveCount: $('#vipActiveCount'),
     vipMrr: $('#vipMrr'),
@@ -51,6 +45,7 @@ export function initHome() {
 
   renderClientHealth();
   renderVipMetrics();
+  renderClientNotifications();
   updateGreeting();
   renderUpcomingTasks();
 
@@ -58,28 +53,13 @@ export function initHome() {
   subscribe((key) => {
     if (key === 'business') {
       renderClientHealth();
+      renderClientNotifications();
     }
     if (key === 'vipClients') {
-      renderVipAlerts();
+      renderClientNotifications();
       renderVipMetrics();
     }
   });
-
-  // Event delegation for client health buttons
-  if (el.healthSummary) {
-    el.healthSummary.addEventListener('click', handleHealthClick);
-  }
-
-  // Close client expand panel
-  if (el.closeClientExpand) {
-    el.closeClientExpand.addEventListener('click', () => {
-      if (el.clientExpand) el.clientExpand.hidden = true;
-      // Reset aria-expanded on health stats
-      $$('.health-stat', el.healthSummary).forEach(btn => {
-        btn.setAttribute('aria-expanded', 'false');
-      });
-    });
-  }
 
   // Refresh all data
   if (el.refreshAllBtn) {
@@ -172,9 +152,6 @@ function renderClientHealth() {
 
   // Staleness badge
   renderStaleness();
-
-  // Alerts
-  renderAlerts();
 }
 
 function renderStaleness() {
@@ -207,111 +184,66 @@ function renderStaleness() {
   el.clientsStaleness.textContent = label;
 }
 
-function renderAlerts() {
-  if (!el.clientAlerts) return;
-  const biz = getState().business;
-  if (!biz || !biz.clients || !biz.clients.alerts || biz.clients.alerts.length === 0) {
-    el.clientAlerts.innerHTML = '';
-    return;
-  }
+// ---- Client Notifications (flat list below health stats) ------
 
-  el.clientAlerts.innerHTML = biz.clients.alerts.map(alert => `
-    <div class="client-alert alert-${escapeHtml(alert.type)}">
-      <span class="alert-icon">${alert.type === 'warning' ? '\u26A0' : alert.type === 'success' ? '\u2705' : '\u2139'}</span>
-      <span class="alert-text">${escapeHtml(alert.text)}</span>
-    </div>
-  `).join('');
-}
-
-function handleHealthClick(e) {
-  const stat = e.target.closest('.health-stat');
-  if (!stat) return;
-
-  const healthKey = stat.dataset.health;
-  if (!healthKey) return;
-
-  const biz = getState().business;
-  if (!biz || !biz.clients) return;
-
-  const clients = biz.clients[healthKey] || [];
-  const isExpanded = stat.getAttribute('aria-expanded') === 'true';
-
-  // Reset all buttons
-  $$('.health-stat', el.healthSummary).forEach(btn => {
-    btn.setAttribute('aria-expanded', 'false');
-  });
-
-  if (isExpanded) {
-    // Collapse
-    if (el.clientExpand) el.clientExpand.hidden = true;
-    return;
-  }
-
-  // Expand
-  stat.setAttribute('aria-expanded', 'true');
-
-  const labels = { healthy: 'Healthy Clients', warning: 'Watch List', atRisk: 'At-Risk Clients' };
-  if (el.clientExpandTitle) {
-    el.clientExpandTitle.textContent = labels[healthKey] || 'Clients';
-  }
-
-  if (el.clientExpandItems) {
-    if (clients.length === 0) {
-      el.clientExpandItems.innerHTML = '<div class="empty-state"><p>No clients in this category</p></div>';
-    } else {
-      el.clientExpandItems.innerHTML = clients.map(c => `
-        <div class="client-row">
-          <div class="client-info">
-            <span class="client-name">${escapeHtml(c.name)}</span>
-            <span class="client-type">${escapeHtml(c.type)}</span>
-          </div>
-          <span class="client-note">${escapeHtml(c.note)}</span>
-        </div>
-      `).join('');
-    }
-  }
-
-  if (el.clientExpand) el.clientExpand.hidden = false;
-}
-
-// ---- VIP Client Alerts (inline in Client Health card) ---------
-
-function renderVipAlerts() {
-  const container = el.clientVipAlerts;
+function renderClientNotifications() {
+  const container = el.clientNotifications;
   if (!container) return;
 
-  const data = getState('vipClients');
-  if (!data || !data.clients) {
-    container.innerHTML = '';
+  const items = [];
+
+  // Business-level alerts
+  const biz = getState().business;
+  if (biz?.clients?.alerts) {
+    biz.clients.alerts.forEach(a => {
+      const icon = a.type === 'warning' ? '\u26A0' : a.type === 'success' ? '\u2705' : '\u2139';
+      items.push({ icon, text: a.text, type: a.type || 'info' });
+    });
+  }
+
+  // Watch list clients
+  if (biz?.clients?.warning) {
+    biz.clients.warning.forEach(c => {
+      items.push({ icon: '\uD83D\uDC41', text: `${c.name} — ${c.note}`, type: 'warning' });
+    });
+  }
+
+  // At-risk clients from business data
+  if (biz?.clients?.atRisk) {
+    biz.clients.atRisk.forEach(c => {
+      items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — at risk${c.note ? ': ' + c.note : ''}`, type: 'danger' });
+    });
+  }
+
+  // VIP client alerts (at risk + action items)
+  const vipData = getState('vipClients');
+  if (vipData?.clients) {
+    vipData.clients.forEach(c => {
+      const s = (c.status || '').toLowerCase();
+      if (s === 'at risk') {
+        // Avoid duplicate if already in biz data
+        const already = items.some(i => i.text.startsWith(c.name));
+        if (!already) {
+          items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — At Risk`, type: 'danger' });
+        }
+      }
+      if (c.todo && c.todo.length > 0) {
+        items.push({ icon: '\u2705', text: `${c.name} — ${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}`, type: 'warning' });
+      }
+    });
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="cn-empty">No alerts right now</div>';
     return;
   }
 
-  const alerts = [];
-
-  data.clients.forEach(c => {
-    const s = (c.status || '').toLowerCase();
-    if (s === 'at risk') {
-      alerts.push({ name: c.name, type: 'danger', text: 'At Risk', program: c.program || '' });
-    }
-    if (c.todo && c.todo.length > 0) {
-      alerts.push({ name: c.name, type: 'warning', text: `${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}`, program: c.program || '' });
-    }
-  });
-
-  if (alerts.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="client-vip-alerts-header">VIP Alerts</div>
-    ${alerts.slice(0, 6).map(a => `
-      <div class="client-vip-alert-item client-vip-alert-${escapeHtml(a.type)}">
-        <span class="client-vip-alert-name">${escapeHtml(a.name)}</span>
-        <span class="badge badge-${a.type === 'danger' ? 'error' : 'warning'}">${escapeHtml(a.text)}</span>
-      </div>
-    `).join('')}
-  `;
+  container.innerHTML = items.slice(0, 8).map(i => `
+    <div class="cn-item cn-${escapeHtml(i.type)}">
+      <span class="cn-icon">${i.icon}</span>
+      <span class="cn-text">${escapeHtml(i.text)}</span>
+    </div>
+  `).join('');
 }
 
 // ---- Upcoming Tasks (Google Tasks) ----------------------------
