@@ -5344,12 +5344,16 @@ a:focus:not(:focus-visible) {
   margin: var(--space-4) 0;
 }
 
+.meta-chart-row--2col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .meta-chart-wrap {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  height: 240px;
+  height: 260px;
 }
 
 /* ---- Responsive (new tabs) --------------------------------- */

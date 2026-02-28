@@ -492,8 +492,7 @@ function switchIgSubtab(targetId) {
 //  META ADS
 // ═══════════════════════════════════════════════════════════════════════
 let spendChart = null;
-let leadsChart = null;
-let appsChart = null;
+let leadsAppsChart = null;
 let activeMetaPreset = 'last_7d';
 
 function renderMetaAds() {
@@ -513,7 +512,6 @@ function renderMetaCharts(meta) {
   const chartRow = $('#metaChartRow');
   if (!chartRow) return;
 
-  // Hide charts if no campaign data
   if (campaigns.length === 0) {
     chartRow.style.display = 'none';
     return;
@@ -525,65 +523,89 @@ function renderMetaCharts(meta) {
   const leadsData = campaigns.map(c => c.leads || 0);
   const appsData = campaigns.map(c => c.applications || 0);
 
-  const chartColors = {
-    gold: 'rgba(200, 162, 74, 0.8)',
-    green: 'rgba(16, 185, 129, 0.8)',
-    blue: 'rgba(59, 130, 246, 0.8)',
-  };
-
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const textColor = isDark ? '#9CA3AF' : '#6B7280';
 
-  const baseOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
-      y: { ticks: { color: textColor }, grid: { color: gridColor } },
-    },
-  };
-
-  const lineDataset = (label, data, color) => ({
-    label,
-    data,
-    borderColor: color,
-    backgroundColor: color.replace('0.8', '0.15'),
-    fill: true,
-    tension: 0.3,
-    pointRadius: 4,
-    pointHoverRadius: 6,
-    borderWidth: 2,
-  });
-
+  // ── Chart 1: Total Spend (line) ──
   const spendCtx = $('#metaSpendChart');
   if (spendCtx) {
     if (spendChart) spendChart.destroy();
     spendChart = new Chart(spendCtx, {
       type: 'line',
-      data: { labels, datasets: [lineDataset('Spend ($)', spendData, chartColors.gold)] },
-      options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Spend by Campaign', color: textColor } } },
+      data: {
+        labels,
+        datasets: [{
+          label: 'Spend ($)',
+          data: spendData,
+          borderColor: 'rgba(200, 162, 74, 0.9)',
+          backgroundColor: 'rgba(200, 162, 74, 0.15)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Total Spend', color: textColor },
+        },
+        scales: {
+          x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
+          y: { ticks: { color: textColor, callback: v => '$' + v }, grid: { color: gridColor } },
+        },
+      },
     });
   }
 
-  const leadsCtx = $('#metaLeadsChart');
-  if (leadsCtx) {
-    if (leadsChart) leadsChart.destroy();
-    leadsChart = new Chart(leadsCtx, {
-      type: 'line',
-      data: { labels, datasets: [lineDataset('Leads', leadsData, chartColors.green)] },
-      options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Leads by Campaign', color: textColor } } },
-    });
-  }
-
-  const appsCtx = $('#metaAppsChart');
-  if (appsCtx) {
-    if (appsChart) appsChart.destroy();
-    appsChart = new Chart(appsCtx, {
-      type: 'line',
-      data: { labels, datasets: [lineDataset('Applications', appsData, chartColors.blue)] },
-      options: { ...baseOptions, plugins: { ...baseOptions.plugins, title: { display: true, text: 'Applications by Campaign', color: textColor } } },
+  // ── Chart 2: Leads (line) + Applications (bar) ──
+  const leadsAppsCtx = $('#metaLeadsAppsChart');
+  if (leadsAppsCtx) {
+    if (leadsAppsChart) leadsAppsChart.destroy();
+    leadsAppsChart = new Chart(leadsAppsCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'line',
+            label: 'Leads',
+            data: leadsData,
+            borderColor: 'rgba(16, 185, 129, 0.9)',
+            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderWidth: 2,
+            order: 1,
+          },
+          {
+            type: 'bar',
+            label: 'Applications',
+            data: appsData,
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderRadius: 4,
+            order: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { color: textColor, usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+          title: { display: true, text: 'Leads & Applications', color: textColor },
+        },
+        scales: {
+          x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
+          y: { ticks: { color: textColor }, grid: { color: gridColor } },
+        },
+      },
     });
   }
 }
