@@ -1,13 +1,15 @@
 {
-  "lastUpdated": "2026-02-24T13:53:13.801Z",
-  "lastResearch": "2026-02-24T13:15:00Z",
-  "scrapingNotes": "Fresh scraping from Meta Ad Library - 2026-02-24. Searched by advertiser page, not keyword.",
+  "lastUpdated": "2026-03-01T21:30:00Z",
+  "lastResearch": "2026-03-01T21:30:00Z",
+  "scrapingNotes": "Research refreshed Mar 1 2026. Meta Ad Library not directly scrapeable — findings from web research, ad spy tools (AdScan, PowerAdSpy, Ad Angles). Will Nelson in active testing phase (7+ ads). Hormozi workshop funnel getting heavy investment. Max Perzon launched 71 ad variants Feb 2. Pedro Quintanilla NOT found as Meta advertiser. Ravi Abuvala / Scaling With Systems confirmed running ads (PowerAdSpy). New competitors identified: Evelyn Weiss (official Skool Ads Manager), Caley Dimmock (Meta Ads Academy).",
   "competitors": [
     "Will Nelson",
     "Fitness Business Mentors",
     "Alex Hormozi",
     "Skool",
-    "Max Perzon"
+    "Max Perzon",
+    "Ravi Abuvala / Scaling With Systems",
+    "Evelyn Weiss"
   ],
   "swipes": [
     {
