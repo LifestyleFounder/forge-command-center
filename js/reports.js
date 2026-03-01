@@ -13,7 +13,13 @@ let schedulesData = null;
 let docsIndexData = null;
 let funnelData = null;
 let funnelDays = 30;
+let funnelSlug = 'all';
+let funnelPages = [];
 let funnelChartInstance = null;
+
+const FUNNEL_PAGE_NAMES = {
+  'swipe-page': 'Swipe My Strategies',
+};
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initReports() {
@@ -224,11 +230,22 @@ function renderFunnels() {
   const s = funnelData?.summary;
   const loading = !funnelData;
 
+  const pageOptions = funnelPages.map(slug => {
+    const name = FUNNEL_PAGE_NAMES[slug] || slug;
+    return `<option value="${escapeHtml(slug)}" ${funnelSlug === slug ? 'selected' : ''}>${escapeHtml(name)}</option>`;
+  }).join('');
+
   return `
-    <div class="funnel-range-btns" style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
-      <button class="btn btn-sm ${funnelDays === 7 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="7">7d</button>
-      <button class="btn btn-sm ${funnelDays === 30 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="30">30d</button>
-      <button class="btn btn-sm ${funnelDays === 90 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="90">90d</button>
+    <div class="funnel-toolbar" style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-4);align-items:center">
+      <select id="funnelPageSelect" class="input-search" style="padding:var(--space-1) var(--space-2);font-size:var(--text-sm);min-width:160px;max-width:240px">
+        <option value="all" ${funnelSlug === 'all' ? 'selected' : ''}>All Funnels</option>
+        ${pageOptions}
+      </select>
+      <div class="funnel-range-btns" style="display:flex;gap:var(--space-2)">
+        <button class="btn btn-sm ${funnelDays === 7 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="7">7d</button>
+        <button class="btn btn-sm ${funnelDays === 30 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="30">30d</button>
+        <button class="btn btn-sm ${funnelDays === 90 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="90">90d</button>
+      </div>
     </div>
     <div class="funnel-summary-row">
       <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
@@ -255,9 +272,12 @@ function renderFunnels() {
 async function loadFunnelStats(days) {
   funnelDays = days || funnelDays;
   try {
-    const res = await fetch(`/api/funnel-stats?days=${funnelDays}`);
+    let url = `/api/funnel-stats?days=${funnelDays}`;
+    if (funnelSlug && funnelSlug !== 'all') url += `&slug=${encodeURIComponent(funnelSlug)}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     funnelData = await res.json();
+    if (funnelData.pages) funnelPages = funnelData.pages;
   } catch (err) {
     console.warn('[reports] Failed to load funnel stats', err);
     funnelData = null;
@@ -349,6 +369,13 @@ function bindReportEvents() {
     const daysBtn = e.target.closest('[data-funnel-days]');
     if (daysBtn) {
       loadFunnelStats(parseInt(daysBtn.dataset.funnelDays));
+    }
+  });
+
+  container.addEventListener('change', (e) => {
+    if (e.target.id === 'funnelPageSelect') {
+      funnelSlug = e.target.value;
+      loadFunnelStats(funnelDays);
     }
   });
 

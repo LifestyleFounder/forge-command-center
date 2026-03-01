@@ -15,24 +15,35 @@ export default async function handler(req, res) {
 
   try {
     const days = Math.min(parseInt(req.query.days) || 30, 365);
+    const slug = req.query.slug || null;
     const since = new Date();
     since.setDate(since.getDate() - days);
     const sinceISO = since.toISOString();
 
     // Fetch all events in the date range
     const params = new URLSearchParams({
-      select: 'event_type,created_at',
+      select: 'event_type,created_at,page_slug',
       'created_at': `gte.${sinceISO}`,
       order: 'created_at.asc',
       limit: '10000',
     });
+    if (slug) params.set('page_slug', `eq.${slug}`);
 
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/funnel_events?${params}`, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
+    // Also fetch distinct page slugs (unfiltered, lightweight)
+    const pagesParams = new URLSearchParams({
+      select: 'page_slug',
+      limit: '1000',
     });
+
+    const headers = {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    };
+
+    const [response, pagesResponse] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/funnel_events?${params}`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/funnel_events?${pagesParams}`, { headers }),
+    ]);
 
     if (!response.ok) {
       const text = await response.text();
@@ -41,6 +52,13 @@ export default async function handler(req, res) {
     }
 
     const events = await response.json();
+
+    // Extract distinct page slugs
+    let pages = [];
+    if (pagesResponse.ok) {
+      const pagesRows = await pagesResponse.json();
+      pages = [...new Set(pagesRows.map(r => r.page_slug).filter(Boolean))].sort();
+    }
 
     // Aggregate by day
     const dailyMap = {};
@@ -84,6 +102,7 @@ export default async function handler(req, res) {
         conversionRate,
       },
       daily,
+      pages,
       lastUpdated: new Date().toISOString(),
     };
 
