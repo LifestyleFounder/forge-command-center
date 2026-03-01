@@ -3294,8 +3294,8 @@ body.block-editor-open .block-editor-fab {
 }
 
 .chat-input-wrap:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(200, 162, 74, 0.1);
+  border-color: var(--border);
+  box-shadow: none;
 }
 
 .chat-input {
@@ -3307,13 +3307,102 @@ body.block-editor-open .block-editor-fab {
   font-size: var(--text-sm);
   line-height: 1.5;
   resize: none;
-  padding: var(--space-1) 0;
-  max-height: 150px;
+  padding: var(--space-2) 0;
+  min-height: 24px;
+  max-height: 200px;
+  outline: none;
+  overflow-y: auto;
+}
+
+.chat-input:focus,
+.chat-input:focus-visible {
   outline: none;
 }
 
 .chat-input::placeholder {
   color: var(--text-tertiary);
+}
+
+/* Attach button */
+.chat-attach-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.chat-attach-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.chat-file-input {
+  display: none;
+}
+
+/* File preview bar */
+.chat-file-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-light);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background-color: var(--bg-tertiary);
+}
+
+.chat-file-preview + .chat-input-wrap {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.file-preview-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  color: var(--text-secondary);
+  max-width: 200px;
+}
+
+.file-preview-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.file-preview-remove:hover {
+  color: var(--color-error);
+  background-color: var(--bg-hover);
 }
 
 .chat-input-actions {

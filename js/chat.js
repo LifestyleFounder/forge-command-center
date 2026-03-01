@@ -30,6 +30,7 @@ let activeAgentId  = 'geeves';
 let activeThreadId = null;
 let isSending      = false;
 let chatState      = 'landing'; // 'landing' | 'conversation'
+let attachedFiles  = [];        // { name, type, content } — text extracted from files
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initChat() {
@@ -505,8 +506,17 @@ async function handleSend(inputId) {
     createNewThread();
   }
 
+  // Build content with file context
+  let fullContent = text;
+  if (attachedFiles.length > 0) {
+    const fileContext = attachedFiles.map(f =>
+      `[Attached file: ${f.name}]\n${f.content}\n[/Attached file]`
+    ).join('\n\n');
+    fullContent = text + '\n\n' + fileContext;
+  }
+
   const now = new Date().toISOString();
-  const userMsg = { role: 'user', content: text, timestamp: now };
+  const userMsg = { role: 'user', content: text, fullContent, timestamp: now };
 
   // Add to thread
   const threads = getThreads();
@@ -525,11 +535,12 @@ async function handleSend(inputId) {
   appendMessage(userMsg);
   syncMessageToSupabase(activeThreadId, userMsg);
 
-  // Clear both inputs
+  // Clear inputs and files
   $('#chatInputLanding').value = '';
   $('#chatInputConvo').value = '';
   autoResize($('#chatInputLanding'));
   autoResize($('#chatInputConvo'));
+  clearAttachedFiles();
 
   // Call LLM
   isSending = true;
@@ -538,7 +549,7 @@ async function handleSend(inputId) {
   try {
     const agent = getAgent(activeAgentId);
     const apiMessages = thread.messages.map(m => ({
-      role: m.role, content: m.content,
+      role: m.role, content: m.fullContent || m.content,
     }));
 
     const response = await callLLM(apiMessages, agent);
@@ -597,7 +608,7 @@ function setSendingState(sending) {
 
 async function callLLM(messages, agent) {
   const proxyUrl = localStorage.getItem(PROXY_KEY) || DEFAULT_PROXY;
-  const model = agent?.defaultModel || 'claude-sonnet-4';
+  const model = agent?.defaultModel || 'claude-sonnet-4-20250514';
 
   // Build system prompt with auto-injected context
   let systemPrompt = agent?.systemPrompt || 'You are a helpful assistant for Dan Harrison, founder of Lifestyle Founders Group. Be direct, concise, and actionable.';
@@ -646,6 +657,94 @@ function handleChipClick(e) {
     input.selectionStart = input.selectionEnd = config.prefill.length;
     autoResize(input);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  FILE ATTACHMENTS
+// ═══════════════════════════════════════════════════════════════════════
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    // Size limit: 500KB for text, images as base64 up to 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      showToast(`${file.name} is too large (max 2MB)`, 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    if (file.type.startsWith('image/')) {
+      // Images: note the attachment but can't extract text content
+      attachedFiles.push({
+        name: file.name,
+        type: file.type,
+        content: `[Image file: ${file.name}, ${(file.size / 1024).toFixed(1)}KB]`,
+      });
+      renderFilePreview();
+    } else {
+      // For text files, read as text
+      reader.onload = () => {
+        const text = reader.result;
+        // Truncate very long files
+        const truncated = text.length > 50000 ? text.slice(0, 50000) + '\n...[truncated]' : text;
+        attachedFiles.push({
+          name: file.name,
+          type: file.type,
+          content: truncated,
+        });
+        renderFilePreview();
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  // Reset file input so same file can be re-selected
+  e.target.value = '';
+}
+
+function renderFilePreview() {
+  const ids = chatState === 'landing'
+    ? 'filePreviewLanding'
+    : 'filePreviewConvo';
+  const el = $(`#${ids}`);
+  if (!el) return;
+
+  if (attachedFiles.length === 0) {
+    el.setAttribute('hidden', '');
+    el.innerHTML = '';
+    return;
+  }
+
+  el.removeAttribute('hidden');
+  el.innerHTML = attachedFiles.map((f, i) => `
+    <div class="file-preview-item">
+      <span class="file-preview-name">${escapeHtml(f.name)}</span>
+      <button class="file-preview-remove" data-file-index="${i}" title="Remove">&times;</button>
+    </div>
+  `).join('');
+}
+
+function handleFileRemove(e) {
+  const btn = e.target.closest('.file-preview-remove');
+  if (!btn) return;
+  const idx = parseInt(btn.dataset.fileIndex, 10);
+  if (!isNaN(idx)) {
+    attachedFiles.splice(idx, 1);
+    renderFilePreview();
+  }
+}
+
+function clearAttachedFiles() {
+  attachedFiles = [];
+  ['filePreviewLanding', 'filePreviewConvo'].forEach(id => {
+    const el = $(`#${id}`);
+    if (el) {
+      el.setAttribute('hidden', '');
+      el.innerHTML = '';
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -714,4 +813,13 @@ function bindEvents() {
 
   // Chips
   $('#chatChips')?.addEventListener('click', handleChipClick);
+
+  // File attachments
+  $('#attachBtnLanding')?.addEventListener('click', () => $('#fileInputLanding')?.click());
+  $('#attachBtnConvo')?.addEventListener('click', () => $('#fileInputConvo')?.click());
+  $('#fileInputLanding')?.addEventListener('change', handleFileSelect);
+  $('#fileInputConvo')?.addEventListener('change', handleFileSelect);
+  // File preview remove buttons (event delegation)
+  $('#filePreviewLanding')?.addEventListener('click', handleFileRemove);
+  $('#filePreviewConvo')?.addEventListener('click', handleFileRemove);
 }
