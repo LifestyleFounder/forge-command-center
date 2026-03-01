@@ -7,6 +7,17 @@ import {
   generateId, debounce, $, $$, showToast
 } from './app.js';
 
+import { getProjects, saveProjects, getProjectForTask, getAllProjectOptions, onProjectsChange } from './project-store.js';
+
+const PROJECT_COLORS = {
+  gold: 'var(--color-gold, #C8A24A)',
+  forest: 'var(--color-forest, #0F2A1E)',
+  info: 'var(--color-info, #3B82F6)',
+  warning: 'var(--color-warning, #F59E0B)',
+  success: 'var(--color-success, #10B981)',
+  error: 'var(--color-error, #EF4444)'
+};
+
 // ── State ────────────────────────────────────────────────────────────
 let taskLists = [];
 let activeListId = null;
@@ -204,6 +215,12 @@ function renderTaskItem(task) {
     `;
   }
 
+  // Project badge
+  const assignedProject = getProjectForTask(activeListId, task.id);
+  const projectBadgeHtml = assignedProject
+    ? `<span class="gt-project-badge" data-task-id="${escapeHtml(task.id)}" title="${escapeHtml(assignedProject.name)}"><span class="gt-project-dot" style="background:${PROJECT_COLORS[assignedProject.color] || PROJECT_COLORS.gold}"></span>${escapeHtml(assignedProject.name)}</span>`
+    : `<button class="gt-assign-btn" data-task-id="${escapeHtml(task.id)}" aria-label="Assign to project" title="Assign to project"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>`;
+
   return `
     <div class="gt-task-item ${isCompleted ? 'gt-task-completed' : ''}" data-task-id="${escapeHtml(task.id)}">
       <button class="gt-checkbox ${isCompleted ? 'is-checked' : ''}" data-task-id="${escapeHtml(task.id)}" aria-label="${isCompleted ? 'Mark incomplete' : 'Mark complete'}">
@@ -213,6 +230,7 @@ function renderTaskItem(task) {
         <span class="gt-task-title ${isCompleted ? 'gt-task-done-text' : ''}">${escapeHtml(task.title || 'Untitled')}</span>
         ${task.notes ? `<span class="gt-task-notes text-xs text-tertiary">${escapeHtml(task.notes.slice(0, 100))}</span>` : ''}
       </div>
+      ${projectBadgeHtml}
       ${task.due ? `<span class="gt-task-due ${isOverdue ? 'gt-task-overdue' : ''}">${formatDate(task.due)}</span>` : ''}
       <button class="btn btn-ghost btn-xs gt-edit-btn" data-task-id="${escapeHtml(task.id)}" aria-label="Edit">✎</button>
     </div>
@@ -265,6 +283,48 @@ export async function getUpcomingTasks() {
  */
 export async function completeTaskFromHome(listId, taskId) {
   return apiCompleteTask(listId, taskId);
+}
+
+// ── Project Integration Exports ─────────────────────────────────────
+
+/**
+ * Complete a GT task by ID (used by projects.js).
+ */
+export async function completeTaskById(listId, taskId) {
+  return apiCompleteTask(listId, taskId);
+}
+
+/**
+ * Uncomplete a GT task by ID (used by projects.js).
+ */
+export async function uncompleteTaskById(listId, taskId) {
+  return apiUncompleteTask(listId, taskId);
+}
+
+/**
+ * Fetch tasks for a given list (used by projects.js task picker).
+ */
+export async function fetchTasksForList(listId) {
+  try {
+    const res = await fetch(`/api/tasks?list=${encodeURIComponent(listId)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return (data.tasks || []).sort((a, b) => {
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      return (a.position || '').localeCompare(b.position || '');
+    });
+  } catch (err) {
+    console.warn('[google-tasks] fetchTasksForList failed', err);
+    return [];
+  }
+}
+
+/**
+ * Return the cached task lists array (used by projects.js task picker).
+ */
+export function getTaskLists() {
+  return taskLists;
 }
 
 // ── Events ──────────────────────────────────────────────────────────
@@ -328,6 +388,26 @@ function bindGoogleTaskEvents() {
         task.status = isCompleted ? 'needsAction' : 'completed';
         renderGoogleTasks();
       }
+      return;
+    }
+
+    // Assign to project
+    const assignBtn = e.target.closest('.gt-assign-btn');
+    if (assignBtn) {
+      const taskId = assignBtn.dataset.taskId;
+      showAssignDropdown(assignBtn, taskId);
+      return;
+    }
+
+    // Pick project from assign dropdown
+    const assignOption = e.target.closest('.gt-assign-option');
+    if (assignOption) {
+      const projectId = assignOption.dataset.projectId;
+      const taskId = assignOption.dataset.taskId;
+      assignTaskToProject(projectId, activeListId, taskId);
+      // Remove dropdown
+      const dropdown = assignOption.closest('.gt-assign-dropdown');
+      if (dropdown) dropdown.remove();
       return;
     }
 
@@ -398,4 +478,57 @@ function bindGoogleTaskEvents() {
       renderGoogleTasks();
     }
   });
+
+  // Close assign dropdowns when clicking elsewhere
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.gt-assign-dropdown') && !e.target.closest('.gt-assign-btn')) {
+      const dropdowns = container.querySelectorAll('.gt-assign-dropdown');
+      dropdowns.forEach(d => d.remove());
+    }
+  });
+
+  // Re-render when projects change (badge updates)
+  onProjectsChange(() => {
+    if (tasks.length > 0) renderGoogleTasks();
+  });
+}
+
+function showAssignDropdown(btn, taskId) {
+  // Remove any existing dropdowns
+  const container = $('#googleTasksContainer');
+  container.querySelectorAll('.gt-assign-dropdown').forEach(d => d.remove());
+
+  const options = getAllProjectOptions();
+  if (options.length === 0) {
+    showToast('No projects available. Create a project first.', 'warning');
+    return;
+  }
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'gt-assign-dropdown';
+  dropdown.innerHTML = options.map(p =>
+    `<button class="gt-assign-option" data-project-id="${escapeHtml(p.id)}" data-task-id="${escapeHtml(taskId)}">
+      <span class="gt-project-dot" style="background:${PROJECT_COLORS[p.color] || PROJECT_COLORS.gold}"></span>
+      ${escapeHtml(p.name)}
+    </button>`
+  ).join('');
+
+  btn.parentElement.style.position = 'relative';
+  btn.parentElement.appendChild(dropdown);
+}
+
+function assignTaskToProject(projectId, listId, taskId) {
+  const data = getProjects();
+  const project = data.projects.find(p => p.id === projectId);
+  if (!project) return;
+
+  if (!project.linkedTasks) project.linkedTasks = [];
+  if (project.linkedTasks.some(t => t.listId === listId && t.taskId === taskId)) {
+    showToast('Already linked to this project', 'warning');
+    return;
+  }
+
+  project.linkedTasks.push({ listId, taskId });
+  saveProjects(data);
+  showToast(`Linked to ${project.name}`, 'success');
 }
