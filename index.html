@@ -203,17 +203,13 @@
           <div class="section-header">
             <h1>Projects</h1>
             <div class="section-actions">
-              <button class="btn btn-primary btn-sm" id="addTaskBtn">
+              <button class="btn btn-primary btn-sm" id="addProjectBtn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Task
+                Add Project
               </button>
             </div>
           </div>
           <div class="kanban" id="kanbanBoard">
-            <div class="kanban-column" data-status="inbox">
-              <div class="kanban-column-header"><span class="column-dot" data-color="neutral"></span><span class="column-title">Inbox</span><span class="column-count" id="countInbox">0</span></div>
-              <div class="kanban-cards" data-status="inbox"></div>
-            </div>
             <div class="kanban-column" data-status="todo">
               <div class="kanban-column-header"><span class="column-dot" data-color="info"></span><span class="column-title">To Do</span><span class="column-count" id="countTodo">0</span></div>
               <div class="kanban-cards" data-status="todo"></div>
@@ -223,16 +219,9 @@
               <div class="kanban-cards" data-status="progress"></div>
             </div>
             <div class="kanban-column" data-status="done">
-              <div class="kanban-column-header"><span class="column-dot" data-color="success"></span><span class="column-title">Done</span><span class="column-count" id="countDone">0</span><button class="btn-icon btn-xs" id="toggleDoneBtn" aria-label="Toggle completed tasks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button></div>
+              <div class="kanban-column-header"><span class="column-dot" data-color="success"></span><span class="column-title">Done</span><span class="column-count" id="countDone">0</span></div>
               <div class="kanban-cards" data-status="done"></div>
             </div>
-          </div>
-          <div class="activity-section" id="activitySection">
-            <div class="section-header">
-              <h2>Recent Activity</h2>
-              <input type="search" class="input-search" id="activitySearch" placeholder="Filter..." aria-label="Filter activity">
-            </div>
-            <div class="activity-list" id="activityList"></div>
           </div>
         </section>
 
@@ -547,24 +536,29 @@
     <!-- ====== MODALS ====== -->
     <div class="modal-backdrop" id="modalBackdrop" hidden></div>
 
-    <div class="modal" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle" hidden>
-      <div class="modal-header"><h2 id="taskModalTitle">Add Task</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle" hidden>
+      <div class="modal-header"><h2 id="projectModalTitle">Add Project</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
       <div class="modal-body">
-        <div class="form-group"><label class="form-label" for="taskTitleInput">Title</label><input type="text" class="form-input" id="taskTitleInput" placeholder="What needs to be done?"></div>
-        <div class="form-group"><label class="form-label" for="taskDescInput">Description</label><textarea class="form-input" id="taskDescInput" placeholder="Details..." rows="3"></textarea></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label" for="taskPriorityInput">Priority</label><select class="form-select" id="taskPriorityInput"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
-          <div class="form-group"><label class="form-label" for="taskDueInput">Due Date</label><input type="date" class="form-input" id="taskDueInput"></div>
+        <div class="form-group"><label class="form-label" for="projectNameInput">Name</label><input type="text" class="form-input" id="projectNameInput" placeholder="Project name..."></div>
+        <div class="form-group"><label class="form-label" for="projectDescInput">Description</label><textarea class="form-input" id="projectDescInput" placeholder="What is this project about?" rows="3"></textarea></div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <div class="color-picker" id="projectColorPicker">
+            <button type="button" class="color-swatch is-selected" data-color="gold" aria-label="Gold"></button>
+            <button type="button" class="color-swatch" data-color="forest" aria-label="Forest"></button>
+            <button type="button" class="color-swatch" data-color="info" aria-label="Blue"></button>
+            <button type="button" class="color-swatch" data-color="warning" aria-label="Orange"></button>
+            <button type="button" class="color-swatch" data-color="success" aria-label="Green"></button>
+            <button type="button" class="color-swatch" data-color="error" aria-label="Red"></button>
+          </div>
         </div>
-        <div class="form-group"><label class="form-label" for="taskTagsInput">Tags</label><input type="text" class="form-input" id="taskTagsInput" placeholder="lfg, content, system"></div>
       </div>
-      <div class="modal-footer"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveTaskBtn">Save Task</button></div>
+      <div class="modal-footer"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="saveProjectBtn">Create Project</button></div>
     </div>
 
-    <div class="modal modal-lg" id="taskDetailModal" role="dialog" aria-modal="true" aria-labelledby="taskDetailTitle" hidden>
-      <div class="modal-header"><h2 id="taskDetailTitle">Task</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
-      <div class="modal-body" id="taskDetailBody"></div>
-      <div class="modal-footer"><button class="btn btn-danger" id="deleteTaskBtn">Delete</button><div class="footer-right"><button class="btn btn-ghost" data-close-modal>Cancel</button><button class="btn btn-primary" id="updateTaskBtn">Save Changes</button></div></div>
+    <div class="modal modal-lg" id="projectDetailModal" role="dialog" aria-modal="true" aria-labelledby="projectDetailTitle" hidden>
+      <div class="modal-header"><h2 id="projectDetailTitle">Project</h2><button class="btn-icon modal-close" data-close-modal aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div class="modal-body" id="projectDetailBody"></div>
     </div>
 
     <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
@@ -626,6 +620,26 @@
           <button class="be-toolbar-btn" id="be-divider" data-cmd="divider" title="Divider">&mdash;</button>
         </div>
         <div class="be-content" id="blockEditorContent"></div>
+
+        <!-- AI Chat Bubble -->
+        <button class="note-ai-fab" id="noteAiFab" title="Ask AI about this note" aria-label="AI Assistant">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
+        </button>
+
+        <!-- AI Chat Panel (pops up from bubble) -->
+        <div class="note-ai-panel" id="noteAiPanel" hidden>
+          <div class="note-ai-header">
+            <span class="note-ai-title">AI Assistant</span>
+            <button class="note-ai-close" id="noteAiClose" aria-label="Close AI chat">&times;</button>
+          </div>
+          <div class="note-ai-messages" id="noteAiMessages"></div>
+          <div class="note-ai-input-wrap">
+            <textarea id="noteAiInput" class="note-ai-input" placeholder="Ask about this note..." rows="1"></textarea>
+            <button class="btn btn-primary btn-icon note-ai-send" id="noteAiSend" aria-label="Send">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

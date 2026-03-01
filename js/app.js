@@ -5,6 +5,7 @@
 
 import { initHome } from './home.js';
 import { initProjects } from './projects.js';
+import { getProjects } from './project-store.js';
 import { initContent, loadMetaAdsData } from './content.js';
 import { initKnowledge, onKnowledgeTabVisit } from './knowledge.js';
 import { initChat } from './chat.js';
@@ -15,6 +16,7 @@ import { initReports, loadReportData } from './reports.js';
 import { initIframes, loadIframe } from './iframes.js';
 import { initBlockEditor, openBlockEditor, closeBlockEditor, isEditorModalOpen } from './block-editor.js';
 import { initEmail } from './email.js';
+import { initNoteAi } from './note-ai.js';
 
 // ---- State Management ----------------------------------------
 
@@ -688,7 +690,7 @@ function closeSearch() {
 }
 
 function renderSearchHint() {
-  return '<div class="search-hint">Type to search tasks, notes, documents, and clients...</div>';
+  return '<div class="search-hint">Type to search projects, notes, documents, and clients...</div>';
 }
 
 function performSearch(query, container) {
@@ -700,17 +702,18 @@ function performSearch(query, container) {
   const lowerQ = query.toLowerCase();
   const results = [];
 
-  // Search tasks
-  const tasks = state.tasks?.tasks || [];
-  tasks.forEach(task => {
-    if (matchesQuery(task.title, lowerQ) || matchesQuery(task.description, lowerQ)) {
+  // Search projects (from project-store)
+  const { projects } = getProjects();
+  projects.forEach(project => {
+    if (matchesQuery(project.name, lowerQ) || matchesQuery(project.description, lowerQ)) {
+      const statusLabel = { todo: 'To Do', progress: 'In Progress', done: 'Done' }[project.status] || project.status;
       results.push({
-        type: 'task',
-        icon: priorityIcon(task.priority),
-        title: task.title,
-        subtitle: `${task.status} ${task.due ? '· Due ' + formatDate(task.due) : ''}`,
+        type: 'project',
+        icon: 'project',
+        title: project.name,
+        subtitle: statusLabel,
         tab: 'projects',
-        id: task.id
+        id: project.id
       });
     }
   });
@@ -803,6 +806,7 @@ function searchIcon(type) {
     notion: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>',
     note: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
     client: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    project: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
   };
   return icons[type] || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/></svg>';
 }
@@ -934,11 +938,11 @@ function initKeyboardShortcuts() {
       return;
     }
 
-    // N: new task (when on projects tab)
+    // N: new project (when on projects tab)
     if (e.key === 'n' || e.key === 'N') {
       if (state.ui.activeTab === 'projects') {
         e.preventDefault();
-        openModal('taskModal');
+        openModal('projectModal');
       }
     }
   });
@@ -1035,6 +1039,7 @@ async function init() {
   initReports();
   initIframes();
   initBlockEditor();
+  initNoteAi();
   initEmail();
 
   // FAB button to open block editor
