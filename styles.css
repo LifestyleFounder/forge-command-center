@@ -468,6 +468,31 @@ input, textarea, select {
   opacity: 1;
 }
 
+/* Drag-and-drop reordering */
+.nav-list li[draggable="true"] {
+  cursor: grab;
+}
+
+.nav-list li[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.nav-list li.nav-dragging {
+  opacity: 0.4;
+}
+
+.nav-touch-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.85;
+  background-color: var(--bg-sidebar);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  list-style: none;
+  padding: 0;
+}
+
 .nav-badge {
   margin-left: auto;
   background-color: var(--color-gold);

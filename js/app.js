@@ -315,6 +315,238 @@ function initRouter() {
       }
     });
   }
+
+  // Drag-and-drop tab reordering
+  initNavDragDrop(navList);
+}
+
+// ---- Nav Drag & Drop ----------------------------------------
+
+const NAV_ORDER_KEY = 'forge-nav-order';
+
+function initNavDragDrop(navList) {
+  if (!navList) return;
+
+  // Restore saved order
+  restoreNavOrder(navList);
+
+  let dragItem = null;
+  let dragGhost = null;
+
+  navList.addEventListener('dragstart', (e) => {
+    const li = e.target.closest('li');
+    if (!li || li.classList.contains('nav-separator')) return;
+    dragItem = li;
+    li.classList.add('nav-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+
+    // Create a minimal ghost
+    dragGhost = li.cloneNode(true);
+    dragGhost.style.position = 'absolute';
+    dragGhost.style.top = '-9999px';
+    document.body.appendChild(dragGhost);
+    e.dataTransfer.setDragImage(dragGhost, 0, 0);
+  });
+
+  navList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragItem) return;
+
+    const target = getDragTarget(e, navList);
+    if (!target || target === dragItem || target.classList.contains('nav-separator')) return;
+
+    const rect = target.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+
+    if (e.clientY < midY) {
+      navList.insertBefore(dragItem, target);
+    } else {
+      navList.insertBefore(dragItem, target.nextSibling);
+    }
+  });
+
+  navList.addEventListener('dragend', () => {
+    if (dragItem) {
+      dragItem.classList.remove('nav-dragging');
+      dragItem = null;
+    }
+    if (dragGhost) {
+      dragGhost.remove();
+      dragGhost = null;
+    }
+    // Remove any lingering drop indicators
+    $$('.nav-drag-over', navList).forEach(el => el.classList.remove('nav-drag-over'));
+    saveNavOrder(navList);
+  });
+
+  navList.addEventListener('drop', (e) => {
+    e.preventDefault();
+  });
+
+  // Make each <li> (except separators) draggable
+  $$('li', navList).forEach(li => {
+    if (li.classList.contains('nav-separator')) return;
+    li.setAttribute('draggable', 'true');
+  });
+
+  // Touch support for mobile drag-and-drop
+  initNavTouchDrag(navList);
+}
+
+function getDragTarget(e, navList) {
+  const items = $$('li', navList);
+  for (const item of items) {
+    if (item.classList.contains('nav-separator')) continue;
+    const rect = item.getBoundingClientRect();
+    if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      return item;
+    }
+  }
+  return null;
+}
+
+function saveNavOrder(navList) {
+  const order = [];
+  $$('li', navList).forEach(li => {
+    if (li.classList.contains('nav-separator')) {
+      order.push('__separator__');
+    } else {
+      const btn = li.querySelector('.nav-item[data-tab]');
+      if (btn) order.push(btn.dataset.tab);
+    }
+  });
+  localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(order));
+}
+
+function restoreNavOrder(navList) {
+  const saved = localStorage.getItem(NAV_ORDER_KEY);
+  if (!saved) return;
+
+  try {
+    const order = JSON.parse(saved);
+    if (!Array.isArray(order) || order.length === 0) return;
+
+    // Build a map of tab -> <li> element
+    const itemMap = new Map();
+    const separators = [];
+    $$('li', navList).forEach(li => {
+      if (li.classList.contains('nav-separator')) {
+        separators.push(li);
+      } else {
+        const btn = li.querySelector('.nav-item[data-tab]');
+        if (btn) itemMap.set(btn.dataset.tab, li);
+      }
+    });
+
+    let sepIdx = 0;
+    const fragment = document.createDocumentFragment();
+
+    order.forEach(key => {
+      if (key === '__separator__') {
+        if (sepIdx < separators.length) {
+          fragment.appendChild(separators[sepIdx++]);
+        }
+      } else if (itemMap.has(key)) {
+        fragment.appendChild(itemMap.get(key));
+        itemMap.delete(key);
+      }
+    });
+
+    // Append any remaining items not in saved order (new tabs)
+    itemMap.forEach(li => fragment.appendChild(li));
+
+    navList.appendChild(fragment);
+  } catch { /* ignore corrupted data */ }
+}
+
+// Touch drag for mobile (HTML5 drag events don't fire on touch)
+function initNavTouchDrag(navList) {
+  let touchItem = null;
+  let touchStartY = 0;
+  let touchClone = null;
+
+  navList.addEventListener('touchstart', (e) => {
+    const li = e.target.closest('li');
+    if (!li || li.classList.contains('nav-separator')) return;
+
+    // Long-press detection — start drag after 300ms hold
+    const touch = e.touches[0];
+    touchStartY = touch.clientY;
+    li._touchTimer = setTimeout(() => {
+      touchItem = li;
+      li.classList.add('nav-dragging');
+
+      // Create floating clone
+      touchClone = li.cloneNode(true);
+      touchClone.classList.add('nav-touch-ghost');
+      const rect = li.getBoundingClientRect();
+      touchClone.style.width = rect.width + 'px';
+      document.body.appendChild(touchClone);
+      positionTouchGhost(touchClone, touch.clientX, touch.clientY);
+    }, 300);
+  }, { passive: true });
+
+  navList.addEventListener('touchmove', (e) => {
+    const li = e.target.closest('li');
+    if (li && li._touchTimer && Math.abs(e.touches[0].clientY - touchStartY) > 10) {
+      clearTimeout(li._touchTimer);
+      li._touchTimer = null;
+    }
+
+    if (!touchItem) return;
+    e.preventDefault();
+
+    const touch = e.touches[0];
+    if (touchClone) positionTouchGhost(touchClone, touch.clientX, touch.clientY);
+
+    const target = getTouchTarget(touch.clientY, navList);
+    if (!target || target === touchItem || target.classList.contains('nav-separator')) return;
+
+    const rect = target.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    if (touch.clientY < midY) {
+      navList.insertBefore(touchItem, target);
+    } else {
+      navList.insertBefore(touchItem, target.nextSibling);
+    }
+  }, { passive: false });
+
+  const endTouch = (e) => {
+    const li = e.target.closest('li');
+    if (li && li._touchTimer) {
+      clearTimeout(li._touchTimer);
+      li._touchTimer = null;
+    }
+    if (touchItem) {
+      touchItem.classList.remove('nav-dragging');
+      touchItem = null;
+      saveNavOrder(navList);
+    }
+    if (touchClone) {
+      touchClone.remove();
+      touchClone = null;
+    }
+  };
+
+  navList.addEventListener('touchend', endTouch);
+  navList.addEventListener('touchcancel', endTouch);
+}
+
+function positionTouchGhost(ghost, x, y) {
+  ghost.style.left = (x + 8) + 'px';
+  ghost.style.top = (y - 16) + 'px';
+}
+
+function getTouchTarget(clientY, navList) {
+  const items = $$('li', navList);
+  for (const item of items) {
+    if (item.classList.contains('nav-separator') || item.classList.contains('nav-dragging')) continue;
+    const rect = item.getBoundingClientRect();
+    if (clientY >= rect.top && clientY <= rect.bottom) return item;
+  }
+  return null;
 }
 
 function switchSubtab(tabGroup, subtabName) {
