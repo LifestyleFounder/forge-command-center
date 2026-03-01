@@ -11,6 +11,9 @@ import {
 let activeSubtab = 'reports-schedules';
 let schedulesData = null;
 let docsIndexData = null;
+let funnelData = null;
+let funnelDays = 30;
+let funnelChartInstance = null;
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initReports() {
@@ -42,6 +45,7 @@ function renderReports() {
       <button class="subtab ${activeSubtab === 'reports-activity' ? 'is-active' : ''}" data-report-tab="reports-activity" role="tab">Activity</button>
       <button class="subtab ${activeSubtab === 'reports-docs' ? 'is-active' : ''}" data-report-tab="reports-docs" role="tab">Documents</button>
       <button class="subtab ${activeSubtab === 'reports-memory' ? 'is-active' : ''}" data-report-tab="reports-memory" role="tab">Memory</button>
+      <button class="subtab ${activeSubtab === 'reports-funnels' ? 'is-active' : ''}" data-report-tab="reports-funnels" role="tab">Funnels</button>
     </div>
     <div class="report-panel">
       ${renderActiveReport()}
@@ -55,6 +59,7 @@ function renderActiveReport() {
     case 'reports-activity': return renderActivity();
     case 'reports-docs': return renderDocsIndex();
     case 'reports-memory': return renderMemory();
+    case 'reports-funnels': return renderFunnels();
     default: return '';
   }
 }
@@ -214,6 +219,116 @@ function renderMemory() {
   `;
 }
 
+// ── Funnels ─────────────────────────────────────────────────────────
+function renderFunnels() {
+  const s = funnelData?.summary;
+  const loading = !funnelData;
+
+  return `
+    <div class="funnel-range-btns" style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+      <button class="btn btn-sm ${funnelDays === 7 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="7">7d</button>
+      <button class="btn btn-sm ${funnelDays === 30 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="30">30d</button>
+      <button class="btn btn-sm ${funnelDays === 90 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="90">90d</button>
+    </div>
+    <div class="funnel-summary-row">
+      <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
+        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">Page Views</div>
+        <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : formatNumber(s.views)}</div>
+      </div>
+      <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
+        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">Form Submissions</div>
+        <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : formatNumber(s.submissions)}</div>
+      </div>
+      <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
+        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">Conversion Rate</div>
+        <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : s.conversionRate + '%'}</div>
+      </div>
+    </div>
+    <div class="meta-chart-card">
+      <h3>Daily Views &amp; Submissions</h3>
+      <canvas id="funnelChart"></canvas>
+    </div>
+    ${funnelData?.lastUpdated ? `<div class="text-xs text-tertiary" style="margin-top:var(--space-4)">Last updated: ${formatRelativeTime(funnelData.lastUpdated)}</div>` : ''}
+  `;
+}
+
+async function loadFunnelStats(days) {
+  funnelDays = days || funnelDays;
+  try {
+    const res = await fetch(`/api/funnel-stats?days=${funnelDays}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    funnelData = await res.json();
+  } catch (err) {
+    console.warn('[reports] Failed to load funnel stats', err);
+    funnelData = null;
+  }
+  renderReports();
+  // Render chart after DOM update
+  requestAnimationFrame(() => renderFunnelChart());
+}
+
+function renderFunnelChart() {
+  if (typeof Chart === 'undefined' || !funnelData?.daily?.length) return;
+
+  const canvas = document.getElementById('funnelChart');
+  if (!canvas) return;
+
+  if (funnelChartInstance) funnelChartInstance.destroy();
+
+  const labels = funnelData.daily.map(d =>
+    new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  );
+  const viewsData = funnelData.daily.map(d => d.views);
+  const subsData = funnelData.daily.map(d => d.submissions);
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const lineColor = isDark ? '#C8A24A' : '#2d5016';
+  const fillColor = isDark ? 'rgba(200,162,74,0.15)' : 'rgba(45,80,22,0.15)';
+  const barColor = isDark ? 'rgba(200,162,74,0.8)' : 'rgba(193,154,72,0.8)';
+  const textColor = isDark ? '#9CA3AF' : '#6B7280';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  funnelChartInstance = new Chart(canvas, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'line',
+          label: 'Page Views',
+          data: viewsData,
+          borderColor: lineColor,
+          backgroundColor: fillColor,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: lineColor,
+          order: 1,
+        },
+        {
+          type: 'bar',
+          label: 'Submissions',
+          data: subsData,
+          backgroundColor: barColor,
+          borderRadius: 4,
+          barPercentage: 0.4,
+          order: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: textColor, boxWidth: 12 } },
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } },
+        x: { ticks: { color: textColor, maxRotation: 45 }, grid: { display: false } },
+      },
+    },
+  });
+}
+
 // ── Events ──────────────────────────────────────────────────────────
 function bindReportEvents() {
   const container = $('#reportsContainer');
@@ -224,6 +339,16 @@ function bindReportEvents() {
     if (tab) {
       activeSubtab = tab.dataset.reportTab;
       renderReports();
+      if (activeSubtab === 'reports-funnels' && !funnelData) {
+        loadFunnelStats(funnelDays);
+      } else if (activeSubtab === 'reports-funnels') {
+        requestAnimationFrame(() => renderFunnelChart());
+      }
+    }
+
+    const daysBtn = e.target.closest('[data-funnel-days]');
+    if (daysBtn) {
+      loadFunnelStats(parseInt(daysBtn.dataset.funnelDays));
     }
   });
 

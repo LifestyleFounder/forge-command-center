@@ -6299,3 +6299,17 @@ a:focus:not(:focus-visible) {
 .hook-source-link:hover {
   text-decoration: underline;
 }
+
+/* ---- Funnels Report ----------------------------------------- */
+.funnel-summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+@media (max-width: 640px) {
+  .funnel-summary-row {
+    grid-template-columns: 1fr;
+  }
+}
