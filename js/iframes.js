@@ -5,7 +5,7 @@ import { $, subscribe } from './app.js';
 
 const IFRAMES = {
   'performance-tracker': {
-    url: 'https://lovable.dev/projects/lfg-performance',
+    url: 'https://lfgperformancetracker.lovable.app/auth',
     title: 'Performance Tracker',
   },
   'content-multiplier': {
