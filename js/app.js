@@ -14,6 +14,7 @@ import { initGoogleTasks, loadGoogleTaskData } from './google-tasks.js';
 import { initReports, loadReportData } from './reports.js';
 import { initIframes, loadIframe } from './iframes.js';
 import { initBlockEditor, openBlockEditor, closeBlockEditor, isEditorModalOpen } from './block-editor.js';
+import { initEmail } from './email.js';
 
 // ---- State Management ----------------------------------------
 
@@ -28,6 +29,7 @@ const state = {
   instagram: null,
   metaAds: null,
   adSwipes: null,
+  emails: null,
   documents: null,
   notes: null,
   vipClients: null,
@@ -208,6 +210,7 @@ const TAB_LABELS = {
   content: 'Content',
   knowledge: 'Workspace',
   chat: 'Chat',
+  email: 'Email',
   'vip-clients': 'VIP Clients',
   competitors: 'Competitors',
   'meta-ads': 'Meta Ads',
@@ -800,6 +803,7 @@ async function init() {
   initReports();
   initIframes();
   initBlockEditor();
+  initEmail();
 
   // FAB button to open block editor
   const blockEditorFab = document.getElementById('blockEditorFab');

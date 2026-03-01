@@ -74,6 +74,10 @@
             <span>Chat</span>
             <span class="nav-badge" id="chatBadge" hidden>0</span>
           </button></li>
+          <li><button class="nav-item" id="nav-email" role="tab" aria-selected="false" aria-controls="tab-email" data-tab="email">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>Email</span>
+          </button></li>
           <li class="nav-separator" aria-hidden="true"></li>
           <li><button class="nav-item" id="nav-vip-clients" role="tab" aria-selected="false" aria-controls="tab-vip-clients" data-tab="vip-clients">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -393,26 +397,87 @@
 
         <!-- CHAT TAB -->
         <section class="tab-panel" id="tab-chat" role="tabpanel" aria-labelledby="nav-chat" hidden>
-          <div class="chat-layout">
-            <div class="chat-threads" id="chatThreads">
-              <div class="threads-header"><h2>Threads</h2><button class="btn btn-primary btn-sm" id="newThreadBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button></div>
-              <div class="threads-list" id="threadsList"></div>
+          <div class="chat-layout" data-chat-state="landing">
+
+            <!-- Thread toggle (top-left) -->
+            <button class="chat-thread-toggle" id="chatThreadToggle" aria-label="Toggle threads">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+
+            <!-- LANDING VIEW -->
+            <div class="chat-landing" id="chatLanding">
+              <div class="chat-landing-inner">
+                <div class="chat-greeting-icon">&#10024;</div>
+                <h1 class="chat-greeting">Hey there, Dan</h1>
+                <div class="chat-input-container">
+                  <div class="chat-input-wrap">
+                    <textarea id="chatInputLanding" class="chat-input" placeholder="Ask anything..." rows="1" aria-label="Chat message"></textarea>
+                    <div class="chat-input-actions">
+                      <button class="chat-agent-selector" id="agentSelectorLanding" aria-label="Select agent" title="Switch agent">
+                        <span class="agent-selector-emoji">🎯</span>
+                        <span class="agent-selector-name">Geeves</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <button class="btn btn-primary btn-icon chat-send-btn" id="chatSendLanding" aria-label="Send message">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="chat-agent-dropdown" id="agentDropdown" hidden></div>
+                </div>
+                <div class="chat-chips" id="chatChips">
+                  <button class="chat-chip" data-chip="write"><span class="chip-icon">&#9997;&#65039;</span> Write</button>
+                  <button class="chat-chip" data-chip="strategize"><span class="chip-icon">&#9889;</span> Strategize</button>
+                  <button class="chat-chip" data-chip="analyze"><span class="chip-icon">&#128202;</span> Analyze</button>
+                  <button class="chat-chip" data-chip="coach"><span class="chip-icon">&#129504;</span> Coach Me</button>
+                  <button class="chat-chip" data-chip="close"><span class="chip-icon">&#127919;</span> Close a Sale</button>
+                </div>
+              </div>
             </div>
-            <div class="chat-main">
-              <div class="agent-bar" id="agentBar" role="tablist" aria-label="Select agent"></div>
-              <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"><div class="empty-state"><p>Start a conversation</p><p class="text-secondary">Select an agent and type a message below</p></div></div>
+
+            <!-- CONVERSATION VIEW -->
+            <div class="chat-conversation" id="chatConversation">
+              <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
               <div class="chat-input-area">
-                <div class="mention-dropdown" id="mentionDropdown" role="listbox" hidden></div>
-                <div class="chat-input-wrap">
-                  <textarea id="chatInput" class="chat-input" placeholder="Message Geeves... (@ to mention)" rows="1" aria-label="Chat message"></textarea>
-                  <button class="btn btn-primary btn-icon" id="chatSendBtn" aria-label="Send message">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  </button>
+                <div class="chat-input-container">
+                  <div class="chat-input-wrap">
+                    <textarea id="chatInputConvo" class="chat-input" placeholder="Ask anything..." rows="1" aria-label="Chat message"></textarea>
+                    <div class="chat-input-actions">
+                      <button class="chat-agent-selector" id="agentSelectorConvo" aria-label="Select agent" title="Switch agent">
+                        <span class="agent-selector-emoji">🎯</span>
+                        <span class="agent-selector-name">Geeves</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <button class="btn btn-primary btn-icon chat-send-btn" id="chatSendConvo" aria-label="Send message">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="chat-agent-dropdown" id="agentDropdownConvo" hidden></div>
                 </div>
                 <div class="chat-input-hint"><span>Enter to send · Shift+Enter for new line</span></div>
               </div>
             </div>
+
+            <!-- THREAD DRAWER (slides from left) -->
+            <div class="chat-thread-drawer" id="chatThreadDrawer">
+              <div class="thread-drawer-header">
+                <h2>Threads</h2>
+                <button class="btn btn-primary btn-sm" id="newThreadBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New
+                </button>
+              </div>
+              <div class="thread-drawer-list" id="threadsList"></div>
+            </div>
+            <div class="chat-drawer-overlay" id="chatDrawerOverlay"></div>
+
           </div>
+        </section>
+
+        <!-- EMAIL TAB -->
+        <section class="tab-panel" id="tab-email" role="tabpanel" aria-labelledby="nav-email" hidden>
+          <div id="emailContainer"></div>
         </section>
 
         <!-- VIP CLIENTS TAB -->
