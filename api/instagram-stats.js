@@ -3,7 +3,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const DAN_USERNAME = 'iamdanharrison';
+const DAN_USERNAME = 'thedanharrison';
 
 const sbHeaders = {
   'apikey': SUPABASE_KEY,

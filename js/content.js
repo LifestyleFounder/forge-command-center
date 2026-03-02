@@ -213,7 +213,7 @@ async function refreshYouTube() {
 // ═══════════════════════════════════════════════════════════════════════
 //  INSTAGRAM — My Growth
 // ═══════════════════════════════════════════════════════════════════════
-const DAN_IG_USERNAME = 'iamdanharrison';
+const DAN_IG_USERNAME = 'thedanharrison';
 
 async function loadMyInstagramData() {
   try {
@@ -338,7 +338,7 @@ function renderFollowerChart(snapshots) {
 
 async function refreshMyInstagram() {
   try {
-    showToast('Scraping @iamdanharrison...');
+    showToast('Scraping @thedanharrison...');
     const res = await fetch(`/api/scrape-creators?username=${DAN_IG_USERNAME}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
