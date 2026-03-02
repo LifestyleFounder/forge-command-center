@@ -721,7 +721,7 @@ function getAgentKnowledge(agentId) {
 
 async function callLLM(messages, agent) {
   const proxyUrl = localStorage.getItem(PROXY_KEY) || DEFAULT_PROXY;
-  const model = agent?.defaultModel || 'claude-sonnet-4-20250514';
+  const model = agent?.defaultModel || 'claude-opus-4-6';
 
   let systemPrompt = agent?.systemPrompt || 'You are a helpful assistant for Dan Harrison, founder of Lifestyle Founders Group. Be direct, concise, and actionable.';
 
