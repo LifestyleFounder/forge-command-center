@@ -2229,6 +2229,9 @@ textarea.form-input {
 }
 
 .ig-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

@@ -108,8 +108,47 @@ async function scrapeCreator(username) {
   }
   const creator = rows[0];
 
-  // 2. Call Apify Instagram Scraper (synchronous — waits for results)
   const apifyUrl = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
+
+  // 2a. Fetch profile details (followers, bio, etc.) — separate call because
+  //     resultsType: 'posts' never includes profile-level stats
+  let profileDetails = {};
+  try {
+    const detailsRes = await fetch(apifyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        directUrls: [`https://www.instagram.com/${username}/`],
+        resultsType: 'details',
+        resultsLimit: 1,
+      }),
+    });
+    if (detailsRes.ok) {
+      const detailsItems = await detailsRes.json();
+      if (detailsItems.length > 0) {
+        profileDetails = detailsItems[0];
+      }
+    } else {
+      console.warn('[scrape-creators] Apify details call failed:', detailsRes.status);
+    }
+  } catch (e) {
+    console.warn('[scrape-creators] Apify details call error:', e.message);
+  }
+
+  // 2b. Update creator profile_pic_url and bio if we got details
+  if (profileDetails.profilePicUrl || profileDetails.biography) {
+    try {
+      const updates = {};
+      if (profileDetails.profilePicUrl) updates.profile_pic_url = profileDetails.profilePicUrl;
+      if (profileDetails.biography) updates.bio = profileDetails.biography.substring(0, 500);
+      if (profileDetails.fullName) updates.full_name = profileDetails.fullName;
+      await sbPatch('ig_creators', `id=eq.${creator.id}`, updates);
+    } catch (e) {
+      console.warn('[scrape-creators] Could not update creator profile:', e.message);
+    }
+  }
+
+  // 3. Fetch recent posts
   const apifyRes = await fetch(apifyUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -128,7 +167,7 @@ async function scrapeCreator(username) {
 
   const items = await apifyRes.json();
 
-  // 3. Map Apify fields → ig_posts columns
+  // 4. Map Apify fields → ig_posts columns
   const now = new Date().toISOString();
   const posts = [];
   for (const d of items) {
@@ -148,26 +187,25 @@ async function scrapeCreator(username) {
     });
   }
 
-  // 4. Upsert posts into ig_posts (dedup on shortcode)
+  // 5. Upsert posts into ig_posts (dedup on shortcode)
   let upsertedCount = 0;
   if (posts.length > 0) {
     const result = await sbUpsert('ig_posts', 'shortcode', posts);
     upsertedCount = result.length;
   }
 
-  // 5. Compute snapshot stats from scraped posts
+  // 6. Compute snapshot stats from scraped posts
   const totalLikes = posts.reduce((s, p) => s + p.likes, 0);
   const totalComments = posts.reduce((s, p) => s + p.comments, 0);
   const avgLikes = posts.length ? Math.round(totalLikes / posts.length) : 0;
   const avgComments = posts.length ? Math.round(totalComments / posts.length) : 0;
 
-  // Extract profile-level data if Apify returned it
-  const profileData = items.find(i => i.followersCount != null) || {};
-  let followers = profileData.followersCount || 0;
-  let following = profileData.followsCount || 0;
-  let postsCount = profileData.postsCount || posts.length;
+  // Use real profile-level data from the details call
+  let followers = profileDetails.followersCount || 0;
+  let following = profileDetails.followsCount || 0;
+  let postsCount = profileDetails.postsCount || posts.length;
 
-  // If Apify didn't return follower data, carry forward from previous snapshot
+  // If details call failed, carry forward from previous snapshot
   if (!followers) {
     try {
       const prevSnapshots = await sbGet(
@@ -178,7 +216,7 @@ async function scrapeCreator(username) {
         const prev = prevSnapshots[0];
         followers = prev.followers || 0;
         following = prev.following || 0;
-        if (!profileData.postsCount) postsCount = prev.posts_count || posts.length;
+        if (!postsCount) postsCount = prev.posts_count || posts.length;
       }
     } catch (e) {
       console.warn('[scrape-creators] Could not fetch previous snapshot:', e.message);
@@ -189,7 +227,7 @@ async function scrapeCreator(username) {
     ? Number(((avgLikes + avgComments) / followers * 100).toFixed(2))
     : 0;
 
-  // 6. Insert creator snapshot
+  // 7. Insert creator snapshot
   await sbPost('ig_creator_snapshots', {
     creator_id: creator.id,
     followers,

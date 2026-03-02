@@ -273,16 +273,24 @@ function renderMyInstagram() {
     return;
   }
 
-  grid.innerHTML = posts.map(p => `
-    <div class="ig-card">
-      ${p.thumbnail_url ? `<img class="ig-card-img" src="${escapeHtml(p.thumbnail_url)}" alt="" loading="lazy">` : '<div class="ig-card-placeholder"></div>'}
+  // Build fresh image URLs from shortcode (CDN thumbnails expire within hours)
+  const IMG_PROXY = 'https://anthropic-proxy.dan-a14.workers.dev/img-proxy';
+  grid.innerHTML = posts.map(p => {
+    const imgUrl = p.shortcode
+      ? `${IMG_PROXY}?url=${encodeURIComponent(`https://www.instagram.com/p/${p.shortcode}/media/?size=l`)}`
+      : '';
+    const postLink = p.post_url || (p.shortcode ? `https://instagram.com/p/${p.shortcode}` : '');
+    return `
+    <a class="ig-card" href="${escapeHtml(postLink)}" target="_blank" rel="noopener noreferrer" ${!postLink ? 'style="pointer-events:none"' : ''}>
+      ${imgUrl ? `<img class="ig-card-img" src="${escapeHtml(imgUrl)}" alt="" loading="lazy">` : '<div class="ig-card-placeholder"></div>'}
       <div class="ig-card-meta">
         <span>${formatNumber(p.likes || 0)} likes</span>
         <span>${formatNumber(p.comments || 0)} comments</span>
         <span>${p.post_type || 'post'}</span>
       </div>
-    </div>
-  `).join('');
+    </a>
+  `;
+  }).join('');
 }
 
 function renderFollowerChart(snapshots) {
