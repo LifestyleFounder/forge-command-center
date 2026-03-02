@@ -3295,6 +3295,22 @@ body.block-editor-open {
   border-radius: var(--radius-sm);
 }
 
+.be-delete-btn {
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-light);
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.be-delete-btn:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
 /* Sync status */
 .be-sync-status {
   font-size: var(--text-xs);
@@ -5605,6 +5621,10 @@ body.block-editor-open .block-editor-fab {
 
   .ws-doc-grid {
     grid-template-columns: 1fr;
+  }
+
+  .ws-doc-delete {
+    opacity: 1;
   }
 
   /* Workspace actions — wrap on mobile */

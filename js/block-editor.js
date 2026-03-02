@@ -904,6 +904,25 @@ function bindModalEvents() {
       await triggerNotionBackup();
     });
   }
+
+  // Delete button — deletes current note
+  const deleteBtn = $('#beDeleteBtn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
+      if (!currentDocId) {
+        // New unsaved note — just close
+        closeBlockEditor();
+        return;
+      }
+      if (!confirm('Delete this note?')) return;
+      let docs = getWorkspaceDocs();
+      docs = docs.filter(d => d.id !== currentDocId);
+      saveWorkspaceDocs(docs);
+      showToast('Note deleted');
+      isDirty = false;
+      closeBlockEditor();
+    });
+  }
 }
 
 // ── Image Insert ──────────────────────────────────────────
