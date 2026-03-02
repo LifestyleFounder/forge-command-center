@@ -229,17 +229,20 @@
         <section class="tab-panel" id="tab-content" role="tabpanel" aria-labelledby="nav-content" hidden>
           <div class="section-header"><h1>Content</h1></div>
           <div class="subtabs" id="contentSubtabs" role="tablist">
-            <button class="subtab is-active" data-subtab="content-overview" role="tab" aria-selected="true">Overview</button>
+            <button class="subtab is-active" data-subtab="content-overview" role="tab" aria-selected="true">Weekly Gameplan</button>
             <button class="subtab" data-subtab="content-youtube" role="tab" aria-selected="false">YouTube</button>
             <button class="subtab" data-subtab="content-instagram" role="tab" aria-selected="false">Instagram</button>
           </div>
-          <!-- Overview -->
+          <!-- Weekly Gameplan -->
           <div class="subtab-panel is-active" id="content-overview" role="tabpanel">
-            <div class="content-grid">
-              <div class="card"><div class="card-header"><h2>Trend Radar</h2></div><div class="card-body"><div class="trend-group"><h3>Hot Now</h3><div class="tags" id="hotTrends"></div></div><div class="trend-group"><h3>Rising</h3><div class="tags tags-muted" id="risingTrends"></div></div></div></div>
-              <div class="card"><div class="card-header"><h2>Outlier Communities</h2></div><div class="card-body"><div class="outlier-list" id="outlierList"></div></div></div>
-              <div class="card card-full"><div class="card-header"><h2>YouTube Ideas</h2></div><div class="card-body"><div class="ideas-grid" id="youtubeIdeas"></div></div></div>
-              <div class="card card-full"><div class="card-header"><h2>Instagram Ideas</h2></div><div class="card-body"><div class="ideas-grid" id="instagramIdeas"></div></div></div>
+            <div class="card">
+              <div class="card-header">
+                <h2 id="gameplanWeekLabel">Weekly Gameplan</h2>
+                <div class="card-actions"><button class="btn btn-primary btn-sm" id="refreshGameplanBtn">Refresh</button></div>
+              </div>
+              <div class="card-body" id="gameplanContent">
+                <div class="empty-state"><p>Loading gameplan...</p></div>
+              </div>
             </div>
           </div>
           <!-- YouTube -->
@@ -250,23 +253,32 @@
               <div class="stat-card"><span class="stat-label">Videos</span><span class="stat-value" id="ytVideos">--</span></div>
               <div class="stat-card"><span class="stat-label">Avg Views</span><span class="stat-value" id="ytAvgViews">--</span></div>
             </div>
-            <div class="card"><div class="card-header"><h2>Recent Videos</h2><div class="card-actions"><button class="btn btn-primary btn-sm" id="ytRefreshBtn">Refresh</button><button class="btn btn-ghost btn-sm" id="ytConfigBtn">Configure</button></div></div><div class="card-body"><div class="video-list" id="ytVideoList"><div class="empty-state"><p>Connect your YouTube API key to see analytics.</p></div></div></div></div>
+            <div class="card">
+              <div class="card-header">
+                <h2>Recent Videos</h2>
+                <div class="card-actions"><button class="btn btn-primary btn-sm" id="ytRefreshBtn">Refresh</button></div>
+              </div>
+              <div class="card-body"><div class="video-list" id="ytVideoList"><div class="empty-state"><p>Loading YouTube data...</p></div></div></div>
+            </div>
           </div>
           <!-- Instagram -->
           <div class="subtab-panel" id="content-instagram" role="tabpanel" hidden>
-            <div class="subtabs subtabs-sm" id="igSubtabs" role="tablist">
-              <button class="subtab is-active" data-subtab="ig-feed" role="tab" aria-selected="true">Feed</button>
-              <button class="subtab" data-subtab="ig-creators" role="tab" aria-selected="false">Creators</button>
-              <button class="subtab" data-subtab="ig-top" role="tab" aria-selected="false">Top Posts</button>
+            <div class="stats-row" id="igStatsRow">
+              <div class="stat-card"><span class="stat-label">Followers</span><span class="stat-value" id="igFollowers">--</span></div>
+              <div class="stat-card"><span class="stat-label">Eng. Rate</span><span class="stat-value" id="igEngRate">--</span></div>
+              <div class="stat-card"><span class="stat-label">Avg Likes</span><span class="stat-value" id="igAvgLikes">--</span></div>
+              <div class="stat-card"><span class="stat-label">Posts</span><span class="stat-value" id="igPostCount">--</span></div>
             </div>
-            <div class="section-actions"><button class="btn btn-primary btn-sm" id="addCreatorBtn">Add Creator</button></div>
-            <div class="subtab-panel is-active" id="ig-feed" role="tabpanel"><div class="ig-grid" id="igFeedGrid"><div class="empty-state"><p>Add creators and run the scraper to see posts here.</p></div></div></div>
-            <div class="subtab-panel" id="ig-creators" role="tabpanel" hidden>
-              <div class="table-wrap"><table class="data-table"><thead><tr><th>Creator</th><th>Followers</th><th>Following</th><th>Posts</th><th>Eng. Rate</th><th>Avg Likes</th><th>Last Scraped</th><th></th></tr></thead><tbody id="igCreatorsBody"><tr><td colspan="8" class="empty-cell">No creators tracked yet.</td></tr></tbody></table></div>
+            <div class="card">
+              <div class="card-header"><h2>Follower Trend</h2></div>
+              <div class="card-body"><div class="chart-container"><canvas id="igFollowerChart"></canvas></div></div>
             </div>
-            <div class="subtab-panel" id="ig-top" role="tabpanel" hidden>
-              <div class="filter-row"><select class="form-select" id="igTopCreatorFilter" aria-label="Filter by creator"><option value="">All Creators</option></select><select class="form-select" id="igTopSortBy" aria-label="Sort by"><option value="likes">Likes</option><option value="comments">Comments</option><option value="views">Views</option></select></div>
-              <div class="table-wrap"><table class="data-table"><thead><tr><th></th><th>Creator</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Views</th><th>Date</th></tr></thead><tbody id="igTopPostsBody"><tr><td colspan="8" class="empty-cell">No posts yet.</td></tr></tbody></table></div>
+            <div class="card" style="margin-top: var(--space-4);">
+              <div class="card-header">
+                <h2>Recent Posts</h2>
+                <div class="card-actions"><button class="btn btn-primary btn-sm" id="igMyRefreshBtn">Refresh</button></div>
+              </div>
+              <div class="card-body"><div class="ig-grid" id="igMyPostsGrid"><div class="empty-state"><p>Loading Instagram data...</p></div></div></div>
             </div>
           </div>
         </section>

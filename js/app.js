@@ -6,7 +6,7 @@
 import { initHome } from './home.js';
 import { initProjects } from './projects.js';
 import { getProjects } from './project-store.js';
-import { initContent, loadMetaAdsData } from './content.js';
+import { initContent, loadContentData, loadMetaAdsData } from './content.js';
 import { initKnowledge, onKnowledgeTabVisit } from './knowledge.js';
 import { initChat } from './chat.js';
 import { initVipClients } from './vip-clients.js';
@@ -248,6 +248,7 @@ function onTabFirstVisit(tabName) {
   if (tabLoaded.has(tabName)) return;
   tabLoaded.add(tabName);
   switch (tabName) {
+    case 'content': loadContentData(); break;
     case 'competitors': loadCompetitorData(); break;
     case 'meta-ads': loadMetaAdsData(); break;
     case 'google-tasks': loadGoogleTaskData(); break;

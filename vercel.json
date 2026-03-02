@@ -5,6 +5,15 @@
     },
     "api/analyze-posts.js": {
       "maxDuration": 60
+    },
+    "api/content-gameplan.js": {
+      "maxDuration": 60
+    },
+    "api/youtube-stats.js": {
+      "maxDuration": 30
+    },
+    "api/instagram-stats.js": {
+      "maxDuration": 15
     }
   }
 }
