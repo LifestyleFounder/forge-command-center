@@ -211,7 +211,7 @@ const TAB_LABELS = {
   projects: 'Projects',
   content: 'Content',
   knowledge: 'Workspace',
-  chat: 'Chat',
+  chat: 'Agents',
   email: 'Email',
   'vip-clients': 'VIP Clients',
   competitors: 'Competitors',

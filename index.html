@@ -71,7 +71,7 @@
           </button></li>
           <li><button class="nav-item" id="nav-chat" role="tab" aria-selected="false" aria-controls="tab-chat" data-tab="chat">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>Chat</span>
+            <span>Agents</span>
             <span class="nav-badge" id="chatBadge" hidden>0</span>
           </button></li>
           <li><button class="nav-item" id="nav-email" role="tab" aria-selected="false" aria-controls="tab-email" data-tab="email">
@@ -388,92 +388,106 @@
           </div>
         </section>
 
-        <!-- CHAT TAB -->
+        <!-- AGENTS TAB -->
         <section class="tab-panel" id="tab-chat" role="tabpanel" aria-labelledby="nav-chat" hidden>
           <div class="chat-layout" data-chat-state="landing">
 
-            <!-- Thread toggle (top-left) -->
-            <button class="chat-thread-toggle" id="chatThreadToggle" aria-label="Toggle threads">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            </button>
-
-            <!-- LANDING VIEW -->
-            <div class="chat-landing" id="chatLanding">
-              <div class="chat-landing-inner">
-                <div class="chat-greeting-icon">&#10024;</div>
-                <h1 class="chat-greeting">Hey there, Dan</h1>
-                <div class="chat-input-container">
-                  <div class="chat-file-preview" id="filePreviewLanding" hidden></div>
-                  <div class="chat-input-wrap">
-                    <button class="chat-attach-btn" id="attachBtnLanding" aria-label="Attach file" title="Attach file for context">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    </button>
-                    <textarea id="chatInputLanding" class="chat-input" placeholder="Ask anything..." rows="1" aria-label="Chat message"></textarea>
-                    <div class="chat-input-actions">
-                      <button class="chat-agent-selector" id="agentSelectorLanding" aria-label="Select agent" title="Switch agent">
-                        <span class="agent-selector-emoji">🎯</span>
-                        <span class="agent-selector-name">Geeves</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                      </button>
-                      <button class="btn btn-primary btn-icon chat-send-btn" id="chatSendLanding" aria-label="Send message">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                  <input type="file" id="fileInputLanding" class="chat-file-input" accept=".txt,.md,.csv,.json,.pdf,.doc,.docx,.png,.jpg,.jpeg" multiple hidden>
-                  <div class="chat-agent-dropdown" id="agentDropdown" hidden></div>
-                </div>
-                <div class="chat-chips" id="chatChips">
-                  <button class="chat-chip" data-chip="write"><span class="chip-icon">&#9997;&#65039;</span> Write</button>
-                  <button class="chat-chip" data-chip="strategize"><span class="chip-icon">&#9889;</span> Strategize</button>
-                  <button class="chat-chip" data-chip="analyze"><span class="chip-icon">&#128202;</span> Analyze</button>
-                  <button class="chat-chip" data-chip="coach"><span class="chip-icon">&#129504;</span> Coach Me</button>
-                  <button class="chat-chip" data-chip="close"><span class="chip-icon">&#127919;</span> Close a Sale</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- CONVERSATION VIEW -->
-            <div class="chat-conversation" id="chatConversation">
-              <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
-              <div class="chat-input-area">
-                <div class="chat-input-container">
-                  <div class="chat-file-preview" id="filePreviewConvo" hidden></div>
-                  <div class="chat-input-wrap">
-                    <button class="chat-attach-btn" id="attachBtnConvo" aria-label="Attach file" title="Attach file for context">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    </button>
-                    <textarea id="chatInputConvo" class="chat-input" placeholder="Ask anything..." rows="1" aria-label="Chat message"></textarea>
-                    <div class="chat-input-actions">
-                      <button class="chat-agent-selector" id="agentSelectorConvo" aria-label="Select agent" title="Switch agent">
-                        <span class="agent-selector-emoji">🎯</span>
-                        <span class="agent-selector-name">Geeves</span>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                      </button>
-                      <button class="btn btn-primary btn-icon chat-send-btn" id="chatSendConvo" aria-label="Send message">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                  <input type="file" id="fileInputConvo" class="chat-file-input" accept=".txt,.md,.csv,.json,.pdf,.doc,.docx,.png,.jpg,.jpeg" multiple hidden>
-                  <div class="chat-agent-dropdown" id="agentDropdownConvo" hidden></div>
-                </div>
-                <div class="chat-input-hint"><span>Enter to send · Shift+Enter for new line</span></div>
-              </div>
-            </div>
-
-            <!-- THREAD DRAWER (slides from left) -->
-            <div class="chat-thread-drawer" id="chatThreadDrawer">
-              <div class="thread-drawer-header">
-                <h2>Threads</h2>
-                <button class="btn btn-primary btn-sm" id="newThreadBtn">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  New
+            <!-- AGENTS PANEL (left sidebar) -->
+            <aside class="agents-panel is-open" id="agentsPanel">
+              <div class="agents-panel-header">
+                <h2>Agents</h2>
+                <button class="agents-panel-close" id="agentsPanelClose" aria-label="Close panel">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
-              <div class="thread-drawer-list" id="threadsList"></div>
+              <div class="agents-panel-body">
+                <div class="agents-section">
+                  <div class="agents-section-header">
+                    <svg class="section-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span class="agents-section-label">AGENTS</span>
+                    <span class="agents-count" id="agentsCount">0</span>
+                  </div>
+                  <div class="agents-list" id="agentsList"></div>
+                </div>
+                <div class="history-section">
+                  <div class="history-section-header">
+                    <svg class="section-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span class="history-section-label">HISTORY</span>
+                    <span class="history-dot"></span>
+                  </div>
+                  <div class="history-search-wrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="historySearch" class="history-search" placeholder="Search conversations...">
+                  </div>
+                  <div class="history-list" id="historyList"></div>
+                </div>
+              </div>
+            </aside>
+            <div class="agents-panel-overlay" id="agentsPanelOverlay"></div>
+
+            <!-- MAIN CHAT AREA -->
+            <div class="chat-main">
+              <div class="chat-topbar">
+                <button class="chat-panel-toggle" id="chatPanelToggle" aria-label="Toggle agents panel">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><line x1="14" y1="4" x2="21" y2="4"/><line x1="14" y1="9" x2="21" y2="9"/><line x1="14" y1="14" x2="18" y2="14"/></svg>
+                </button>
+                <div class="chat-topbar-agent">
+                  <span class="chat-topbar-emoji" id="chatTopbarEmoji">🎯</span>
+                  <div class="chat-topbar-info">
+                    <span class="chat-topbar-name" id="chatTopbarName">Geeves</span>
+                    <span class="chat-topbar-role" id="chatTopbarRole">How can I help?</span>
+                  </div>
+                </div>
+                <button class="btn btn-sm btn-outline" id="newChatBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New Chat
+                </button>
+              </div>
+
+              <div class="chat-body">
+                <!-- LANDING VIEW -->
+                <div class="chat-landing" id="chatLanding">
+                  <div class="chat-landing-inner">
+                    <div class="chat-greeting-icon">&#10024;</div>
+                    <h1 class="chat-greeting" id="chatGreeting">Welcome to Geeves</h1>
+                    <p class="chat-greeting-sub">How can I help?</p>
+                    <div class="chat-chips-label">TRY ASKING...</div>
+                    <div class="chat-chips" id="chatChips">
+                      <button class="chat-chip" data-chip="write"><span class="chip-icon">&#9997;&#65039;</span> Write</button>
+                      <button class="chat-chip" data-chip="strategize"><span class="chip-icon">&#9889;</span> Strategize</button>
+                      <button class="chat-chip" data-chip="analyze"><span class="chip-icon">&#128202;</span> Analyze</button>
+                      <button class="chat-chip" data-chip="coach"><span class="chip-icon">&#129504;</span> Coach Me</button>
+                      <button class="chat-chip" data-chip="close"><span class="chip-icon">&#127919;</span> Close a Sale</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CONVERSATION VIEW -->
+                <div class="chat-conversation" id="chatConversation">
+                  <div class="chat-messages" id="chatMessages" role="log" aria-live="polite"></div>
+                </div>
+              </div>
+
+              <!-- INPUT (always visible at bottom) -->
+              <div class="chat-input-area">
+                <div class="chat-input-container">
+                  <div class="chat-file-preview" id="filePreview" hidden></div>
+                  <div class="chat-input-wrap">
+                    <button class="chat-attach-btn" id="attachBtn" aria-label="Attach file" title="Attach file for context">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    </button>
+                    <textarea id="chatInput" class="chat-input" placeholder="Type a message..." rows="1" aria-label="Chat message"></textarea>
+                    <div class="chat-input-actions">
+                      <button class="btn btn-primary btn-icon chat-send-btn" id="chatSendBtn" aria-label="Send message">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <input type="file" id="fileInput" class="chat-file-input" accept=".txt,.md,.csv,.json,.pdf,.doc,.docx,.png,.jpg,.jpeg" multiple hidden>
+                </div>
+                <div class="chat-input-hint"><span>Enter to send &middot; Shift+Enter for new line</span></div>
+              </div>
             </div>
-            <div class="chat-drawer-overlay" id="chatDrawerOverlay"></div>
 
           </div>
         </section>

@@ -1,4 +1,4 @@
-// js/chat.js — Clean chat (claude.ai-style, two-state)
+// js/chat.js — Agents panel + chat (Solo:OS-style)
 // ──────────────────────────────────────────────────────────────────────
 
 import {
@@ -15,6 +15,7 @@ import {
 const THREADS_KEY = 'forge-chat-threads';
 const PROXY_KEY   = 'forge-anthropic-proxy';
 const DEFAULT_PROXY = 'https://anthropic-proxy.dan-a14.workers.dev';
+const PANEL_KEY   = 'forge-agents-panel-open';
 
 // ── Chip configs ─────────────────────────────────────────────────────
 const CHIP_CONFIG = {
@@ -30,12 +31,15 @@ let activeAgentId  = 'geeves';
 let activeThreadId = null;
 let isSending      = false;
 let chatState      = 'landing'; // 'landing' | 'conversation'
-let attachedFiles  = [];        // { name, type, content } — text extracted from files
+let attachedFiles  = [];
+let searchQuery    = '';
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initChat() {
-  renderAgentDropdowns();
-  initThreads();
+  renderAgentsPanel();
+  renderHistoryList();
+  updateTopbar();
+  restorePanelState();
   bindEvents();
 }
 
@@ -50,7 +54,7 @@ function setChatState(state) {
 
 function transitionToConversation() {
   setChatState('conversation');
-  const input = $('#chatInputConvo');
+  const input = $('#chatInput');
   if (input) input.focus();
   scrollToBottom();
 }
@@ -59,8 +63,9 @@ function transitionToLanding() {
   activeThreadId = null;
   setChatState('landing');
   renderMessages([]);
-  highlightActiveThread();
-  const input = $('#chatInputLanding');
+  highlightActiveHistory();
+  updateTopbar();
+  const input = $('#chatInput');
   if (input) {
     input.value = '';
     input.focus();
@@ -82,90 +87,109 @@ function getAgent(agentId) {
 
 function setActiveAgent(agentId) {
   activeAgentId = agentId;
-  updateAgentSelectors();
+  updateTopbar();
+  highlightActiveAgent();
+  renderHistoryList();
 }
 
-function updateAgentSelectors() {
-  const agent = getAgent(activeAgentId);
-  if (!agent) return;
+// ── Agents Panel ─────────────────────────────────────────────────────
+function renderAgentsPanel() {
+  const agents = getAgents().filter(a => a.systemPrompt);
+  const countEl = $('#agentsCount');
+  const listEl = $('#agentsList');
+  if (countEl) countEl.textContent = agents.length;
+  if (!listEl) return;
 
-  // Update both selectors (landing + conversation)
-  $$('.chat-agent-selector').forEach(btn => {
-    const emoji = btn.querySelector('.agent-selector-emoji');
-    const name  = btn.querySelector('.agent-selector-name');
-    if (emoji) emoji.textContent = agent.emoji || '🤖';
-    if (name)  name.textContent  = agent.name;
+  listEl.innerHTML = agents.map(a => {
+    const bgColor = a.color || 'var(--bg-tertiary)';
+    return `
+      <button class="agent-panel-item${a.id === activeAgentId ? ' is-active' : ''}" data-agent-id="${escapeHtml(a.id)}">
+        <span class="agent-panel-icon" style="background-color: ${bgColor}20; color: ${bgColor}">${a.emoji || '🤖'}</span>
+        <span class="agent-panel-name">${escapeHtml(a.name)}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function highlightActiveAgent() {
+  $$('#agentsList .agent-panel-item').forEach(item => {
+    item.classList.toggle('is-active', item.dataset.agentId === activeAgentId);
   });
 }
 
-function renderAgentDropdowns() {
-  const agents = getAgents();
-  if (!agents.length) return;
-
-  const html = agents
-    .filter(a => a.systemPrompt) // Only show agents with system prompts
-    .map(a => `
-      <button class="agent-dropdown-item${a.id === activeAgentId ? ' is-active' : ''}" data-agent-id="${escapeHtml(a.id)}">
-        <span class="agent-dd-emoji">${a.emoji || '🤖'}</span>
-        <span class="agent-dd-info">
-          <span class="agent-dd-name">${escapeHtml(a.name)}</span>
-          <span class="agent-dd-role">${escapeHtml((a.role || '').slice(0, 50))}</span>
-        </span>
-      </button>
-    `).join('');
-
-  // Fill both dropdowns
-  const d1 = $('#agentDropdown');
-  const d2 = $('#agentDropdownConvo');
-  if (d1) d1.innerHTML = html;
-  if (d2) d2.innerHTML = html;
-
-  updateAgentSelectors();
-}
-
-function toggleAgentDropdown(dropdownId) {
-  const dd = $(`#${dropdownId}`);
-  if (!dd) return;
-
-  const isOpen = !dd.hasAttribute('hidden');
-  // Close all dropdowns first
-  $$('.chat-agent-dropdown').forEach(el => el.setAttribute('hidden', ''));
-
-  if (!isOpen) {
-    // Re-render active states
-    dd.querySelectorAll('.agent-dropdown-item').forEach(item => {
-      item.classList.toggle('is-active', item.dataset.agentId === activeAgentId);
-    });
-    dd.removeAttribute('hidden');
-  }
-}
-
-function handleAgentSelect(e) {
-  const item = e.target.closest('.agent-dropdown-item');
+function handleAgentClick(e) {
+  const item = e.target.closest('.agent-panel-item');
   if (!item) return;
-
   const agentId = item.dataset.agentId;
-  if (agentId) setActiveAgent(agentId);
-
-  // Close all dropdowns
-  $$('.chat-agent-dropdown').forEach(el => el.setAttribute('hidden', ''));
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  THREADS
-// ═══════════════════════════════════════════════════════════════════════
-function initThreads() {
-  const threads = getThreads();
-  renderThreadsList(threads);
-
-  // If threads exist, load most recent but stay on landing
-  if (threads.length > 0) {
-    const latest = threads[0];
-    activeAgentId = latest.agentId || 'geeves';
-    updateAgentSelectors();
+  if (agentId) {
+    setActiveAgent(agentId);
+    transitionToLanding();
+    // On mobile, close panel after selecting
+    if (window.innerWidth <= 768) {
+      closeAgentsPanel();
+    }
   }
 }
 
+// ── Panel Toggle ─────────────────────────────────────────────────────
+function toggleAgentsPanel() {
+  const panel = $('#agentsPanel');
+  if (!panel) return;
+  if (panel.classList.contains('is-open')) {
+    closeAgentsPanel();
+  } else {
+    openAgentsPanel();
+  }
+}
+
+function openAgentsPanel() {
+  const panel = $('#agentsPanel');
+  const overlay = $('#agentsPanelOverlay');
+  if (panel) panel.classList.add('is-open');
+  if (overlay && window.innerWidth <= 768) overlay.classList.add('is-visible');
+  localStorage.setItem(PANEL_KEY, '1');
+}
+
+function closeAgentsPanel() {
+  const panel = $('#agentsPanel');
+  const overlay = $('#agentsPanelOverlay');
+  if (panel) panel.classList.remove('is-open');
+  if (overlay) overlay.classList.remove('is-visible');
+  localStorage.setItem(PANEL_KEY, '0');
+}
+
+function restorePanelState() {
+  // On mobile, default closed. On desktop, restore preference.
+  if (window.innerWidth <= 768) {
+    closeAgentsPanel();
+  } else {
+    const saved = localStorage.getItem(PANEL_KEY);
+    if (saved === '0') {
+      closeAgentsPanel();
+    }
+    // else keep default (is-open in HTML)
+  }
+}
+
+// ── Topbar ───────────────────────────────────────────────────────────
+function updateTopbar() {
+  const agent = getAgent(activeAgentId);
+  if (!agent) return;
+
+  const emoji = $('#chatTopbarEmoji');
+  const name  = $('#chatTopbarName');
+  const role  = $('#chatTopbarRole');
+  const greeting = $('#chatGreeting');
+
+  if (emoji) emoji.textContent = agent.emoji || '🤖';
+  if (name)  name.textContent  = agent.name;
+  if (role)  role.textContent  = 'How can I help?';
+  if (greeting) greeting.textContent = `Welcome to ${agent.name}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  THREADS / HISTORY
+// ═══════════════════════════════════════════════════════════════════════
 function getThreads() {
   try {
     const raw = localStorage.getItem(THREADS_KEY);
@@ -206,13 +230,11 @@ function createNewThread() {
   saveThreads(threads);
 
   activeThreadId = thread.id;
-  renderThreadsList(getThreads());
+  renderHistoryList();
   renderMessages([]);
-  highlightActiveThread();
+  highlightActiveHistory();
   transitionToConversation();
-  closeThreadDrawer();
 
-  // Fire-and-forget Supabase sync
   syncThreadToSupabase(thread);
 }
 
@@ -223,8 +245,8 @@ function updateThreadTitle(threadId, firstMessage) {
 
   thread.title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
   saveThreads(threads);
-  renderThreadsList(getThreads());
-  highlightActiveThread();
+  renderHistoryList();
+  highlightActiveHistory();
   syncTitleToSupabase(threadId, thread.title);
 }
 
@@ -249,67 +271,90 @@ async function syncTitleToSupabase(threadId, title) {
   try { await sbUpdateTitle(threadId, title); } catch { /* silent */ }
 }
 
-// ── Thread drawer ─────────────────────────────────────────────────
-function openThreadDrawer() {
-  const drawer  = $('#chatThreadDrawer');
-  const overlay = $('#chatDrawerOverlay');
-  if (drawer)  drawer.classList.add('is-open');
-  if (overlay) overlay.classList.add('is-visible');
-}
-
-function closeThreadDrawer() {
-  const drawer  = $('#chatThreadDrawer');
-  const overlay = $('#chatDrawerOverlay');
-  if (drawer)  drawer.classList.remove('is-open');
-  if (overlay) overlay.classList.remove('is-visible');
-}
-
-function toggleThreadDrawer() {
-  const drawer = $('#chatThreadDrawer');
-  if (drawer?.classList.contains('is-open')) {
-    closeThreadDrawer();
-  } else {
-    openThreadDrawer();
-  }
-}
-
-// ── Thread list rendering ─────────────────────────────────────────
-function renderThreadsList(threads) {
-  const el = $('#threadsList');
+// ── History List Rendering ───────────────────────────────────────────
+function renderHistoryList() {
+  const el = $('#historyList');
   if (!el) return;
 
-  if (!threads || threads.length === 0) {
-    el.innerHTML = `<div class="empty-state threads-empty"><p class="text-secondary">No conversations yet</p></div>`;
+  // Get threads for the active agent, filtered by search
+  let threads = getThreads().filter(t => t.agentId === activeAgentId);
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    threads = threads.filter(t =>
+      (t.title || '').toLowerCase().includes(q) ||
+      (t.messages || []).some(m => (m.content || '').toLowerCase().includes(q))
+    );
+  }
+
+  if (!threads.length) {
+    el.innerHTML = `<div class="history-empty">No conversations yet</div>`;
     return;
   }
 
-  el.innerHTML = threads.map(t => {
-    const agent = getAgent(t.agentId);
-    const icon = agent ? (agent.emoji || '🤖') : '🤖';
-    const agentName = agent ? agent.name : t.agentId;
-    return `
-      <button class="thread-item${t.id === activeThreadId ? ' is-active' : ''}" data-thread-id="${escapeHtml(t.id)}">
-        <div class="thread-item-header">
-          <span class="thread-agent-icon">${icon}</span>
-          <span class="thread-title">${escapeHtml(t.title || 'New conversation')}</span>
-        </div>
-        <div class="thread-item-meta">
-          <span class="thread-agent-name">${escapeHtml(agentName)}</span>
-          <span class="thread-time">${t.updatedAt ? formatRelativeTime(t.updatedAt) : ''}</span>
-        </div>
-      </button>
-    `;
-  }).join('');
+  // Group by date: Today, Previous 30 Days, Older
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thirtyDaysAgo = new Date(todayStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const groups = { today: [], recent: [], older: [] };
+
+  threads.forEach(t => {
+    const d = t.updatedAt ? new Date(t.updatedAt) : new Date(0);
+    if (d >= todayStart) {
+      groups.today.push(t);
+    } else if (d >= thirtyDaysAgo) {
+      groups.recent.push(t);
+    } else {
+      groups.older.push(t);
+    }
+  });
+
+  let html = '';
+
+  if (groups.today.length) {
+    html += `<div class="history-date-header">Today</div>`;
+    html += groups.today.map(t => renderHistoryItem(t)).join('');
+  }
+
+  if (groups.recent.length) {
+    html += `<div class="history-date-header">Previous 30 Days</div>`;
+    html += groups.recent.map(t => renderHistoryItem(t)).join('');
+  }
+
+  if (groups.older.length) {
+    html += `<div class="history-date-header">Older</div>`;
+    html += groups.older.map(t => renderHistoryItem(t)).join('');
+  }
+
+  el.innerHTML = html;
 }
 
-function highlightActiveThread() {
-  $$('#threadsList .thread-item').forEach(item => {
+function renderHistoryItem(thread) {
+  const agent = getAgent(thread.agentId);
+  const icon = agent ? (agent.emoji || '🤖') : '🤖';
+  const msgCount = (thread.messages || []).length;
+  const time = thread.updatedAt ? formatRelativeTime(thread.updatedAt) : '';
+
+  return `
+    <button class="history-item${thread.id === activeThreadId ? ' is-active' : ''}" data-thread-id="${escapeHtml(thread.id)}">
+      <span class="history-item-icon">${icon}</span>
+      <div class="history-item-info">
+        <div class="history-item-title">${escapeHtml(thread.title || 'New conversation')}</div>
+        <div class="history-item-meta">${msgCount} msg${msgCount !== 1 ? 's' : ''} · ${escapeHtml(time)}</div>
+      </div>
+    </button>
+  `;
+}
+
+function highlightActiveHistory() {
+  $$('#historyList .history-item').forEach(item => {
     item.classList.toggle('is-active', item.dataset.threadId === activeThreadId);
   });
 }
 
-function handleThreadClick(e) {
-  const item = e.target.closest('.thread-item');
+function handleHistoryClick(e) {
+  const item = e.target.closest('.history-item');
   if (!item) return;
   const threadId = item.dataset.threadId;
   if (!threadId) return;
@@ -318,12 +363,22 @@ function handleThreadClick(e) {
   const thread = getActiveThread();
   if (!thread) return;
 
-  if (thread.agentId) setActiveAgent(thread.agentId);
-
+  if (thread.agentId) activeAgentId = thread.agentId;
+  updateTopbar();
+  highlightActiveAgent();
   renderMessages(thread.messages || []);
-  highlightActiveThread();
+  highlightActiveHistory();
   transitionToConversation();
-  closeThreadDrawer();
+
+  // On mobile, close panel after selecting
+  if (window.innerWidth <= 768) {
+    closeAgentsPanel();
+  }
+}
+
+function handleHistorySearch(e) {
+  searchQuery = (e.target.value || '').trim();
+  renderHistoryList();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -421,7 +476,6 @@ function buildDashboardContext() {
 - Applications this week: ${biz.applications?.thisWeek ?? '?'}
 - Workshop sales: ${biz.workshop?.sales ?? '?'}`);
 
-    // Client health
     const healthy = biz.clients?.healthy?.length ?? 0;
     const warning = biz.clients?.warning?.length ?? 0;
     const atRisk  = biz.clients?.atRisk?.length  ?? 0;
@@ -471,10 +525,10 @@ function buildDashboardContext() {
 // ═══════════════════════════════════════════════════════════════════════
 //  SEND / LLM
 // ═══════════════════════════════════════════════════════════════════════
-async function handleSend(inputId) {
+async function handleSend() {
   if (isSending) return;
 
-  const input = $(`#${inputId}`);
+  const input = $('#chatInput');
   if (!input) return;
 
   const text = input.value.trim();
@@ -495,8 +549,8 @@ async function handleSend(inputId) {
     threads.unshift(thread);
     saveThreads(threads);
     activeThreadId = thread.id;
-    renderThreadsList(getThreads());
-    highlightActiveThread();
+    renderHistoryList();
+    highlightActiveHistory();
     syncThreadToSupabase(thread);
     transitionToConversation();
   }
@@ -535,11 +589,9 @@ async function handleSend(inputId) {
   appendMessage(userMsg);
   syncMessageToSupabase(activeThreadId, userMsg);
 
-  // Clear inputs and files
-  $('#chatInputLanding').value = '';
-  $('#chatInputConvo').value = '';
-  autoResize($('#chatInputLanding'));
-  autoResize($('#chatInputConvo'));
+  // Clear input and files
+  input.value = '';
+  autoResize(input);
   clearAttachedFiles();
 
   // Call LLM
@@ -570,8 +622,8 @@ async function handleSend(inputId) {
 
     appendMessage(assistantMsg);
     syncMessageToSupabase(activeThreadId, assistantMsg);
-    renderThreadsList(getThreads());
-    highlightActiveThread();
+    renderHistoryList();
+    highlightActiveHistory();
   } catch (err) {
     console.error('[chat] Send failed:', err);
     appendMessage({
@@ -587,8 +639,10 @@ async function handleSend(inputId) {
 }
 
 function setSendingState(sending) {
-  $$('.chat-input').forEach(el => el.disabled = sending);
-  $$('.chat-send-btn').forEach(el => el.disabled = sending);
+  const input = $('#chatInput');
+  const btn = $('#chatSendBtn');
+  if (input) input.disabled = sending;
+  if (btn) btn.disabled = sending;
 
   if (sending) {
     const el = $('#chatMessages');
@@ -610,7 +664,6 @@ async function callLLM(messages, agent) {
   const proxyUrl = localStorage.getItem(PROXY_KEY) || DEFAULT_PROXY;
   const model = agent?.defaultModel || 'claude-sonnet-4-20250514';
 
-  // Build system prompt with auto-injected context
   let systemPrompt = agent?.systemPrompt || 'You are a helpful assistant for Dan Harrison, founder of Lifestyle Founders Group. Be direct, concise, and actionable.';
   systemPrompt += buildDashboardContext();
 
@@ -649,11 +702,10 @@ function handleChipClick(e) {
   setActiveAgent(config.agent);
 
   // Prefill input
-  const input = $('#chatInputLanding');
+  const input = $('#chatInput');
   if (input) {
     input.value = config.prefill;
     input.focus();
-    // Place cursor at end
     input.selectionStart = input.selectionEnd = config.prefill.length;
     autoResize(input);
   }
@@ -667,16 +719,12 @@ function handleFileSelect(e) {
   if (!files.length) return;
 
   files.forEach(file => {
-    // Size limit: 500KB for text, images as base64 up to 2MB
     if (file.size > 2 * 1024 * 1024) {
       showToast(`${file.name} is too large (max 2MB)`, 'error');
       return;
     }
 
-    const reader = new FileReader();
-
     if (file.type.startsWith('image/')) {
-      // Images: note the attachment but can't extract text content
       attachedFiles.push({
         name: file.name,
         type: file.type,
@@ -684,10 +732,9 @@ function handleFileSelect(e) {
       });
       renderFilePreview();
     } else {
-      // For text files, read as text
+      const reader = new FileReader();
       reader.onload = () => {
         const text = reader.result;
-        // Truncate very long files
         const truncated = text.length > 50000 ? text.slice(0, 50000) + '\n...[truncated]' : text;
         attachedFiles.push({
           name: file.name,
@@ -700,15 +747,11 @@ function handleFileSelect(e) {
     }
   });
 
-  // Reset file input so same file can be re-selected
   e.target.value = '';
 }
 
 function renderFilePreview() {
-  const ids = chatState === 'landing'
-    ? 'filePreviewLanding'
-    : 'filePreviewConvo';
-  const el = $(`#${ids}`);
+  const el = $('#filePreview');
   if (!el) return;
 
   if (attachedFiles.length === 0) {
@@ -738,13 +781,11 @@ function handleFileRemove(e) {
 
 function clearAttachedFiles() {
   attachedFiles = [];
-  ['filePreviewLanding', 'filePreviewConvo'].forEach(id => {
-    const el = $(`#${id}`);
-    if (el) {
-      el.setAttribute('hidden', '');
-      el.innerHTML = '';
-    }
-  });
+  const el = $('#filePreview');
+  if (el) {
+    el.setAttribute('hidden', '');
+    el.innerHTML = '';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -760,66 +801,45 @@ function autoResize(el) {
 //  EVENTS
 // ═══════════════════════════════════════════════════════════════════════
 function bindEvents() {
-  // Send buttons
-  $('#chatSendLanding')?.addEventListener('click', () => handleSend('chatInputLanding'));
-  $('#chatSendConvo')?.addEventListener('click', () => handleSend('chatInputConvo'));
+  // Send button
+  $('#chatSendBtn')?.addEventListener('click', () => handleSend());
 
-  // Enter to send (both inputs)
-  const bindInput = (id) => {
-    const el = $(`#${id}`);
-    if (!el) return;
-
-    el.addEventListener('keydown', (e) => {
+  // Enter to send
+  const input = $('#chatInput');
+  if (input) {
+    input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSend(id);
+        handleSend();
       }
     });
+    input.addEventListener('input', () => autoResize(input));
+  }
 
-    el.addEventListener('input', () => autoResize(el));
-  };
+  // Panel toggle
+  $('#chatPanelToggle')?.addEventListener('click', toggleAgentsPanel);
+  $('#agentsPanelClose')?.addEventListener('click', closeAgentsPanel);
+  $('#agentsPanelOverlay')?.addEventListener('click', closeAgentsPanel);
 
-  bindInput('chatInputLanding');
-  bindInput('chatInputConvo');
+  // Agent list clicks
+  $('#agentsList')?.addEventListener('click', handleAgentClick);
 
-  // Agent selector toggles
-  $('#agentSelectorLanding')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleAgentDropdown('agentDropdown');
+  // History list clicks
+  $('#historyList')?.addEventListener('click', handleHistoryClick);
+
+  // History search
+  $('#historySearch')?.addEventListener('input', handleHistorySearch);
+
+  // New chat button
+  $('#newChatBtn')?.addEventListener('click', () => {
+    transitionToLanding();
   });
-  $('#agentSelectorConvo')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleAgentDropdown('agentDropdownConvo');
-  });
-
-  // Agent dropdown selection (event delegation)
-  $('#agentDropdown')?.addEventListener('click', handleAgentSelect);
-  $('#agentDropdownConvo')?.addEventListener('click', handleAgentSelect);
-
-  // Close dropdowns on outside click
-  document.addEventListener('click', () => {
-    $$('.chat-agent-dropdown').forEach(el => el.setAttribute('hidden', ''));
-  });
-
-  // Thread drawer toggle
-  $('#chatThreadToggle')?.addEventListener('click', toggleThreadDrawer);
-  $('#chatDrawerOverlay')?.addEventListener('click', closeThreadDrawer);
-
-  // Thread list clicks
-  $('#threadsList')?.addEventListener('click', handleThreadClick);
-
-  // New thread button
-  $('#newThreadBtn')?.addEventListener('click', createNewThread);
 
   // Chips
   $('#chatChips')?.addEventListener('click', handleChipClick);
 
   // File attachments
-  $('#attachBtnLanding')?.addEventListener('click', () => $('#fileInputLanding')?.click());
-  $('#attachBtnConvo')?.addEventListener('click', () => $('#fileInputConvo')?.click());
-  $('#fileInputLanding')?.addEventListener('change', handleFileSelect);
-  $('#fileInputConvo')?.addEventListener('change', handleFileSelect);
-  // File preview remove buttons (event delegation)
-  $('#filePreviewLanding')?.addEventListener('click', handleFileRemove);
-  $('#filePreviewConvo')?.addEventListener('click', handleFileRemove);
+  $('#attachBtn')?.addEventListener('click', () => $('#fileInput')?.click());
+  $('#fileInput')?.addEventListener('change', handleFileSelect);
+  $('#filePreview')?.addEventListener('click', handleFileRemove);
 }
