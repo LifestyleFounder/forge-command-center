@@ -42,7 +42,7 @@ async function sbUpsert(table, onConflict, body) {
 async function getTopPosts(limit = 30) {
   const rows = await sbGet(
     'ig_posts',
-    `is_analyzed=eq.true&order=likes_count.desc.nullslast&limit=${limit}&select=caption,likes_count,comments_count,post_type,hook_framework,hook_structure,content_topic,content_angle,cta_type,creator_username`
+    `is_analyzed=eq.true&order=likes.desc.nullslast&limit=${limit}&select=caption,likes,comments,post_type,hook_framework,hook_structure,topic,content_structure,call_to_action,creator_id`
   );
   return rows;
 }
@@ -50,7 +50,7 @@ async function getTopPosts(limit = 30) {
 // ── GPT generation ──────────────────────────────────────────────────
 async function generateGameplan(topPosts) {
   const postSummaries = topPosts.map((p, i) =>
-    `${i + 1}. @${p.creator_username} (${p.likes_count} likes) — Hook: "${(p.hook_framework || '').slice(0, 80)}" | Structure: ${p.hook_structure || '?'} | Topic: ${p.content_topic || '?'} | Angle: ${p.content_angle || '?'}`
+    `${i + 1}. (${p.likes} likes) — Hook: "${(p.hook_framework || '').slice(0, 80)}" | Structure: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'} | Format: ${p.content_structure || '?'}`
   ).join('\n');
 
   const systemPrompt = `You are a content strategist for Dan Harrison, founder of Lifestyle Founders Group (LFG).

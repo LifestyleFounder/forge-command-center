@@ -33,8 +33,8 @@ export default async function handler(req, res) {
 
     // Fetch snapshots and recent posts in parallel
     const [snapshots, posts] = await Promise.all([
-      sbGet('ig_creator_snapshots', `creator_id=eq.${creator.id}&order=snapshot_date.asc&limit=90`),
-      sbGet('ig_posts', `creator_username=eq.${DAN_USERNAME}&order=posted_at.desc.nullslast&limit=12&select=id,caption,likes_count,comments_count,post_type,thumbnail_url,posted_at`),
+      sbGet('ig_creator_snapshots', `creator_id=eq.${creator.id}&order=scraped_at.asc&limit=90`),
+      sbGet('ig_posts', `creator_id=eq.${creator.id}&order=posted_at.desc.nullslast&limit=12&select=id,caption,likes,comments,post_type,thumbnail_url,posted_at`),
     ]);
 
     return res.json({ creator, snapshots, posts });

@@ -1,5 +1,5 @@
 -- content_gameplans — stores AI-generated weekly content plans
--- Run once in Supabase SQL Editor (project: wvoxezzypwpkfovrcdyf)
+-- Run once in Supabase SQL Editor (project: nzppfxttbqrgwjofxqfm / Forge)
 
 CREATE TABLE content_gameplans (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,

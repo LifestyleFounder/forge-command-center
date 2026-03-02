@@ -250,15 +250,14 @@ function renderMyInstagram() {
     return;
   }
 
-  const c = data.creator;
-  if (c) {
-    setTextContent('#igFollowers', formatNumber(c.follower_count || 0));
-    const engRate = c.follower_count > 0 && c.avg_likes != null
-      ? ((c.avg_likes / c.follower_count) * 100).toFixed(2) + '%'
-      : '--';
-    setTextContent('#igEngRate', engRate);
-    setTextContent('#igAvgLikes', formatNumber(c.avg_likes || 0));
-    setTextContent('#igPostCount', formatNumber(c.post_count || 0));
+  // Use latest snapshot for stat cards
+  const snaps = data.snapshots || [];
+  const latest = snaps.length ? snaps[snaps.length - 1] : null;
+  if (latest) {
+    setTextContent('#igFollowers', formatNumber(latest.followers || 0));
+    setTextContent('#igEngRate', latest.engagement_rate != null ? latest.engagement_rate.toFixed(2) + '%' : '--');
+    setTextContent('#igAvgLikes', formatNumber(latest.avg_likes || 0));
+    setTextContent('#igPostCount', formatNumber(latest.posts_count || 0));
   }
 
   // Render follower chart
@@ -278,8 +277,8 @@ function renderMyInstagram() {
     <div class="ig-card">
       ${p.thumbnail_url ? `<img class="ig-card-img" src="${escapeHtml(p.thumbnail_url)}" alt="" loading="lazy">` : '<div class="ig-card-placeholder"></div>'}
       <div class="ig-card-meta">
-        <span>${formatNumber(p.likes_count || 0)} likes</span>
-        <span>${formatNumber(p.comments_count || 0)} comments</span>
+        <span>${formatNumber(p.likes || 0)} likes</span>
+        <span>${formatNumber(p.comments || 0)} comments</span>
         <span>${p.post_type || 'post'}</span>
       </div>
     </div>
@@ -300,10 +299,10 @@ function renderFollowerChart(snapshots) {
   if (typeof Chart === 'undefined') return;
 
   const labels = snapshots.map(s => {
-    const d = new Date(s.snapshot_date);
+    const d = new Date(s.scraped_at);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
-  const dataPoints = snapshots.map(s => s.follower_count);
+  const dataPoints = snapshots.map(s => s.followers);
 
   const isDark = document.documentElement.classList.contains('dark');
   const lineColor = isDark ? '#C8A24A' : '#0F2A1E';
