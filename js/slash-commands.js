@@ -38,6 +38,9 @@ const SLASH_ITEMS = [
     const imgBtn = document.querySelector('#be-image');
     if (imgBtn) imgBtn.click();
   }},
+  { title: 'Toggle', description: 'Collapsible section', icon: '▶', command: ({ editor, range }) => {
+    editor.chain().focus().deleteRange(range).setToggleBlock().run();
+  }},
 ];
 
 /**

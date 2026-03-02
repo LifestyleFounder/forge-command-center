@@ -170,6 +170,7 @@ async function loadTiptap() {
 
     const Editor = coreModule.Editor;
     const Extension = coreModule.Extension;
+    const Node = coreModule.Node;
     const StarterKit = starterKitModule.StarterKit || starterKitModule.default;
     const TaskList = taskListModule.TaskList || taskListModule.default;
     const TaskItem = taskItemModule.TaskItem || taskItemModule.default;
@@ -188,7 +189,7 @@ async function loadTiptap() {
 
     console.log('[block-editor] Tiptap loaded successfully');
     return {
-      Editor, StarterKit, TaskList, TaskItem, Placeholder,
+      Editor, Node, StarterKit, TaskList, TaskItem, Placeholder,
       Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Image, Extension,
     };
   } catch (err) {
@@ -202,7 +203,7 @@ async function loadTiptap() {
 
 function createEditorInstance() {
   const {
-    Editor, StarterKit, TaskList, TaskItem, Placeholder,
+    Editor, Node, StarterKit, TaskList, TaskItem, Placeholder,
     Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Image, Extension,
   } = tiptapModules;
 
@@ -304,6 +305,132 @@ function createEditorInstance() {
     },
   }).configure({ inline: false, allowBase64: true });
 
+  // Toggle block — collapsible section with editable title + body
+  const ToggleBlock = Node.create({
+    name: 'toggleBlock',
+    group: 'block',
+    content: 'block+',
+    defining: true,
+
+    addAttributes() {
+      return {
+        summary: { default: 'Toggle' },
+        open: { default: true },
+      };
+    },
+
+    parseHTML() {
+      return [{ tag: 'div[data-type="toggle"]' }];
+    },
+
+    renderHTML({ HTMLAttributes }) {
+      return ['div', { 'data-type': 'toggle', ...HTMLAttributes }, 0];
+    },
+
+    addCommands() {
+      return {
+        setToggleBlock: (attrs) => ({ commands }) => {
+          return commands.insertContent({
+            type: 'toggleBlock',
+            attrs: { summary: attrs?.summary || 'Toggle', open: true },
+            content: [{ type: 'paragraph' }],
+          });
+        },
+      };
+    },
+
+    addNodeView() {
+      return ({ node, editor: ed, getPos }) => {
+        const dom = document.createElement('div');
+        dom.className = 'toggle-block is-open';
+
+        // Header row: arrow + editable title
+        const header = document.createElement('div');
+        header.className = 'toggle-header';
+
+        const arrow = document.createElement('span');
+        arrow.className = 'toggle-arrow';
+        arrow.innerHTML = '&#9654;';
+
+        const title = document.createElement('span');
+        title.className = 'toggle-title';
+        title.contentEditable = 'true';
+        title.setAttribute('data-placeholder', 'Toggle title...');
+        title.textContent = node.attrs.summary || '';
+
+        const contentWrap = document.createElement('div');
+        contentWrap.className = 'toggle-content';
+
+        let isOpen = node.attrs.open !== false;
+
+        function updateVisual() {
+          dom.classList.toggle('is-open', isOpen);
+          contentWrap.style.display = isOpen ? '' : 'none';
+        }
+
+        arrow.addEventListener('click', (e) => {
+          e.preventDefault();
+          isOpen = !isOpen;
+          updateVisual();
+          if (typeof getPos === 'function') {
+            ed.view.dispatch(
+              ed.view.state.tr.setNodeMarkup(getPos(), undefined, {
+                ...node.attrs,
+                open: isOpen,
+              })
+            );
+          }
+        });
+
+        // Save title changes back to node attrs
+        title.addEventListener('input', () => {
+          if (typeof getPos === 'function') {
+            ed.view.dispatch(
+              ed.view.state.tr.setNodeMarkup(getPos(), undefined, {
+                ...node.attrs,
+                summary: title.textContent,
+              })
+            );
+          }
+        });
+
+        // Enter in title → focus into content body
+        title.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!isOpen) { isOpen = true; updateVisual(); }
+            ed.commands.focus();
+          }
+        });
+
+        header.appendChild(arrow);
+        header.appendChild(title);
+        dom.appendChild(header);
+        dom.appendChild(contentWrap);
+
+        updateVisual();
+
+        return {
+          dom,
+          contentDOM: contentWrap,
+          update: (updatedNode) => {
+            if (updatedNode.type.name !== 'toggleBlock') return false;
+            if (updatedNode.attrs.summary !== title.textContent) {
+              title.textContent = updatedNode.attrs.summary;
+            }
+            isOpen = updatedNode.attrs.open !== false;
+            updateVisual();
+            node = updatedNode;
+            return true;
+          },
+          stopEvent: (event) => {
+            return title.contains(event.target);
+          },
+        };
+      };
+    },
+  });
+
   editor = new Editor({
     element: mountEl,
     extensions: [
@@ -314,6 +441,7 @@ function createEditorInstance() {
       Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false }),
       ResizableImage,
+      ToggleBlock,
       TextStyle, TxtColor, Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       SlashCommands,
@@ -701,6 +829,7 @@ export function execToolbarCommand(cmd) {
     'h3': () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
     'divider': () => editor.chain().focus().setHorizontalRule().run(),
     'image': () => insertImage(),
+    'toggle': () => editor.chain().focus().setToggleBlock().run(),
     'align-left': () => editor.chain().focus().setTextAlign('left').run(),
     'align-center': () => editor.chain().focus().setTextAlign('center').run(),
     'align-right': () => editor.chain().focus().setTextAlign('right').run(),

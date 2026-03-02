@@ -3589,6 +3589,77 @@ body.block-editor-open {
   opacity: 1;
 }
 
+/* Toggle Blocks */
+.be-content .ProseMirror .toggle-block {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  margin: 0.75em 0;
+  overflow: hidden;
+}
+
+.be-content .ProseMirror .toggle-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-tertiary);
+  cursor: default;
+  user-select: none;
+}
+
+.be-content .ProseMirror .toggle-arrow {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.be-content .ProseMirror .toggle-block.is-open .toggle-arrow {
+  transform: rotate(90deg);
+  color: var(--text-secondary);
+}
+
+.be-content .ProseMirror .toggle-arrow:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.be-content .ProseMirror .toggle-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  outline: none;
+  min-height: 1.4em;
+  line-height: 1.4;
+}
+
+.be-content .ProseMirror .toggle-title:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.be-content .ProseMirror .toggle-content {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-light);
+}
+
+.be-content .ProseMirror .toggle-content > *:first-child {
+  margin-top: 0;
+}
+
+.be-content .ProseMirror .toggle-content > *:last-child {
+  margin-bottom: 0;
+}
+
 /* ── Slash Command Menu ── */
 .slash-command-menu {
   background: var(--bg-secondary);
