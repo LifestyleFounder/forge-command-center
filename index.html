@@ -141,7 +141,13 @@
           <div class="dashboard-grid" id="dashboardGrid">
             <!-- Row 1: Upcoming Tasks (full width) -->
             <div class="card dashboard-full-width" id="upcomingTasksCard">
-              <div class="card-header"><h2>Upcoming Tasks</h2><button class="btn btn-ghost btn-xs" id="tasksViewAllBtn">View All</button></div>
+              <div class="card-header">
+                <h2>Upcoming Tasks</h2>
+                <div class="card-actions">
+                  <div class="home-task-filter" id="homeTaskFilter"></div>
+                  <button class="btn btn-ghost btn-xs" id="tasksViewAllBtn">View All</button>
+                </div>
+              </div>
               <div class="card-body" id="upcomingTasksBody">
                 <div class="home-tasks-list">
                   <div class="brief-skeleton loading"></div>

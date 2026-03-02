@@ -243,7 +243,7 @@ function renderTaskItem(task) {
  * Fetch upcoming incomplete tasks for the Home dashboard widget.
  * Returns max 8 tasks sorted by due date (soonest first).
  */
-export async function getUpcomingTasks() {
+export async function getUpcomingTasks(listId) {
   try {
     // Load task lists if not loaded
     if (taskLists.length === 0) {
@@ -255,8 +255,8 @@ export async function getUpcomingTasks() {
 
     if (taskLists.length === 0) return [];
 
-    const listId = taskLists[0].id;
-    const res = await fetch(`/api/tasks?list=${encodeURIComponent(listId)}`);
+    const targetListId = listId || taskLists[0].id;
+    const res = await fetch(`/api/tasks?list=${encodeURIComponent(targetListId)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const allTasks = data.tasks || [];
@@ -271,7 +271,7 @@ export async function getUpcomingTasks() {
         return new Date(a.due) - new Date(b.due);
       })
       .slice(0, 8)
-      .map(t => ({ ...t, listId }));
+      .map(t => ({ ...t, listId: targetListId }));
   } catch (err) {
     console.warn('[google-tasks] getUpcomingTasks failed', err);
     return [];
@@ -321,9 +321,19 @@ export async function fetchTasksForList(listId) {
 }
 
 /**
- * Return the cached task lists array (used by projects.js task picker).
+ * Return task lists array, fetching from API if not yet cached.
  */
-export function getTaskLists() {
+export async function getTaskLists() {
+  if (taskLists.length === 0) {
+    try {
+      const res = await fetch('/api/lists');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      taskLists = Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('[google-tasks] getTaskLists fetch failed', err);
+    }
+  }
   return taskLists;
 }
 

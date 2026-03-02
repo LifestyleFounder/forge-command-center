@@ -498,7 +498,7 @@ async function handleDetailClick(e) {
       picker.hidden = false;
       picker.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading task lists...</span></div>';
 
-      const lists = getTaskLists();
+      const lists = await getTaskLists();
       if (lists.length === 0) {
         picker.innerHTML = '<div class="project-tasks-empty">No Google Task lists available. Visit the Google Tasks tab first.</div>';
         return;

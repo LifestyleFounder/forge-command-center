@@ -15,7 +15,7 @@ import {
   setState,
   switchTab
 } from './app.js';
-import { getUpcomingTasks, completeTaskFromHome } from './google-tasks.js';
+import { getUpcomingTasks, completeTaskFromHome, getTaskLists } from './google-tasks.js';
 import { getUpcomingEvents } from './google-calendar.js';
 
 // ---- DOM Cache (module-scoped) --------------------------------
@@ -70,6 +70,13 @@ export function initHome() {
 
   // Tasks card: View All → Google Tasks tab
   $('#tasksViewAllBtn')?.addEventListener('click', () => switchTab('google-tasks'));
+
+  // Tasks card: list filter pills
+  $('#homeTaskFilter')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.meta-date-btn');
+    if (!btn || btn.classList.contains('is-active')) return;
+    switchHomeTaskList(btn.dataset.listId);
+  });
 
   // Calendar card: "Open Calendar" is now an <a> link, no JS needed
 
@@ -249,39 +256,85 @@ function renderClientNotifications() {
 
 // ---- Upcoming Tasks (Google Tasks) ----------------------------
 
+let activeHomeListId = null;
+
 async function renderUpcomingTasks() {
   const container = $('#upcomingTasksBody');
+  const filterContainer = $('#homeTaskFilter');
   if (!container) return;
 
   try {
-    const tasks = await getUpcomingTasks();
+    const lists = await getTaskLists();
+
+    // Render filter pills if we have lists
+    if (filterContainer && lists.length > 0) {
+      if (!activeHomeListId) activeHomeListId = lists[0].id;
+      filterContainer.innerHTML = lists.map(l =>
+        `<button class="meta-date-btn${l.id === activeHomeListId ? ' is-active' : ''}" data-list-id="${escapeHtml(l.id)}">${escapeHtml(l.title)}</button>`
+      ).join('');
+    }
+
+    const tasks = await getUpcomingTasks(activeHomeListId);
 
     if (tasks.length === 0) {
       container.innerHTML = '<div class="empty-state"><p>No upcoming tasks</p></div>';
       return;
     }
 
-    const now = new Date();
-    container.innerHTML = `
-      <div class="home-tasks-list">
-        ${tasks.map(t => {
-          const isOverdue = t.due && new Date(t.due) < now;
-          const dueStr = t.due ? formatDate(t.due) : '';
-          return `
-            <div class="home-task-item" data-task-id="${escapeHtml(t.id)}">
-              <button class="home-task-checkbox" data-task-id="${escapeHtml(t.id)}" data-list-id="${escapeHtml(t.listId)}" aria-label="Complete task"></button>
-              <div class="home-task-content">
-                <span class="home-task-title">${escapeHtml(t.title || 'Untitled')}</span>
-              </div>
-              ${dueStr ? `<span class="home-task-due ${isOverdue ? 'home-task-overdue' : ''}">${dueStr}</span>` : ''}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    renderHomeTaskItems(container, tasks);
 
   } catch (err) {
     console.warn('[home] Failed to load upcoming tasks', err);
+    container.innerHTML = '<div class="empty-state"><p>Could not load tasks</p></div>';
+  }
+}
+
+function renderHomeTaskItems(container, tasks) {
+  const now = new Date();
+  container.innerHTML = `
+    <div class="home-tasks-list">
+      ${tasks.map(t => {
+        const isOverdue = t.due && new Date(t.due) < now;
+        const dueStr = t.due ? formatDate(t.due) : '';
+        return `
+          <div class="home-task-item" data-task-id="${escapeHtml(t.id)}">
+            <button class="home-task-checkbox" data-task-id="${escapeHtml(t.id)}" data-list-id="${escapeHtml(t.listId)}" aria-label="Complete task"></button>
+            <div class="home-task-content">
+              <span class="home-task-title">${escapeHtml(t.title || 'Untitled')}</span>
+            </div>
+            ${dueStr ? `<span class="home-task-due ${isOverdue ? 'home-task-overdue' : ''}">${dueStr}</span>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function switchHomeTaskList(listId) {
+  activeHomeListId = listId;
+
+  // Update active pill
+  const filterContainer = $('#homeTaskFilter');
+  if (filterContainer) {
+    filterContainer.querySelectorAll('.meta-date-btn').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.listId === listId);
+    });
+  }
+
+  // Fetch and render tasks only
+  const container = $('#upcomingTasksBody');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+
+  try {
+    const tasks = await getUpcomingTasks(listId);
+    if (tasks.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No upcoming tasks</p></div>';
+      return;
+    }
+    renderHomeTaskItems(container, tasks);
+  } catch (err) {
+    console.warn('[home] Failed to switch task list', err);
     container.innerHTML = '<div class="empty-state"><p>Could not load tasks</p></div>';
   }
 }
