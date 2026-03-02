@@ -89,6 +89,20 @@ async function loadJSON(filename) {
   }
 }
 
+async function loadText(filename) {
+  const url = `${DATA_PATH}/${filename}?t=${Date.now()}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    localStorage.setItem(`forge-text-${filename}`, text);
+    return text;
+  } catch (e) {
+    console.warn(`[forge] Failed to load ${filename}, using cache`, e);
+    return localStorage.getItem(`forge-text-${filename}`) || null;
+  }
+}
+
 function saveLocal(key, data) {
   localStorage.setItem(`forge-${key}`, JSON.stringify(data));
 }
@@ -1022,6 +1036,19 @@ async function init() {
     setState('documents', documents);
     setState('notes', notes);
     setState('vipClients', vipClients);
+
+    // Load agent knowledge bases
+    const knowledgeIndex = await loadJSON('knowledge-index.json');
+    if (knowledgeIndex?.agents) {
+      const results = await Promise.all(
+        Object.entries(knowledgeIndex.agents).map(([id, file]) =>
+          loadText(`knowledge/${file}`).then(text => [id, text])
+        )
+      );
+      const map = {};
+      results.forEach(([id, text]) => { if (text) map[id] = text; });
+      setState('agentKnowledge', map);
+    }
   } catch (err) {
     console.error('[forge] Failed to load initial data', err);
     showToast('Failed to load some data. Check console.', 'error', 5000);
@@ -1068,6 +1095,7 @@ export {
   setState,
   subscribe,
   loadJSON,
+  loadText,
   saveLocal,
   escapeHtml,
   formatNumber,

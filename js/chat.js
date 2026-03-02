@@ -660,11 +660,27 @@ function setSendingState(sending) {
   }
 }
 
+function getAgentKnowledge(agentId) {
+  const map = getState('agentKnowledge');
+  if (!map?.[agentId]) return '';
+  const text = map[agentId];
+  const MAX_CHARS = 200000;
+  return text.length > MAX_CHARS
+    ? text.slice(0, MAX_CHARS) + '\n\n[... Knowledge truncated]'
+    : text;
+}
+
 async function callLLM(messages, agent) {
   const proxyUrl = localStorage.getItem(PROXY_KEY) || DEFAULT_PROXY;
   const model = agent?.defaultModel || 'claude-sonnet-4-20250514';
 
   let systemPrompt = agent?.systemPrompt || 'You are a helpful assistant for Dan Harrison, founder of Lifestyle Founders Group. Be direct, concise, and actionable.';
+
+  const knowledge = getAgentKnowledge(agent?.id);
+  if (knowledge) {
+    systemPrompt += '\n\n---\n\n# Knowledge Base\n\n' + knowledge;
+  }
+
   systemPrompt += buildDashboardContext();
 
   const res = await fetch(`${proxyUrl}/anthropic`, {

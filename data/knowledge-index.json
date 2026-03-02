@@ -1,0 +1,13 @@
+{
+  "agents": {
+    "geeves": "geeves.md",
+    "forge": "forge.md",
+    "multiplier": "multiplier.md",
+    "the-closer": "the-closer.md",
+    "the-coach": "the-coach.md",
+    "the-workshop-maker": "the-workshop-maker.md",
+    "the-offer-wizard": "the-offer-wizard.md",
+    "the-skool-savant": "the-skool-savant.md",
+    "the-ads-master": "the-ads-master.md"
+  }
+}
