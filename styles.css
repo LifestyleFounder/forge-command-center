@@ -3904,12 +3904,36 @@ body.block-editor-open .block-editor-fab {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-2);
-  cursor: default;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+  user-select: none;
+}
+
+.agents-section-header:hover,
+.history-section-header:hover {
+  background-color: var(--bg-hover);
 }
 
 .section-chevron {
   color: var(--text-tertiary);
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+/* Collapsed state */
+.agents-section.is-collapsed .section-chevron,
+.history-section.is-collapsed .section-chevron {
+  transform: rotate(-90deg);
+}
+
+.agents-section.is-collapsed .agents-list {
+  display: none;
+}
+
+.history-section.is-collapsed .history-search-wrap,
+.history-section.is-collapsed .history-list {
+  display: none;
 }
 
 .agents-section-label,

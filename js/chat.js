@@ -821,6 +821,14 @@ function bindEvents() {
   $('#agentsPanelClose')?.addEventListener('click', closeAgentsPanel);
   $('#agentsPanelOverlay')?.addEventListener('click', closeAgentsPanel);
 
+  // Section collapse/expand toggles
+  document.querySelector('.agents-section-header')?.addEventListener('click', () => {
+    document.querySelector('.agents-section')?.classList.toggle('is-collapsed');
+  });
+  document.querySelector('.history-section-header')?.addEventListener('click', () => {
+    document.querySelector('.history-section')?.classList.toggle('is-collapsed');
+  });
+
   // Agent list clicks
   $('#agentsList')?.addEventListener('click', handleAgentClick);
 
