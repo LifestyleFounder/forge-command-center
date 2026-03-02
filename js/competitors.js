@@ -10,7 +10,7 @@ import {
 import {
   getCreators, addCreator, removeCreator,
   getTopPosts, getRecentPosts, getScrapeRuns, proxyImageUrl,
-  getCreatorsWithFallback, addCreatorLocal, removeCreatorLocal
+  getCreatorsWithFallback
 } from './services/creator-scraper.js';
 
 // ── State ────────────────────────────────────────────────────────────
@@ -21,7 +21,9 @@ let activeSubtab = 'comp-creators';
 let selectedCreator = null;
 let loading = false;
 let scraping = false;
-let scrapeProgress = { current: 0, total: 0, username: '' };
+let scrapeProgress = { current: 0, total: 0, username: '', phase: 'idle' };
+let analyzeProgress = { done: 0, remaining: 0 };
+let feedLimit = 50;
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initCompetitors() {
@@ -88,22 +90,40 @@ function renderCreatorsGrid() {
     `;
   }
 
-  const sourceLabel = dataSource === 'supabase' ? 'Live' : dataSource === 'static' ? 'Pre-loaded' : '';
-
   return `
     <div class="comp-toolbar">
       <button class="btn btn-primary btn-sm" id="addCompCreatorBtn">Add Creator</button>
       <button class="btn btn-ghost btn-sm" id="scrapeNowBtn" ${scraping ? 'disabled' : ''}>
-        ${scraping ? `Scraping ${scrapeProgress.current}/${scrapeProgress.total}...` : 'Scrape Now'}
+        ${getScrapeButtonLabel()}
       </button>
       <span class="text-sm text-secondary">${creators.length} creator${creators.length !== 1 ? 's' : ''} tracked</span>
-      ${sourceLabel ? `<span class="badge badge-neutral">${sourceLabel}</span>` : ''}
-      ${scraping ? `<span class="text-sm text-secondary scrape-status">@${escapeHtml(scrapeProgress.username)}</span>` : ''}
+      ${scraping ? `<span class="text-sm text-secondary scrape-status">${getScrapeStatusText()}</span>` : ''}
     </div>
     <div class="creator-cards-grid">
       ${creators.map(c => renderCreatorCard(c)).join('')}
     </div>
   `;
+}
+
+function getScrapeButtonLabel() {
+  if (!scraping) return 'Scrape & Analyze';
+  if (scrapeProgress.phase === 'scraping') {
+    return `Scraping ${scrapeProgress.current}/${scrapeProgress.total}...`;
+  }
+  if (scrapeProgress.phase === 'analyzing') {
+    return `Analyzing...`;
+  }
+  return 'Working...';
+}
+
+function getScrapeStatusText() {
+  if (scrapeProgress.phase === 'scraping') {
+    return `@${escapeHtml(scrapeProgress.username)}`;
+  }
+  if (scrapeProgress.phase === 'analyzing') {
+    return `${analyzeProgress.done} done, ${analyzeProgress.remaining} left`;
+  }
+  return '';
 }
 
 function renderCreatorCard(c) {
@@ -129,14 +149,14 @@ function renderCreatorCard(c) {
         <div class="creator-stat"><span class="creator-stat-value">${formatNumber(c.posts)}</span><span class="creator-stat-label">Posts</span></div>
       </div>
       <div class="creator-card-footer">
-        <span class="text-xs text-tertiary">${dataSource === 'static' ? 'Pre-loaded data' : `Last scraped: ${c.lastScraped ? formatRelativeTime(c.lastScraped) : '--'}`}</span>
+        <span class="text-xs text-tertiary">Last scraped: ${c.lastScraped ? formatRelativeTime(c.lastScraped) : '--'}</span>
         <button class="btn btn-ghost btn-xs comp-view-posts-btn" data-username="${escapeHtml(c.username)}">View Posts →</button>
       </div>
     </div>
   `;
 }
 
-// ── Feed — Geeves-style post cards ──────────────────────────────────
+// ── Feed — post cards with Load More ────────────────────────────────
 function renderFeed() {
   // If a creator is selected, filter to their posts
   let posts = allPosts;
@@ -150,6 +170,8 @@ function renderFeed() {
   }
 
   const creatorList = [...new Set(allPosts.map(p => p.creator))];
+  const visiblePosts = posts.slice(0, feedLimit);
+  const hasMore = posts.length > feedLimit;
 
   return `
     <div class="comp-feed-toolbar">
@@ -158,11 +180,15 @@ function renderFeed() {
         ${creatorList.map(c => `<option value="${escapeHtml(c)}" ${c === selectedCreator ? 'selected' : ''}>@${escapeHtml(c)}</option>`).join('')}
       </select>
       ${selectedCreator ? `<button class="btn btn-ghost btn-xs comp-clear-filter">Clear Filter</button>` : ''}
-      <span class="text-sm text-secondary">${posts.length} post${posts.length !== 1 ? 's' : ''}</span>
+      <span class="text-sm text-secondary">${posts.length} post${posts.length !== 1 ? 's' : ''}${hasMore ? ` (showing ${visiblePosts.length})` : ''}</span>
     </div>
     <div class="comp-posts-grid">
-      ${posts.map(p => renderPostCard(p)).join('')}
+      ${visiblePosts.map(p => renderPostCard(p)).join('')}
     </div>
+    ${hasMore ? `
+    <div class="comp-load-more-wrap" style="text-align:center;padding:16px 0;">
+      <button class="btn btn-ghost btn-sm" id="compLoadMoreBtn">Load More (${posts.length - feedLimit} remaining)</button>
+    </div>` : ''}
   `;
 }
 
@@ -310,6 +336,7 @@ function bindCompetitorEvents() {
     const tab = e.target.closest('[data-comp-tab]');
     if (tab) {
       activeSubtab = tab.dataset.compTab;
+      feedLimit = 50; // reset on tab switch
       renderCompetitors();
       return;
     }
@@ -320,9 +347,16 @@ function bindCompetitorEvents() {
       return;
     }
 
-    // Scrape Now button
+    // Scrape & Analyze button
     if (e.target.closest('#scrapeNowBtn')) {
-      if (!scraping) scrapeAllCreators();
+      if (!scraping) scrapeAndAnalyze();
+      return;
+    }
+
+    // Load More button
+    if (e.target.closest('#compLoadMoreBtn')) {
+      feedLimit += 50;
+      renderCompetitors();
       return;
     }
 
@@ -333,12 +367,7 @@ function bindCompetitorEvents() {
       const username = removeBtn.dataset.username;
       if (!confirm(`Remove @${username}?`)) return;
 
-      let ok = false;
-      if (dataSource === 'supabase') {
-        ok = await removeCreator(username);
-      } else {
-        ok = removeCreatorLocal(username);
-      }
+      const ok = await removeCreator(username);
       if (ok) {
         creators = creators.filter(c => c.username !== username);
         allPosts = allPosts.filter(p => p.creator !== username);
@@ -354,6 +383,7 @@ function bindCompetitorEvents() {
       e.stopPropagation();
       selectedCreator = viewPostsBtn.dataset.username;
       activeSubtab = 'comp-feed';
+      feedLimit = 50;
       renderCompetitors();
       return;
     }
@@ -378,19 +408,22 @@ function bindCompetitorEvents() {
   container.addEventListener('change', (e) => {
     if (e.target.id === 'compFeedCreatorFilter') {
       selectedCreator = e.target.value || null;
+      feedLimit = 50;
       renderCompetitors();
     }
   });
 }
 
-// ── Scrape All Creators ─────────────────────────────────────────────
-async function scrapeAllCreators() {
+// ── Scrape & Analyze — two-phase flow ───────────────────────────────
+async function scrapeAndAnalyze() {
   if (scraping || creators.length === 0) return;
 
   scraping = true;
-  scrapeProgress = { current: 0, total: creators.length, username: '' };
+  scrapeProgress = { current: 0, total: creators.length, username: '', phase: 'scraping' };
+  analyzeProgress = { done: 0, remaining: 0 };
   renderCompetitors();
 
+  // Phase 1: Scrape all creators
   let successCount = 0;
   let failCount = 0;
 
@@ -414,13 +447,49 @@ async function scrapeAllCreators() {
     }
   }
 
-  scraping = false;
-  scrapeProgress = { current: 0, total: 0, username: '' };
-
-  const msg = failCount
+  const scrapeMsg = failCount
     ? `Scraped ${successCount}/${creators.length} creators (${failCount} failed)`
     : `Scraped all ${successCount} creators`;
-  showToast(msg, failCount ? 'warning' : 'success');
+  showToast(scrapeMsg, failCount ? 'warning' : 'success');
+
+  // Phase 2: Analyze unanalyzed posts
+  scrapeProgress.phase = 'analyzing';
+  analyzeProgress = { done: 0, remaining: 0 };
+  renderCompetitors();
+
+  let totalAnalyzed = 0;
+  let analyzing = true;
+
+  while (analyzing) {
+    try {
+      const res = await fetch('/api/analyze-posts');
+      const data = await res.json();
+
+      if (!data.success) {
+        console.warn('[analyze] Error:', data.error);
+        break;
+      }
+
+      totalAnalyzed += data.analyzed;
+      analyzeProgress = { done: totalAnalyzed, remaining: data.remaining };
+      renderCompetitors();
+
+      if (data.remaining === 0 || data.analyzed === 0) {
+        analyzing = false;
+      }
+    } catch (err) {
+      console.error('[analyze] Error:', err);
+      break;
+    }
+  }
+
+  if (totalAnalyzed > 0) {
+    showToast(`Analyzed ${totalAnalyzed} posts`, 'success');
+  }
+
+  scraping = false;
+  scrapeProgress = { current: 0, total: 0, username: '', phase: 'idle' };
+  analyzeProgress = { done: 0, remaining: 0 };
 
   // Reload data to show fresh posts
   await loadCompetitorData();
@@ -481,12 +550,7 @@ function openAddCreatorModal() {
 
     if (feedback) feedback.innerHTML = '<span class="text-secondary">Adding...</span>';
 
-    let result = null;
-    if (dataSource === 'supabase') {
-      result = await addCreator(clean);
-    } else {
-      result = addCreatorLocal(clean);
-    }
+    const result = await addCreator(clean);
 
     if (result) {
       creators.push(result);
