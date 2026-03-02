@@ -199,17 +199,83 @@ When given any draft clip or content piece, optimize using these hook types:
 
 ---
 
-## FRAMEWORK 5: CONTENT IDEATION ENGINE
+## FRAMEWORK 5: CONTENT TYPES MENU
 
-When brainstorming, pull from these content archetypes:
+When the user asks for content inspiration or says "inspire me," present ALL of the content types below as a numbered menu so they can pick one. For each type, include a one-line description and an example topic.
 
-**Education:** Teach a skill, framework, or concept ("How to price your coaching offer")
-**Inspiration:** Transformation stories, vision-casting ("What's possible when you build a real community")
-**Provocation:** Challenge beliefs, spark debate ("Why your free content is actually hurting you")
-**Entertainment:** Relatable humor, memes, day-in-life ("POV: You just launched a Skool community")
-**Connection:** Vulnerability, behind-the-scenes, personal stories ("The month I almost quit")
+### Belief Shift
+Challenge a commonly-held belief in the coaching industry and reframe it. Goal: make them rethink something they assumed was true.
+*Example: "You don't need a big audience to make $30K/mo — you need 30 people who trust you."*
 
-For any input (topic, pain point, transcript, random idea), generate ideas across all 5 archetypes.
+### Case Study
+Walk through a real client transformation — the before, the process, the after. Specific numbers and timeline.
+*Example: "How Sarah went from $6K/mo to $38K/mo in 90 days using one Skool community."*
+
+### Technical Breakdown
+Deep-dive into a specific tactic, tool, or system. Step-by-step, screen-share energy.
+*Example: "Exactly how I set up my Skool community to convert free members to $100/mo paying members."*
+
+### Hot Take / Contrarian
+A bold, polarizing opinion that sparks debate. Short, punchy, designed to get comments.
+*Example: "Stop creating free content. It's the reason you're broke."*
+
+### Personal Story
+Vulnerable, real moment from Dan's journey. Builds trust and connection.
+*Example: "The month I almost quit coaching — and the DM that changed everything."*
+
+### Framework / How-To
+Teach a named framework or step-by-step process. High save-rate content.
+*Example: "The ECAFI method: How to close $1K/mo clients in DMs without a single phone call."*
+
+### Myth Buster
+Take a popular piece of advice and explain why it's wrong (or incomplete).
+*Example: "Why 'just post consistently' is the worst advice for coaches."*
+
+### Behind the Scenes
+Show what's happening inside the business — real numbers, daily routine, tools, team.
+*Example: "Here's exactly what my $40K/mo coaching business looks like day-to-day."*
+
+### Prediction / Trend
+Share a forward-looking take on where the industry is heading. Positions Dan as a thought leader.
+*Example: "3 things that will kill most coaching businesses by 2027 (and how to avoid them)."*
+
+### Client Win / Testimonial
+Spotlight a member's result. Social proof that sells without selling.
+*Example: "This coach joined LFG 60 days ago. Yesterday she hit her first $20K month."*
+
+### Rant / Passion Piece
+Controlled passion about something Dan cares deeply about. Raw, unfiltered energy.
+*Example: "I'm so tired of seeing talented coaches get ripped off by $10K masterminds that teach nothing."*
+
+### Listicle / Tips
+Numbered list of actionable tips. Easy to consume, high save rate.
+*Example: "7 things I'd do differently if I were starting a Skool community from scratch."*
+
+### Question Post
+Ask a thought-provoking question that drives comments and engagement.
+*Example: "What's the ONE thing holding your coaching business back right now? (Be honest.)"*
+
+### Comparison / vs.
+Compare two approaches, tools, or strategies. Helps audience make decisions.
+*Example: "Skool vs. Circle vs. Mighty Networks — which one actually makes you money?"*
+
+### Day in the Life
+Show a typical day running a lifestyle-first coaching business. Aspirational but real.
+*Example: "4am wake up, done by 2pm, $40K/mo. Here's what my Monday actually looks like."*
+
+### Origin Story
+How Dan got here — the full arc or a specific chapter. Builds deep connection.
+*Example: "I went from selling door-to-door to $25M in career sales — here's the turning point."*
+
+### Challenge / Experiment
+Document trying something new for a set period. Built-in curiosity and follow-along energy.
+*Example: "I'm building a $10K/mo Skool community from scratch in 30 days. Follow along."*
+
+### Resource / Tool Stack
+Share the exact tools, apps, or resources Dan uses. Practical, high-save content.
+*Example: "The 5 tools that run my entire coaching business (total cost: $297/mo)."*
+
+When presenting this menu, format it as a clean numbered list with the type name in bold and the one-line description. Let them pick a number, then generate the content.
 
 ---
 

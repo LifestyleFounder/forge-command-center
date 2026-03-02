@@ -25,11 +25,12 @@ const AGENT_CHIPS = {
     { key: 'plan',       icon: '&#128203;',   label: 'Plan',       prefill: 'Help me plan out ' },
   ],
   multiplier: [
-    { key: 'brainstorm', icon: '&#128161;',   label: 'Brainstorm',  prefill: 'Brainstorm content ideas about ' },
+    { key: 'inspire',    icon: '&#10024;',    label: 'Inspire Me',  prefill: 'Inspire me — show me all the content types I can create right now and let me pick one.' },
     { key: 'hooks',      icon: '&#127907;',   label: 'Hooks',       prefill: 'Write 10 hooks for ' },
     { key: 'ytscript',   icon: '&#127916;',   label: 'YT Script',   prefill: 'Write a YouTube script about ' },
     { key: 'reel',       icon: '&#128247;',   label: 'Reel Script', prefill: 'Write an Instagram Reel script about ' },
     { key: 'carousel',   icon: '&#127912;',   label: 'Carousel',    prefill: 'Create an Instagram carousel about ' },
+    { key: 'optimize',   icon: '&#128640;',   label: 'Optimize',    prefill: 'Optimize this short-form content for virality using the 7 hook types and optimization framework: ' },
   ],
   'the-closer': [
     { key: 'close',      icon: '&#127919;',   label: 'Close a Sale', prefill: 'Help me close this deal: ' },
