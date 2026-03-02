@@ -11,13 +11,13 @@ const DOCS_KEY = 'forge-workspace-docs';
 const FOLDERS_KEY = 'forge-workspace-folders';
 
 const DEFAULT_FOLDERS = [
-  { id: 'content', name: 'Content', parentId: null, order: 0 },
-  { id: 'ideas', name: 'Ideas', parentId: null, order: 1 },
-  { id: 'business-planning', name: 'Business Planning', parentId: null, order: 2 },
+  { id: 'business-planning', name: 'Business Planning', parentId: null, order: 0, type: 'divider' },
+  { id: 'ideas', name: 'Ideas', parentId: 'business-planning', order: 0, type: 'folder' },
+  { id: 'content', name: 'Content', parentId: null, order: 1, type: 'divider' },
 ];
 
 // ── State ───────────────────────────────────────────────────────────
-let activeFolder = null; // null = All Notes
+let activeFolder = null; // null = no folder selected (empty state)
 let expandedFolders = new Set(); // track which folders are expanded
 let draggedFolderId = null;
 
@@ -52,10 +52,11 @@ export function getWorkspaceFolders() {
   try {
     const raw = localStorage.getItem(FOLDERS_KEY);
     const folders = raw ? JSON.parse(raw) : DEFAULT_FOLDERS;
-    // Backwards-compat: ensure parentId & order exist on every folder
+    // Backwards-compat: ensure parentId, order & type exist on every folder
     return folders.map((f, i) => ({
       parentId: null,
       order: i,
+      type: 'folder',
       ...f,
     }));
   } catch { return DEFAULT_FOLDERS; }
@@ -68,11 +69,16 @@ function saveFolders(folders) {
 function ensureDefaults() {
   if (!localStorage.getItem(FOLDERS_KEY)) {
     saveFolders(DEFAULT_FOLDERS);
+    // Auto-expand all dividers on fresh install
+    DEFAULT_FOLDERS.filter(f => f.type === 'divider').forEach(f => expandedFolders.add(f.id));
     return;
   }
-  // Migrate existing folders to include parentId + order
+  // Migrate existing folders to include parentId, order & type
   const folders = getWorkspaceFolders(); // already adds defaults via getWorkspaceFolders
   saveFolders(folders);
+
+  // Auto-expand all dividers so children are visible
+  folders.filter(f => f.type === 'divider').forEach(f => expandedFolders.add(f.id));
 }
 
 // ── Folder Helpers ──────────────────────────────────────────────────
@@ -97,13 +103,9 @@ function getDescendantIds(folders, folderId) {
   return ids;
 }
 
-/** Count docs in a folder and all its descendants */
-function countDocsRecursive(folders, folderId, docs) {
-  let count = docs.filter(d => d.folder === folderId).length;
-  folders.filter(f => f.parentId === folderId).forEach(child => {
-    count += countDocsRecursive(folders, child.id, docs);
-  });
-  return count;
+/** Count docs directly in this folder only (not descendants) */
+function countDocsDirect(folderId, docs) {
+  return docs.filter(d => d.folder === folderId).length;
 }
 
 /** Check if a folder has children */
@@ -137,13 +139,6 @@ function renderFolderSidebar() {
   const isMobile = window.innerWidth < 768;
 
   el.innerHTML = `
-    <button class="ws-folder-item${activeFolder === null ? ' is-active' : ''}" data-folder="">
-      <span class="ws-folder-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-      </span>
-      All Notes
-      <span class="ws-folder-count">${docs.length}</span>
-    </button>
     ${renderFolderTree(folders, null, 0, docs, isMobile)}
   `;
 }
@@ -153,11 +148,29 @@ function renderFolderTree(folders, parentId, depth, docs, isMobile) {
   if (children.length === 0) return '';
 
   return children.map(f => {
-    const count = countDocsRecursive(folders, f.id, docs);
+    const isDivider = f.type === 'divider';
     const hasKids = hasChildren(folders, f.id);
     const isExpanded = expandedFolders.has(f.id);
     const indent = isMobile ? 0 : depth * 16;
 
+    if (isDivider) {
+      // Divider: section header, not selectable, toggle only
+      return `
+        <div class="ws-folder-row ws-divider-row" data-folder-id="${escapeHtml(f.id)}">
+          <button class="ws-divider-item" data-divider="${escapeHtml(f.id)}">
+            <span class="ws-folder-toggle${isExpanded ? ' is-expanded' : ''}" data-toggle="${escapeHtml(f.id)}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+            ${escapeHtml(f.name)}
+          </button>
+          <span class="ws-folder-delete" role="button" tabindex="0" data-delete-folder="${escapeHtml(f.id)}" title="Delete section">&times;</span>
+        </div>
+        ${isExpanded ? `<div class="ws-folder-children">${renderFolderTree(folders, f.id, depth + 1, docs, isMobile)}</div>` : ''}
+      `;
+    }
+
+    // Regular folder
+    const count = countDocsDirect(f.id, docs);
     let html = `
       <div class="ws-folder-row" data-folder-id="${escapeHtml(f.id)}"${!isMobile ? ` draggable="true"` : ''}>
         <button class="ws-folder-item${activeFolder === f.id ? ' is-active' : ''}" data-folder="${escapeHtml(f.id)}" style="${indent ? `padding-left: ${indent + 12}px` : ''}">
@@ -182,15 +195,22 @@ function renderDocsList() {
   const el = $('#workspaceDocsMain');
   if (!el) return;
 
-  let docs = getWorkspaceDocs();
   const folders = getWorkspaceFolders();
 
-  if (activeFolder) {
-    // Show docs in this folder AND all descendant folders
-    const descendantIds = getDescendantIds(folders, activeFolder);
-    descendantIds.add(activeFolder);
-    docs = docs.filter(d => descendantIds.has(d.folder));
+  // No folder selected — show empty state prompting user to pick one
+  if (!activeFolder) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+        </svg>
+        <p>Select a folder to view your notes</p>
+      </div>
+    `;
+    return;
   }
+
+  let docs = getWorkspaceDocs().filter(d => d.folder === activeFolder);
 
   // Sort by updatedAt descending
   docs.sort((a, b) => {
@@ -208,7 +228,7 @@ function renderDocsList() {
           <line x1="12" y1="18" x2="12" y2="12"/>
           <line x1="9" y1="15" x2="15" y2="15"/>
         </svg>
-        <p>No notes${activeFolder ? ' in this folder' : ''} yet.</p>
+        <p>No notes in this folder yet.</p>
         <p class="text-secondary">Click "New Note" to get started.</p>
       </div>
     `;
@@ -288,6 +308,21 @@ function bindEvents() {
         return;
       }
 
+      // Divider click — only expand/collapse, don't select
+      const dividerItem = e.target.closest('.ws-divider-item');
+      if (dividerItem) {
+        const dividerId = dividerItem.dataset.divider;
+        if (dividerId) {
+          if (expandedFolders.has(dividerId)) {
+            expandedFolders.delete(dividerId);
+          } else {
+            expandedFolders.add(dividerId);
+          }
+          render();
+        }
+        return;
+      }
+
       // Select folder
       const item = e.target.closest('.ws-folder-item');
       if (!item) return;
@@ -330,7 +365,21 @@ function bindEvents() {
   const newNoteBtn = $('#wsNewNoteBtn');
   if (newNoteBtn) {
     newNoteBtn.addEventListener('click', () => {
-      openBlockEditor({ folder: activeFolder, onClose: () => render() });
+      let folder = activeFolder;
+      if (!folder) {
+        // No folder selected — auto-select the first available folder
+        const folders = getWorkspaceFolders();
+        const firstFolder = folders.find(f => f.type === 'folder');
+        if (firstFolder) {
+          folder = firstFolder.id;
+          activeFolder = folder;
+          render();
+        } else {
+          showToast('Create a folder first', 'warning');
+          return;
+        }
+      }
+      openBlockEditor({ folder, onClose: () => render() });
     });
   }
 
@@ -486,7 +535,7 @@ function deleteFolder(folderId) {
   if (!folder) return;
 
   const docs = getWorkspaceDocs();
-  const docCount = countDocsRecursive(folders, folderId, docs);
+  const docCount = countDocsDirect(folderId, docs);
   const childFolders = folders.filter(f => f.parentId === folderId);
   const parentName = folder.parentId
     ? (folders.find(f => f.id === folder.parentId)?.name || 'top-level')
@@ -529,28 +578,47 @@ function deleteFolder(folderId) {
 }
 
 function createNewFolder() {
-  const name = prompt('Folder name:');
+  const isDivider = confirm('Create a section divider?\n\nOK = Section Divider (groups folders)\nCancel = Folder (holds notes)');
+  const label = isDivider ? 'Divider' : 'Folder';
+  const name = prompt(`${label} name:`);
   if (!name || !name.trim()) return;
 
   const folders = getWorkspaceFolders();
   const id = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
   if (folders.some(f => f.id === id)) {
-    showToast('Folder already exists', 'warning');
+    showToast(`${label} already exists`, 'warning');
     return;
   }
 
-  // Create inside activeFolder if one is selected
-  const parentId = activeFolder || null;
+  let parentId = null;
+  if (isDivider) {
+    // Dividers always go to top level
+    parentId = null;
+  } else {
+    // Folders: if a divider is currently active/selected in sidebar, nest under it
+    // Otherwise check if activeFolder is a divider
+    if (activeFolder) {
+      const activeF = folders.find(f => f.id === activeFolder);
+      if (activeF && activeF.type === 'divider') {
+        parentId = activeFolder;
+      } else if (activeF) {
+        // Active is a folder — nest under same parent
+        parentId = activeF.parentId || null;
+      }
+    }
+  }
+
   const siblings = getChildren(folders, parentId);
   const order = siblings.length;
+  const type = isDivider ? 'divider' : 'folder';
 
-  folders.push({ id, name: name.trim(), parentId, order });
+  folders.push({ id, name: name.trim(), parentId, order, type });
   saveFolders(folders);
 
   // Auto-expand parent if nested
   if (parentId) expandedFolders.add(parentId);
 
-  showToast(`Folder "${name.trim()}" created`);
+  showToast(`${label} "${name.trim()}" created`);
   render();
 }

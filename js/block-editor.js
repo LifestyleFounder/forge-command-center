@@ -505,6 +505,11 @@ function buildFolderOptions(folders, parentId, depth) {
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return children.map(f => {
+    // Skip dividers — notes can only live in folders
+    if (f.type === 'divider') {
+      // But still recurse into children (folders under this divider)
+      return buildFolderOptions(folders, f.id, depth);
+    }
     const indent = '\u00A0\u00A0'.repeat(depth);
     const option = `<option value="${escapeHtml(f.id)}">${indent}${escapeHtml(f.name)}</option>`;
     return option + buildFolderOptions(folders, f.id, depth + 1);
