@@ -181,8 +181,8 @@ export async function getCreatorsWithFallback() {
   const sbCreators = await getCreators();
   const sbPosts = sbCreators.length > 0 ? await getRecentPosts(50) : [];
 
-  // Check if Supabase has RICH creator profiles (followers, bio, engagement)
-  const hasRichProfiles = sbCreators.some(c => c.followers > 0 && c.bio);
+  // Check if Supabase has RICH creator profiles (bio or followers — either is enough)
+  const hasRichProfiles = sbCreators.some(c => c.followers > 0 || c.bio);
 
   // If Supabase has rich profiles, use it directly
   if (hasRichProfiles) {

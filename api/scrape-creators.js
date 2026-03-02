@@ -163,9 +163,28 @@ async function scrapeCreator(username) {
 
   // Extract profile-level data if Apify returned it
   const profileData = items.find(i => i.followersCount != null) || {};
-  const followers = profileData.followersCount || 0;
-  const following = profileData.followsCount || 0;
-  const postsCount = profileData.postsCount || posts.length;
+  let followers = profileData.followersCount || 0;
+  let following = profileData.followsCount || 0;
+  let postsCount = profileData.postsCount || posts.length;
+
+  // If Apify didn't return follower data, carry forward from previous snapshot
+  if (!followers) {
+    try {
+      const prevSnapshots = await sbGet(
+        'ig_creator_snapshots',
+        `creator_id=eq.${creator.id}&order=scraped_at.desc&limit=1`
+      );
+      if (prevSnapshots.length) {
+        const prev = prevSnapshots[0];
+        followers = prev.followers || 0;
+        following = prev.following || 0;
+        if (!profileData.postsCount) postsCount = prev.posts_count || posts.length;
+      }
+    } catch (e) {
+      console.warn('[scrape-creators] Could not fetch previous snapshot:', e.message);
+    }
+  }
+
   const engagementRate = followers > 0
     ? Number(((avgLikes + avgComments) / followers * 100).toFixed(2))
     : 0;
