@@ -18,13 +18,59 @@ const DEFAULT_PROXY = 'https://anthropic-proxy.dan-a14.workers.dev';
 const PANEL_KEY   = 'forge-agents-panel-open';
 
 // ── Chip configs ─────────────────────────────────────────────────────
-const CHIP_CONFIG = {
-  brainstorm: { prefill: 'Brainstorm content ideas about ',    agent: 'multiplier' },
-  hooks:      { prefill: 'Write 10 hooks for ',                agent: 'multiplier' },
-  script:     { prefill: 'Write a YouTube script about ',      agent: 'multiplier' },
-  strategize: { prefill: 'Help me create a strategy for ',     agent: 'geeves' },
-  close:      { prefill: 'Help me close this deal: ',          agent: 'the-closer' },
+const AGENT_CHIPS = {
+  geeves: [
+    { key: 'strategize', icon: '&#9889;',    label: 'Strategize', prefill: 'Help me create a strategy for ' },
+    { key: 'analyze',    icon: '&#128202;',   label: 'Analyze',    prefill: 'Analyze my current ' },
+    { key: 'plan',       icon: '&#128203;',   label: 'Plan',       prefill: 'Help me plan out ' },
+  ],
+  multiplier: [
+    { key: 'brainstorm', icon: '&#128161;',   label: 'Brainstorm', prefill: 'Brainstorm content ideas about ' },
+    { key: 'hooks',      icon: '&#127907;',   label: 'Hooks',      prefill: 'Write 10 hooks for ' },
+    { key: 'script',     icon: '&#127916;',   label: 'Script',     prefill: 'Write a YouTube script about ' },
+    { key: 'optimize',   icon: '&#128640;',   label: 'Optimize',   prefill: 'Optimize this content for virality: ' },
+  ],
+  'the-closer': [
+    { key: 'close',      icon: '&#127919;',   label: 'Close a Sale', prefill: 'Help me close this deal: ' },
+    { key: 'objection',  icon: '&#128172;',   label: 'Objection',    prefill: 'How do I handle this objection: ' },
+    { key: 'followup',   icon: '&#128233;',   label: 'Follow Up',    prefill: 'Write a follow-up DM for ' },
+  ],
+  'the-coach': [
+    { key: 'coach',      icon: '&#129504;',   label: 'Coach Me',     prefill: 'I need coaching on ' },
+    { key: 'session',    icon: '&#128218;',   label: 'Plan Session', prefill: 'Help me plan a coaching session about ' },
+    { key: 'checkin',    icon: '&#128994;',   label: 'Client Check', prefill: 'Help me check in with a client who ' },
+  ],
+  'the-workshop-maker': [
+    { key: 'workshop',   icon: '&#127914;',   label: 'Design',       prefill: 'Design a workshop about ' },
+    { key: 'slides',     icon: '&#127912;',   label: 'Outline',      prefill: 'Create a workshop outline for ' },
+    { key: 'promote',    icon: '&#128227;',   label: 'Promote',      prefill: 'Write a promotion plan for my workshop on ' },
+  ],
+  'the-offer-wizard': [
+    { key: 'offer',      icon: '&#10024;',    label: 'Build Offer',  prefill: 'Help me build an offer for ' },
+    { key: 'price',      icon: '&#128176;',   label: 'Pricing',      prefill: 'Help me price ' },
+    { key: 'stack',      icon: '&#127922;',   label: 'Value Stack',  prefill: 'Create a value stack for ' },
+  ],
+  'the-skool-savant': [
+    { key: 'engage',     icon: '&#128293;',   label: 'Engagement',   prefill: 'How do I boost engagement for ' },
+    { key: 'welcome',    icon: '&#128075;',   label: 'Welcome Flow', prefill: 'Design a welcome flow for ' },
+    { key: 'post',       icon: '&#128221;',   label: 'Skool Post',   prefill: 'Write a Skool post about ' },
+  ],
+  'the-ads-master': [
+    { key: 'adcopy',     icon: '&#128203;',   label: 'Ad Copy',     prefill: 'Write ad copy for ' },
+    { key: 'targeting',  icon: '&#127919;',   label: 'Targeting',   prefill: 'Help me build an audience for ' },
+    { key: 'diagnose',   icon: '&#128269;',   label: 'Diagnose',    prefill: 'Why is my ad underperforming? Here\'s the data: ' },
+  ],
+  forge: [
+    { key: 'build',      icon: '&#128296;',   label: 'Build',       prefill: 'Help me build ' },
+    { key: 'fix',        icon: '&#128295;',   label: 'Fix',         prefill: 'Help me fix ' },
+    { key: 'idea',       icon: '&#128161;',   label: 'Brainstorm',  prefill: 'Help me think through ' },
+  ],
 };
+
+// Default chips for agents not in the map
+const DEFAULT_CHIPS = [
+  { key: 'ask', icon: '&#128172;', label: 'Ask', prefill: 'Help me with ' },
+];
 
 // ── State ────────────────────────────────────────────────────────────
 let activeAgentId  = 'geeves';
@@ -185,6 +231,7 @@ function updateTopbar() {
   if (name)  name.textContent  = agent.name;
   if (role)  role.textContent  = 'How can I help?';
   if (greeting) greeting.textContent = `Welcome to ${agent.name}`;
+  renderChips();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -706,16 +753,23 @@ async function callLLM(messages, agent) {
 // ═══════════════════════════════════════════════════════════════════════
 //  CHIPS
 // ═══════════════════════════════════════════════════════════════════════
+function renderChips() {
+  const container = $('#chatChips');
+  if (!container) return;
+  const chips = AGENT_CHIPS[activeAgentId] || DEFAULT_CHIPS;
+  container.innerHTML = chips.map(c =>
+    `<button class="chat-chip" data-chip="${c.key}"><span class="chip-icon">${c.icon}</span> ${c.label}</button>`
+  ).join('');
+}
+
 function handleChipClick(e) {
   const chip = e.target.closest('.chat-chip');
   if (!chip) return;
 
   const chipKey = chip.dataset.chip;
-  const config  = CHIP_CONFIG[chipKey];
+  const chips = AGENT_CHIPS[activeAgentId] || DEFAULT_CHIPS;
+  const config = chips.find(c => c.key === chipKey);
   if (!config) return;
-
-  // Switch agent
-  setActiveAgent(config.agent);
 
   // Prefill input
   const input = $('#chatInput');
