@@ -229,6 +229,42 @@ function createEditorInstance() {
     autofocus: false,
     editorProps: {
       attributes: { class: 'block-editor-prose' },
+      handleDrop(view, event) {
+        const files = event.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+        const file = files[0];
+        if (!file.type.startsWith('image/')) return false;
+        event.preventDefault();
+        if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5MB', 'warning'); return true; }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          const node = view.state.schema.nodes.image.create({ src: reader.result });
+          const tr = view.state.tr.insert(pos?.pos ?? view.state.selection.from, node);
+          view.dispatch(tr);
+        };
+        reader.readAsDataURL(file);
+        return true;
+      },
+      handlePaste(view, event) {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (!file) return true;
+            if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5MB', 'warning'); return true; }
+            const reader = new FileReader();
+            reader.onload = () => {
+              editor.chain().focus().setImage({ src: reader.result }).run();
+            };
+            reader.readAsDataURL(file);
+            return true;
+          }
+        }
+        return false;
+      },
     },
     onUpdate: () => {
       isDirty = true;
