@@ -99,6 +99,14 @@ async function listCreators() {
   };
 }
 
+// ── Apify helpers ─────────────────────────────────────────────────────
+function apifyRun(actor, input) {
+  return fetch(
+    `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${APIFY_TOKEN}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) },
+  );
+}
+
 // ── Scrape one creator via Apify ────────────────────────────────────
 async function scrapeCreator(username) {
   // 1. Find creator in Supabase
@@ -108,34 +116,39 @@ async function scrapeCreator(username) {
   }
   const creator = rows[0];
 
-  const apifyUrl = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
+  // 2. Fire all three Apify calls in parallel (each ~30s, 60s timeout)
+  //    - details: profile-level stats (followers, bio)
+  //    - posts:   feed posts (Image, Sidecar/carousel)
+  //    - reels:   video reels (separate actor)
+  const [detailsResult, postsResult, reelsResult] = await Promise.allSettled([
+    apifyRun('apify~instagram-scraper', {
+      directUrls: [`https://www.instagram.com/${username}/`],
+      resultsType: 'details',
+      resultsLimit: 1,
+    }).then(r => r.ok ? r.json() : Promise.reject(`details ${r.status}`)),
 
-  // 2a. Fetch profile details (followers, bio, etc.) — separate call because
-  //     resultsType: 'posts' never includes profile-level stats
+    apifyRun('apify~instagram-scraper', {
+      directUrls: [`https://www.instagram.com/${username}/`],
+      resultsLimit: 12,
+      resultsType: 'posts',
+      searchType: 'user',
+    }).then(r => r.ok ? r.json() : Promise.reject(`posts ${r.status}`)),
+
+    apifyRun('apify~instagram-reel-scraper', {
+      username: [username],
+      resultsLimit: 12,
+    }).then(r => r.ok ? r.json() : Promise.reject(`reels ${r.status}`)),
+  ]);
+
+  // 3. Extract profile details
   let profileDetails = {};
-  try {
-    const detailsRes = await fetch(apifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        directUrls: [`https://www.instagram.com/${username}/`],
-        resultsType: 'details',
-        resultsLimit: 1,
-      }),
-    });
-    if (detailsRes.ok) {
-      const detailsItems = await detailsRes.json();
-      if (detailsItems.length > 0) {
-        profileDetails = detailsItems[0];
-      }
-    } else {
-      console.warn('[scrape-creators] Apify details call failed:', detailsRes.status);
-    }
-  } catch (e) {
-    console.warn('[scrape-creators] Apify details call error:', e.message);
+  if (detailsResult.status === 'fulfilled' && detailsResult.value.length > 0) {
+    profileDetails = detailsResult.value[0];
+  } else {
+    console.warn('[scrape-creators] Details call failed:', detailsResult.reason || 'empty');
   }
 
-  // 2b. Update creator profile_pic_url and bio if we got details
+  // Update creator profile_pic_url, bio, full_name from details
   if (profileDetails.profilePicUrl || profileDetails.biography) {
     try {
       const updates = {};
@@ -148,30 +161,25 @@ async function scrapeCreator(username) {
     }
   }
 
-  // 3. Fetch recent posts
-  const apifyRes = await fetch(apifyUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      directUrls: [`https://www.instagram.com/${username}/`],
-      resultsLimit: 12,
-      resultsType: 'posts',
-      searchType: 'user',
-    }),
-  });
+  // 4. Map feed posts → ig_posts rows
+  const now = new Date().toISOString();
+  const postItems = postsResult.status === 'fulfilled' ? postsResult.value : [];
+  const reelItems = reelsResult.status === 'fulfilled' ? reelsResult.value : [];
 
-  if (!apifyRes.ok) {
-    const errText = await apifyRes.text();
-    throw new Error(`Apify error (${apifyRes.status}): ${errText.slice(0, 200)}`);
+  if (postsResult.status === 'rejected') {
+    console.warn('[scrape-creators] Posts call failed:', postsResult.reason);
+  }
+  if (reelsResult.status === 'rejected') {
+    console.warn('[scrape-creators] Reels call failed:', reelsResult.reason);
   }
 
-  const items = await apifyRes.json();
-
-  // 4. Map Apify fields → ig_posts columns
-  const now = new Date().toISOString();
   const posts = [];
-  for (const d of items) {
-    if (!d.shortCode) continue;
+  const seenShortcodes = new Set();
+
+  // Feed posts (Image, Sidecar, Video)
+  for (const d of postItems) {
+    if (!d.shortCode || seenShortcodes.has(d.shortCode)) continue;
+    seenShortcodes.add(d.shortCode);
     posts.push({
       creator_id: creator.id,
       shortcode: d.shortCode,
@@ -180,6 +188,25 @@ async function scrapeCreator(username) {
       likes: d.likesCount || 0,
       comments: d.commentsCount || 0,
       views: d.videoViewCount || 0,
+      thumbnail_url: d.displayUrl || '',
+      post_url: d.url || '',
+      posted_at: d.timestamp || null,
+      scraped_at: now,
+    });
+  }
+
+  // Reels (same field names, type = Video, use videoPlayCount for views)
+  for (const d of reelItems) {
+    if (!d.shortCode || seenShortcodes.has(d.shortCode)) continue;
+    seenShortcodes.add(d.shortCode);
+    posts.push({
+      creator_id: creator.id,
+      shortcode: d.shortCode,
+      caption: (d.caption || '').substring(0, 2000),
+      post_type: 'Reel',
+      likes: d.likesCount || 0,
+      comments: d.commentsCount || 0,
+      views: d.videoPlayCount || d.videoViewCount || 0,
       thumbnail_url: d.displayUrl || '',
       post_url: d.url || '',
       posted_at: d.timestamp || null,
@@ -239,10 +266,13 @@ async function scrapeCreator(username) {
     scraped_at: now,
   }, 'return=representation');
 
+  const reelCount = reelItems.filter(d => d.shortCode).length;
   return {
     success: true,
     username,
     postsScraped: upsertedCount,
+    feedPosts: postItems.filter(d => d.shortCode).length,
+    reels: reelCount,
     followers,
     engagementRate,
     scrapedAt: now,

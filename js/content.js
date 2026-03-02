@@ -286,6 +286,7 @@ function renderMyInstagram() {
       <div class="ig-card-meta">
         <span>${formatNumber(p.likes || 0)} likes</span>
         <span>${formatNumber(p.comments || 0)} comments</span>
+        ${p.views ? `<span>${formatNumber(p.views)} views</span>` : ''}
         <span>${p.post_type || 'post'}</span>
       </div>
     </a>
