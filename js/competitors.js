@@ -20,6 +20,8 @@ let dataSource = 'none';
 let activeSubtab = 'comp-creators';
 let selectedCreator = null;
 let loading = false;
+let scraping = false;
+let scrapeProgress = { current: 0, total: 0, username: '' };
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initCompetitors() {
@@ -91,8 +93,12 @@ function renderCreatorsGrid() {
   return `
     <div class="comp-toolbar">
       <button class="btn btn-primary btn-sm" id="addCompCreatorBtn">Add Creator</button>
+      <button class="btn btn-ghost btn-sm" id="scrapeNowBtn" ${scraping ? 'disabled' : ''}>
+        ${scraping ? `Scraping ${scrapeProgress.current}/${scrapeProgress.total}...` : 'Scrape Now'}
+      </button>
       <span class="text-sm text-secondary">${creators.length} creator${creators.length !== 1 ? 's' : ''} tracked</span>
       ${sourceLabel ? `<span class="badge badge-neutral">${sourceLabel}</span>` : ''}
+      ${scraping ? `<span class="text-sm text-secondary scrape-status">@${escapeHtml(scrapeProgress.username)}</span>` : ''}
     </div>
     <div class="creator-cards-grid">
       ${creators.map(c => renderCreatorCard(c)).join('')}
@@ -314,6 +320,12 @@ function bindCompetitorEvents() {
       return;
     }
 
+    // Scrape Now button
+    if (e.target.closest('#scrapeNowBtn')) {
+      if (!scraping) scrapeAllCreators();
+      return;
+    }
+
     // Remove creator
     const removeBtn = e.target.closest('.comp-remove-btn');
     if (removeBtn) {
@@ -369,6 +381,49 @@ function bindCompetitorEvents() {
       renderCompetitors();
     }
   });
+}
+
+// ── Scrape All Creators ─────────────────────────────────────────────
+async function scrapeAllCreators() {
+  if (scraping || creators.length === 0) return;
+
+  scraping = true;
+  scrapeProgress = { current: 0, total: creators.length, username: '' };
+  renderCompetitors();
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const creator of creators) {
+    scrapeProgress.current++;
+    scrapeProgress.username = creator.username;
+    renderCompetitors();
+
+    try {
+      const res = await fetch(`/api/scrape-creators?username=${encodeURIComponent(creator.username)}`);
+      const data = await res.json();
+      if (data.success) {
+        successCount++;
+      } else {
+        failCount++;
+        console.warn(`[scrape] @${creator.username} failed:`, data.error);
+      }
+    } catch (err) {
+      failCount++;
+      console.error(`[scrape] @${creator.username} error:`, err);
+    }
+  }
+
+  scraping = false;
+  scrapeProgress = { current: 0, total: 0, username: '' };
+
+  const msg = failCount
+    ? `Scraped ${successCount}/${creators.length} creators (${failCount} failed)`
+    : `Scraped all ${successCount} creators`;
+  showToast(msg, failCount ? 'warning' : 'success');
+
+  // Reload data to show fresh posts
+  await loadCompetitorData();
 }
 
 // ── Add Creator Modal ───────────────────────────────────────────────

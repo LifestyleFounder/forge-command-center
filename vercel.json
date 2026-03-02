@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/scrape-creators.js": {
+      "maxDuration": 60
+    }
+  }
+}

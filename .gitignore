@@ -1,1 +1,4 @@
 .vercel
+node_modules/
+data/post-archives/*
+!data/post-archives/.gitkeep
