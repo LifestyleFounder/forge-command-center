@@ -19,10 +19,10 @@ const PANEL_KEY   = 'forge-agents-panel-open';
 
 // ── Chip configs ─────────────────────────────────────────────────────
 const CHIP_CONFIG = {
-  write:      { prefill: 'Help me write ',                    agent: 'multiplier' },
-  strategize: { prefill: 'Help me create a strategy for ',    agent: 'geeves' },
-  analyze:    { prefill: 'Analyze my current ',                agent: 'geeves' },
-  coach:      { prefill: 'I need coaching on ',                agent: 'the-coach' },
+  brainstorm: { prefill: 'Brainstorm content ideas about ',    agent: 'multiplier' },
+  hooks:      { prefill: 'Write 10 hooks for ',                agent: 'multiplier' },
+  script:     { prefill: 'Write a YouTube script about ',      agent: 'multiplier' },
+  strategize: { prefill: 'Help me create a strategy for ',     agent: 'geeves' },
   close:      { prefill: 'Help me close this deal: ',          agent: 'the-closer' },
 };
 
