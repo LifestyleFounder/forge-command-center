@@ -25,10 +25,11 @@ const AGENT_CHIPS = {
     { key: 'plan',       icon: '&#128203;',   label: 'Plan',       prefill: 'Help me plan out ' },
   ],
   multiplier: [
-    { key: 'brainstorm', icon: '&#128161;',   label: 'Brainstorm', prefill: 'Brainstorm content ideas about ' },
-    { key: 'hooks',      icon: '&#127907;',   label: 'Hooks',      prefill: 'Write 10 hooks for ' },
-    { key: 'script',     icon: '&#127916;',   label: 'Script',     prefill: 'Write a YouTube script about ' },
-    { key: 'optimize',   icon: '&#128640;',   label: 'Optimize',   prefill: 'Optimize this content for virality: ' },
+    { key: 'brainstorm', icon: '&#128161;',   label: 'Brainstorm',  prefill: 'Brainstorm content ideas about ' },
+    { key: 'hooks',      icon: '&#127907;',   label: 'Hooks',       prefill: 'Write 10 hooks for ' },
+    { key: 'ytscript',   icon: '&#127916;',   label: 'YT Script',   prefill: 'Write a YouTube script about ' },
+    { key: 'reel',       icon: '&#128247;',   label: 'Reel Script', prefill: 'Write an Instagram Reel script about ' },
+    { key: 'carousel',   icon: '&#127912;',   label: 'Carousel',    prefill: 'Create an Instagram carousel about ' },
   ],
   'the-closer': [
     { key: 'close',      icon: '&#127919;',   label: 'Close a Sale', prefill: 'Help me close this deal: ' },
