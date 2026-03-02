@@ -32,6 +32,12 @@ const SLASH_ITEMS = [
   { title: 'Divider', description: 'Horizontal rule', icon: '—', command: ({ editor, range }) => {
     editor.chain().focus().deleteRange(range).setHorizontalRule().run();
   }},
+  { title: 'Image', description: 'Upload an image', icon: '🖼', command: ({ editor, range }) => {
+    editor.chain().focus().deleteRange(range).run();
+    // Trigger file picker via the toolbar command
+    const imgBtn = document.querySelector('#be-image');
+    if (imgBtn) imgBtn.click();
+  }},
 ];
 
 /**

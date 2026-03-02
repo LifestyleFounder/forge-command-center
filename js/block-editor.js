@@ -152,7 +152,7 @@ async function loadTiptap() {
     const [
       coreModule, starterKitModule, taskListModule, taskItemModule,
       placeholderModule, highlightModule, linkModule, colorModule,
-      textStyleModule, underlineModule, textAlignModule,
+      textStyleModule, underlineModule, textAlignModule, imageModule,
     ] = await Promise.all([
       import('https://esm.sh/@tiptap/core@2.11.5'),
       import('https://esm.sh/@tiptap/starter-kit@2.11.5'),
@@ -165,6 +165,7 @@ async function loadTiptap() {
       import('https://esm.sh/@tiptap/extension-text-style@2.11.5'),
       import('https://esm.sh/@tiptap/extension-underline@2.11.5'),
       import('https://esm.sh/@tiptap/extension-text-align@2.11.5'),
+      import('https://esm.sh/@tiptap/extension-image@2.11.5'),
     ]);
 
     const Editor = coreModule.Editor;
@@ -179,6 +180,7 @@ async function loadTiptap() {
     const TextStyle = textStyleModule.TextStyle || textStyleModule.default;
     const Underline = underlineModule.Underline || underlineModule.default;
     const TextAlign = textAlignModule.TextAlign || textAlignModule.default;
+    const Image = imageModule.Image || imageModule.default;
 
     if (!Editor || !Extension || !StarterKit) {
       throw new Error('Core Tiptap modules failed to load');
@@ -187,7 +189,7 @@ async function loadTiptap() {
     console.log('[block-editor] Tiptap loaded successfully');
     return {
       Editor, StarterKit, TaskList, TaskItem, Placeholder,
-      Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Extension,
+      Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Image, Extension,
     };
   } catch (err) {
     console.error('[block-editor] Failed to load Tiptap:', err);
@@ -201,7 +203,7 @@ async function loadTiptap() {
 function createEditorInstance() {
   const {
     Editor, StarterKit, TaskList, TaskItem, Placeholder,
-    Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Extension,
+    Highlight, Link, TxtColor, TextStyle, Underline, TextAlign, Image, Extension,
   } = tiptapModules;
 
   const mountEl = $('#blockEditorContent');
@@ -218,6 +220,7 @@ function createEditorInstance() {
       Placeholder.configure({ placeholder: 'Type "/" for commands...' }),
       Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false }),
+      Image.configure({ inline: false, allowBase64: true }),
       TextStyle, TxtColor, Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       SlashCommands,
@@ -568,6 +571,7 @@ export function execToolbarCommand(cmd) {
     'h2': () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
     'h3': () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
     'divider': () => editor.chain().focus().setHorizontalRule().run(),
+    'image': () => insertImage(),
     'align-left': () => editor.chain().focus().setTextAlign('left').run(),
     'align-center': () => editor.chain().focus().setTextAlign('center').run(),
     'align-right': () => editor.chain().focus().setTextAlign('right').run(),
@@ -642,6 +646,41 @@ function bindModalEvents() {
       await triggerNotionBackup();
     });
   }
+}
+
+// ── Image Insert ──────────────────────────────────────────
+
+function insertImage() {
+  if (!editor) return;
+
+  // Create a hidden file input to pick an image
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+
+  input.addEventListener('change', () => {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    // Validate size (max 5MB for localStorage)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be under 5MB', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      editor.chain().focus().setImage({ src: reader.result }).run();
+      isDirty = true;
+      debouncedAutoSave();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.body.appendChild(input);
+  input.click();
+  input.remove();
 }
 
 // ── Helpers ───────────────────────────────────────────────
