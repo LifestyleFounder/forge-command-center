@@ -211,6 +211,99 @@ function createEditorInstance() {
 
   const SlashCommands = createSlashExtension(Extension);
 
+  // Extend Image with resizable width attribute + drag-handle NodeView
+  const ResizableImage = Image.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        width: {
+          default: null,
+          parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px', '') || null,
+          renderHTML: attrs => {
+            if (!attrs.width) return {};
+            const w = String(attrs.width).includes('%') ? attrs.width : attrs.width + 'px';
+            return { width: attrs.width, style: `width: ${w}` };
+          },
+        },
+      };
+    },
+    addNodeView() {
+      return ({ node, editor: ed, getPos }) => {
+        // Container
+        const wrap = document.createElement('div');
+        wrap.className = 'image-resizer';
+
+        const img = document.createElement('img');
+        img.src = node.attrs.src;
+        if (node.attrs.alt) img.alt = node.attrs.alt;
+        if (node.attrs.title) img.title = node.attrs.title;
+        if (node.attrs.width) img.style.width = String(node.attrs.width).includes('%') ? node.attrs.width : node.attrs.width + 'px';
+
+        // Right-edge drag handle
+        const handle = document.createElement('div');
+        handle.className = 'image-resize-handle';
+
+        function startResize(startX) {
+          const startWidth = img.offsetWidth;
+          wrap.classList.add('is-resizing');
+
+          function onMove(clientX) {
+            const newWidth = Math.max(80, startWidth + (clientX - startX));
+            img.style.width = newWidth + 'px';
+          }
+          function onEnd() {
+            wrap.classList.remove('is-resizing');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('touchend', onTouchEnd);
+            // Persist width to node attrs
+            if (typeof getPos === 'function') {
+              ed.view.dispatch(
+                ed.view.state.tr.setNodeMarkup(getPos(), undefined, {
+                  ...node.attrs,
+                  width: img.offsetWidth,
+                })
+              );
+            }
+          }
+          function onMouseMove(e) { onMove(e.clientX); }
+          function onMouseUp() { onEnd(); }
+          function onTouchMove(e) { e.preventDefault(); onMove(e.touches[0].clientX); }
+          function onTouchEnd() { onEnd(); }
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+          document.addEventListener('touchmove', onTouchMove, { passive: false });
+          document.addEventListener('touchend', onTouchEnd);
+        }
+
+        handle.addEventListener('mousedown', (e) => { e.preventDefault(); startResize(e.clientX); });
+        handle.addEventListener('touchstart', (e) => { e.preventDefault(); startResize(e.touches[0].clientX); }, { passive: false });
+
+        wrap.appendChild(img);
+        wrap.appendChild(handle);
+
+        return {
+          dom: wrap,
+          update: (updatedNode) => {
+            if (updatedNode.type.name !== 'image') return false;
+            img.src = updatedNode.attrs.src;
+            if (updatedNode.attrs.alt) img.alt = updatedNode.attrs.alt;
+            if (updatedNode.attrs.width) {
+              img.style.width = String(updatedNode.attrs.width).includes('%') ? updatedNode.attrs.width : updatedNode.attrs.width + 'px';
+            } else {
+              img.style.width = '';
+            }
+            // Keep node attrs in sync for future updates
+            node = updatedNode;
+            return true;
+          },
+        };
+      };
+    },
+  }).configure({ inline: false, allowBase64: true });
+
   editor = new Editor({
     element: mountEl,
     extensions: [
@@ -220,7 +313,7 @@ function createEditorInstance() {
       Placeholder.configure({ placeholder: 'Type "/" for commands...' }),
       Highlight.configure({ multicolor: true }),
       Link.configure({ openOnClick: false }),
-      Image.configure({ inline: false, allowBase64: true }),
+      ResizableImage,
       TextStyle, TxtColor, Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       SlashCommands,

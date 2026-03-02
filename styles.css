@@ -3534,18 +3534,59 @@ body.block-editor-open {
   color: var(--text-tertiary);
 }
 
-/* Images */
-.be-content .ProseMirror img {
+/* Resizable Images */
+.be-content .ProseMirror .image-resizer {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.75em 0;
+  line-height: 0;
+}
+
+.be-content .ProseMirror .image-resizer img {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-md);
-  margin: 0.75em 0;
+  display: block;
   cursor: default;
 }
 
-.be-content .ProseMirror img.ProseMirror-selectednode {
+.be-content .ProseMirror .image-resizer .image-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.be-content .ProseMirror .image-resizer .image-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 1px;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 40px;
+  max-height: 60%;
+  background: var(--color-gold);
+  border-radius: 3px;
+}
+
+.be-content .ProseMirror .image-resizer:hover .image-resize-handle,
+.be-content .ProseMirror .image-resizer.is-resizing .image-resize-handle {
+  opacity: 1;
+}
+
+.be-content .ProseMirror .image-resizer.ProseMirror-selectednode img {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;
+}
+
+.be-content .ProseMirror .image-resizer.ProseMirror-selectednode .image-resize-handle {
+  opacity: 1;
 }
 
 /* ── Slash Command Menu ── */
