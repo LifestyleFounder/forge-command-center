@@ -19,6 +19,9 @@ let funnelChartInstance = null;
 
 const FUNNEL_PAGE_NAMES = {
   'swipe-page': 'Swipe My Strategies',
+  'free-skool': 'Free Skool (Opt-in)',
+  'application': 'Application',
+  'thanks': 'Thank You',
 };
 
 // ── Public init ──────────────────────────────────────────────────────
