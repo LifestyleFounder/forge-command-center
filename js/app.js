@@ -227,7 +227,7 @@ const TAB_LABELS = {
   knowledge: 'Workspace',
   chat: 'Agents',
   email: 'Email',
-  'vip-clients': 'VIP Clients',
+  'vip-clients': 'Clients',
   competitors: 'Competitors',
   'meta-ads': 'Meta Ads',
   'google-tasks': 'Google Tasks',

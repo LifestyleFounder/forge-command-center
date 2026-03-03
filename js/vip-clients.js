@@ -71,6 +71,10 @@ function renderVipClients() {
     <div class="vip-toolbar">
       <input type="search" class="input-search" id="vipSearchInput" placeholder="Search clients..." value="${escapeHtml(searchQuery)}" aria-label="Search clients">
       <span class="text-sm text-secondary">${filtered.length} client${filtered.length !== 1 ? 's' : ''}</span>
+      <button class="btn btn-sm btn-outline" id="vipRefreshBtn" title="Sync from Notion">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
     </div>
     <div class="vip-table-wrap">
       <table class="data-table vip-table">
@@ -200,12 +204,40 @@ function tenureLabel(joinedDate) {
   return rem > 0 ? `${years}y ${rem}mo` : `${years}y`;
 }
 
+// ── Notion sync ─────────────────────────────────────────────────────
+async function refreshVipClients() {
+  const btn = $('#vipRefreshBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Syncing...'; }
+  showToast('Syncing clients from Notion...', 'info');
+
+  try {
+    const res = await fetch('/api/vip-clients');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    setState('vipClients', data);
+    showToast(`Synced ${data.clients.length} clients from Notion`, 'success');
+  } catch (err) {
+    showToast(`Sync failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Refresh'; }
+  }
+}
+
 // ── Events ──────────────────────────────────────────────────────────
 function bindVipEvents() {
   const container = $('#vipClientsContainer');
   if (!container) return;
 
   container.addEventListener('click', (e) => {
+    // Refresh button
+    if (e.target.closest('#vipRefreshBtn')) {
+      refreshVipClients();
+      return;
+    }
+
     // Filter buttons
     const filterBtn = e.target.closest('[data-vip-filter]');
     if (filterBtn) {
