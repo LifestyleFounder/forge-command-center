@@ -828,6 +828,9 @@ textarea.form-input {
 
 .tab-panel {
   display: none;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .tab-panel.is-active {
@@ -7328,6 +7331,7 @@ a:focus:not(:focus-visible) {
 
 .meta-chart-card canvas {
   height: 260px !important;
+  max-width: 100%;
 }
 
 /* ---- Responsive (new tabs) --------------------------------- */
@@ -7431,16 +7435,52 @@ a:focus:not(:focus-visible) {
     padding: var(--space-1) var(--space-3);
   }
 
-  .meta-chart-row {
+  .meta-chart-row,
+  .meta-chart-row--2col {
     grid-template-columns: 1fr;
+  }
+
+  .meta-chart-card {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .meta-chart-card canvas {
+    height: 200px !important;
   }
 
   .meta-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .meta-narrative {
+    word-break: break-word;
+  }
+
+  .meta-section {
+    min-width: 0;
+  }
+
+  .meta-section-content {
+    padding: 0 var(--space-3) var(--space-3);
+  }
+
+  .meta-section-header {
+    padding: var(--space-3);
+  }
+
   .meta-quick-add-row {
     flex-direction: column;
+  }
+
+  /* Campaign table — horizontal scroll on mobile */
+  .table-wrap {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 600px;
   }
 
   .swipes-grid {
@@ -7476,6 +7516,24 @@ a:focus:not(:focus-visible) {
 
   #upcomingTasksCard {
     grid-column: 1 / -1;
+  }
+
+  /* Funnels mobile */
+  .funnel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .funnel-toolbar select {
+    max-width: 100%;
+  }
+
+  .funnel-range-btns {
+    justify-content: flex-start;
+  }
+
+  .funnel-summary-row {
+    grid-template-columns: 1fr;
   }
 }
 
