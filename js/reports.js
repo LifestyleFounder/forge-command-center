@@ -18,10 +18,9 @@ let funnelPages = [];
 let funnelChartInstance = null;
 
 const FUNNEL_PAGE_NAMES = {
-  'swipe-page': 'Swipe My Strategies',
-  'free-skool': 'Free Skool (Opt-in)',
-  'application': 'Application',
-  'thanks': 'Thank You',
+  'free-skool': 'Free Skool (Visitors)',
+  'application': 'Application (Leads)',
+  'thanks': 'Thank You (Applications)',
 };
 
 // ── Public init ──────────────────────────────────────────────────────
@@ -233,10 +232,12 @@ function renderFunnels() {
   const s = funnelData?.summary;
   const loading = !funnelData;
 
-  const pageOptions = funnelPages.map(slug => {
-    const name = FUNNEL_PAGE_NAMES[slug] || slug;
-    return `<option value="${escapeHtml(slug)}" ${funnelSlug === slug ? 'selected' : ''}>${escapeHtml(name)}</option>`;
-  }).join('');
+  const pageOptions = funnelPages
+    .filter(slug => slug in FUNNEL_PAGE_NAMES)
+    .map(slug => {
+      const name = FUNNEL_PAGE_NAMES[slug];
+      return `<option value="${escapeHtml(slug)}" ${funnelSlug === slug ? 'selected' : ''}>${escapeHtml(name)}</option>`;
+    }).join('');
 
   return `
     <div class="funnel-toolbar" style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-4);align-items:center">
