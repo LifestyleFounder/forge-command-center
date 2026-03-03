@@ -1,8 +1,15 @@
 // api/track.js — Tracking endpoint for funnel events
 // Writes page_view and form_submit events to Supabase funnel_events table.
+// Accepts: (1) browser tracking scripts, (2) GHL webhook POSTs
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Map GHL form IDs to funnel slugs
+const GHL_FORM_MAP = {
+  'BCoLGcddOfiycGDbCG65': 'free-skool',   // Swipe My Strategies / Free Skool opt-in
+  'iuvHzUdss2b0IGeIxuzO': 'application',  // Application form
+};
 
 export default async function handler(req, res) {
   // CORS — allow any origin (tracking pixel pattern)
@@ -21,11 +28,25 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body || {};
-    // Accept both short names (slug/event) and full names (page_slug/event_type)
-    const page_slug = body.page_slug || body.slug;
-    const event_type = body.event_type || body.event;
-    const visitor_id = body.visitor_id;
-    const referrer = body.referrer;
+
+    let page_slug, event_type, visitor_id, referrer;
+
+    // Detect GHL webhook payload (has formId, contact, or location fields)
+    if (body.formId || body.form_id || body.contact || body.location) {
+      const formId = body.formId || body.form_id || '';
+      page_slug = GHL_FORM_MAP[formId] || body.page_slug || body.slug || 'unknown-form';
+      event_type = 'form_submit';
+      // Extract contact info for visitor_id if available
+      const contact = body.contact || {};
+      visitor_id = contact.email || contact.id || null;
+      referrer = 'ghl-webhook';
+    } else {
+      // Standard browser tracking payload
+      page_slug = body.page_slug || body.slug;
+      event_type = body.event_type || body.event;
+      visitor_id = body.visitor_id;
+      referrer = body.referrer;
+    }
 
     if (!page_slug || !event_type) {
       return res.status(400).json({ error: 'page_slug and event_type required' });
