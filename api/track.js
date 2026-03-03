@@ -31,14 +31,14 @@ export default async function handler(req, res) {
 
     let page_slug, event_type, visitor_id, referrer;
 
-    // Detect GHL webhook payload (has formId, contact, or location fields)
-    if (body.formId || body.form_id || body.contact || body.location) {
-      const formId = body.formId || body.form_id || '';
-      page_slug = GHL_FORM_MAP[formId] || body.page_slug || body.slug || 'unknown-form';
+    // Check for ?form= query param (GHL webhook with flat contact payload)
+    const formParam = req.query?.form;
+
+    if (formParam) {
+      // GHL webhook: { id, name, email, phone }
+      page_slug = formParam;
       event_type = 'form_submit';
-      // Extract contact info for visitor_id if available
-      const contact = body.contact || {};
-      visitor_id = contact.email || contact.id || null;
+      visitor_id = body.email || body.id || null;
       referrer = 'ghl-webhook';
     } else {
       // Standard browser tracking payload
