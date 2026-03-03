@@ -4079,19 +4079,34 @@ body.block-editor-open .block-editor-fab {
   .be-header {
     padding: var(--space-2) var(--space-3);
     flex-wrap: wrap;
+    gap: var(--space-2);
   }
 
   .be-title-input {
     font-size: var(--text-base);
+    width: 100%;
+    order: -1;
   }
 
   .be-folder-select {
     max-width: 120px;
     font-size: var(--text-xs);
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .be-header-actions {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+  }
+
+  .be-delete-btn svg {
+    width: 12px;
+    height: 12px;
   }
 
   .be-content .ProseMirror {
-    padding: var(--space-4);
+    padding: var(--space-3);
   }
 
   .block-editor-fab {
@@ -5439,22 +5454,27 @@ body.block-editor-open .block-editor-fab {
 
   .ws-layout {
     grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .ws-folder-sidebar {
     flex-direction: column;
-    gap: var(--space-1);
+    gap: 0;
     padding-bottom: var(--space-2);
     border-bottom: 1px solid var(--border-light);
     margin-bottom: var(--space-3);
   }
 
-  .ws-folder-delete {
-    display: none;
+  .ws-folder-children .ws-folder-item {
+    padding-left: var(--space-5) !important;
   }
 
   .ws-folder-item[style] {
     padding-left: var(--space-3) !important;
+  }
+
+  .ws-folder-delete {
+    display: none;
   }
 
   /* Chat: no changes needed for tablet — layout is already centered */
@@ -5590,20 +5610,49 @@ body.block-editor-open .block-editor-fab {
     grid-template-columns: 1fr;
   }
 
+  /* ── Workspace mobile ── */
   .ws-layout {
     grid-template-columns: 1fr;
+    gap: 0;
+    min-height: auto;
   }
 
   .ws-folder-sidebar {
     flex-direction: column;
-    gap: var(--space-1);
-    padding-bottom: var(--space-2);
+    gap: 0;
+    padding: var(--space-2) 0;
     border-bottom: 1px solid var(--border-light);
     margin-bottom: var(--space-3);
   }
 
+  /* Dividers: compact on mobile */
+  .ws-divider-item {
+    font-size: 11px;
+    padding: var(--space-2) var(--space-2) var(--space-1);
+  }
+
+  .ws-divider-row {
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+  }
+
+  .ws-divider-row:first-child {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  /* Folders: tighter but keep indent under dividers */
   .ws-folder-item {
-    padding: var(--space-1) var(--space-3);
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .ws-folder-children .ws-folder-item {
+    padding-left: var(--space-5) !important;
+  }
+
+  .ws-folder-item[style] {
+    padding-left: var(--space-2) !important;
   }
 
   .ws-folder-count {
@@ -5614,26 +5663,29 @@ body.block-editor-open .block-editor-fab {
     display: none;
   }
 
-  .ws-folder-item[style] {
-    padding-left: var(--space-3) !important;
-  }
-
   .ws-folder-delete {
     display: none;
   }
 
+  /* Note cards */
   .ws-doc-grid {
     grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .ws-doc-card {
+    padding: var(--space-3);
   }
 
   .ws-doc-delete {
     opacity: 1;
   }
 
-  /* Workspace actions — wrap on mobile */
+  /* Actions bar */
   #knowledgeActions {
     flex-wrap: wrap;
     justify-content: flex-end;
+    gap: var(--space-2);
   }
 
   /* Home schedule card */
