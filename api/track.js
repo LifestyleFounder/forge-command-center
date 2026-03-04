@@ -40,10 +40,14 @@ export default async function handler(req, res) {
       event_type = 'form_submit';
       visitor_id = body.email || body.id || null;
       referrer = 'ghl-webhook';
-      // Store contact details from GHL webhook
+      // Store all form data from GHL webhook (skip internal/redundant fields)
+      const skip = new Set(['id', 'email', 'locationId', 'contactId', 'formId']);
       meta = {};
-      if (body.name) meta.name = String(body.name).slice(0, 200);
-      if (body.phone) meta.phone = String(body.phone).slice(0, 50);
+      for (const [k, v] of Object.entries(body)) {
+        if (!skip.has(k) && v != null && v !== '') {
+          meta[k] = String(v).slice(0, 500);
+        }
+      }
       if (Object.keys(meta).length === 0) meta = null;
     } else {
       // Standard browser tracking payload
@@ -51,11 +55,14 @@ export default async function handler(req, res) {
       event_type = body.event_type || body.event;
       visitor_id = body.visitor_id;
       referrer = body.referrer;
-      // Accept optional meta from browser tracking (name, phone from form fields)
+      // Accept optional meta from browser tracking (all form field data)
       if (body.meta && typeof body.meta === 'object') {
         meta = {};
-        if (body.meta.name) meta.name = String(body.meta.name).slice(0, 200);
-        if (body.meta.phone) meta.phone = String(body.meta.phone).slice(0, 50);
+        for (const [k, v] of Object.entries(body.meta)) {
+          if (v != null && v !== '') {
+            meta[k] = String(v).slice(0, 500);
+          }
+        }
         if (Object.keys(meta).length === 0) meta = null;
       } else {
         meta = null;

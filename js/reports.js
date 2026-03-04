@@ -307,21 +307,36 @@ function renderSubmissionsPanel(label) {
   }
 
   const PAGE_NAMES = { 'free-skool': 'Free Skool', 'application': 'Application' };
+  // Fields to hide from meta display (internal/redundant)
+  const HIDE_META = new Set(['source', 'medium', 'campaign', 'gclid', 'fbclid']);
 
   return `
     <div class="meta-chart-card" style="margin-top:var(--space-3);padding:var(--space-4)">
       <h3>${escapeHtml(label)} (${funnelSubmissions.length})</h3>
       <div class="activity-timeline" style="margin-top:var(--space-3)">
         ${funnelSubmissions.map(sub => {
-          const primary = sub.name || sub.email || 'Anonymous';
-          const secondary = sub.name && sub.email ? sub.email : '';
+          const meta = sub.meta || {};
+          const name = meta.name || meta.full_name || meta.firstName || null;
+          const email = sub.email || meta.email || null;
+          const phone = meta.phone || meta.phoneNumber || null;
+          const primary = name || email || 'Anonymous';
+          const secondary = name && email ? email : '';
           const pageName = PAGE_NAMES[sub.page] || sub.page;
+
+          // Show any extra meta fields beyond name/email/phone
+          const knownKeys = new Set(['name', 'full_name', 'firstName', 'lastName', 'email', 'phone', 'phoneNumber']);
+          const extras = Object.entries(meta)
+            .filter(([k, v]) => !knownKeys.has(k) && !HIDE_META.has(k) && v)
+            .map(([k, v]) => `${k}: ${v}`);
+
+          const detailParts = [secondary, phone, pageName, ...extras].filter(Boolean);
+
           return `
             <div class="activity-timeline-item">
               <span class="activity-timeline-icon" style="font-size:var(--text-base)">●</span>
               <div class="activity-timeline-content">
                 <span class="activity-timeline-action">${escapeHtml(primary)}</span>
-                <span class="activity-timeline-details text-xs text-tertiary">${[secondary, sub.phone, pageName].filter(Boolean).map(escapeHtml).join(' · ')}</span>
+                <span class="activity-timeline-details text-xs text-tertiary">${detailParts.map(escapeHtml).join(' · ')}</span>
               </div>
               <span class="activity-timeline-time text-xs text-tertiary">${formatRelativeTime(sub.timestamp)}</span>
             </div>

@@ -73,11 +73,10 @@ export default async function handler(req, res) {
 
     const rows = await response.json();
 
-    // Normalize aliased slugs in response
+    // Normalize aliased slugs, pass all meta fields through
     const submissions = rows.map(r => ({
       email: r.visitor_id || null,
-      name: r.meta?.name || null,
-      phone: r.meta?.phone || null,
+      meta: r.meta || {},
       page: SLUG_ALIASES[r.page_slug] || r.page_slug,
       timestamp: r.created_at,
     }));
