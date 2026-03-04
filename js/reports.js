@@ -17,6 +17,8 @@ let funnelRange = '30d'; // '1d-today', '1d-yesterday', '7d', '30d', '90d'
 let funnelSlug = 'all';
 let funnelPages = [];
 let funnelChartInstance = null;
+let funnelSubmissions = null; // cached submissions list
+let funnelSubmissionsOpen = false; // toggle state
 
 const FUNNEL_PAGE_NAMES = {
   'free-skool': 'Free Skool',
@@ -267,8 +269,8 @@ function renderFunnels() {
         <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">Page Views</div>
         <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : formatNumber(s.views)}</div>
       </div>
-      <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
-        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">${escapeHtml(subLabel)}</div>
+      <div class="meta-chart-card" id="funnelSubmissionsCard" style="text-align:center;padding:var(--space-5);cursor:pointer;transition:box-shadow 0.15s ease" title="Click to view ${escapeHtml(subLabel).toLowerCase()}">
+        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">${escapeHtml(subLabel)} ▾</div>
         <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : formatNumber(s.submissions)}</div>
       </div>
       <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
@@ -280,8 +282,71 @@ function renderFunnels() {
       <h3>Daily Views &amp; Submissions</h3>
       <canvas id="funnelChart"></canvas>
     </div>
+    ${funnelSubmissionsOpen ? renderSubmissionsPanel(subLabel) : ''}
     ${funnelData?.lastUpdated ? `<div class="text-xs text-tertiary" style="margin-top:var(--space-4)">Last updated: ${formatRelativeTime(funnelData.lastUpdated)}</div>` : ''}
   `;
+}
+
+function renderSubmissionsPanel(label) {
+  if (!funnelSubmissions) {
+    return `
+      <div class="meta-chart-card" style="margin-top:var(--space-3);padding:var(--space-4)">
+        <h3>${escapeHtml(label)}</h3>
+        <div class="text-sm text-tertiary" style="padding:var(--space-4) 0;text-align:center">Loading...</div>
+      </div>
+    `;
+  }
+
+  if (funnelSubmissions.length === 0) {
+    return `
+      <div class="meta-chart-card" style="margin-top:var(--space-3);padding:var(--space-4)">
+        <h3>${escapeHtml(label)}</h3>
+        <div class="text-sm text-tertiary" style="padding:var(--space-4) 0;text-align:center">No submissions in this period.</div>
+      </div>
+    `;
+  }
+
+  const PAGE_NAMES = { 'free-skool': 'Free Skool', 'application': 'Application' };
+
+  return `
+    <div class="meta-chart-card" style="margin-top:var(--space-3);padding:var(--space-4)">
+      <h3>${escapeHtml(label)} (${funnelSubmissions.length})</h3>
+      <div class="activity-timeline" style="margin-top:var(--space-3)">
+        ${funnelSubmissions.map(sub => {
+          const primary = sub.name || sub.email || 'Anonymous';
+          const secondary = sub.name && sub.email ? sub.email : '';
+          const pageName = PAGE_NAMES[sub.page] || sub.page;
+          return `
+            <div class="activity-timeline-item">
+              <span class="activity-timeline-icon" style="font-size:var(--text-base)">●</span>
+              <div class="activity-timeline-content">
+                <span class="activity-timeline-action">${escapeHtml(primary)}</span>
+                <span class="activity-timeline-details text-xs text-tertiary">${[secondary, sub.phone, pageName].filter(Boolean).map(escapeHtml).join(' · ')}</span>
+              </div>
+              <span class="activity-timeline-time text-xs text-tertiary">${formatRelativeTime(sub.timestamp)}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function loadSubmissions() {
+  try {
+    const rangeParams = funnelRangeToParams(funnelRange);
+    let url = `/api/funnel-submissions?${rangeParams}`;
+    if (funnelSlug && funnelSlug !== 'all') url += `&slug=${encodeURIComponent(funnelSlug)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    funnelSubmissions = data.submissions || [];
+  } catch (err) {
+    console.warn('[reports] Failed to load submissions', err);
+    funnelSubmissions = [];
+  }
+  renderReports();
+  requestAnimationFrame(() => renderFunnelChart());
 }
 
 function funnelRangeToParams(range) {
@@ -403,8 +468,25 @@ function bindReportEvents() {
       }
     }
 
+    // Submissions card click — toggle detail panel
+    const subCard = e.target.closest('#funnelSubmissionsCard');
+    if (subCard) {
+      funnelSubmissionsOpen = !funnelSubmissionsOpen;
+      if (funnelSubmissionsOpen) {
+        funnelSubmissions = null; // trigger loading state
+        renderReports();
+        requestAnimationFrame(() => renderFunnelChart());
+        loadSubmissions();
+      } else {
+        renderReports();
+        requestAnimationFrame(() => renderFunnelChart());
+      }
+    }
+
     const rangeBtn = e.target.closest('[data-funnel-range]');
     if (rangeBtn) {
+      funnelSubmissions = null;
+      funnelSubmissionsOpen = false;
       loadFunnelStats(rangeBtn.dataset.funnelRange);
     }
   });
@@ -412,6 +494,8 @@ function bindReportEvents() {
   container.addEventListener('change', (e) => {
     if (e.target.id === 'funnelPageSelect') {
       funnelSlug = e.target.value;
+      funnelSubmissions = null;
+      funnelSubmissionsOpen = false;
       loadFunnelStats(funnelRange);
     }
   });

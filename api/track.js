@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   try {
     const body = req.body || {};
 
-    let page_slug, event_type, visitor_id, referrer;
+    let page_slug, event_type, visitor_id, referrer, meta;
 
     // Check for ?form= query param (GHL webhook with flat contact payload)
     const formParam = req.query?.form;
@@ -40,12 +40,26 @@ export default async function handler(req, res) {
       event_type = 'form_submit';
       visitor_id = body.email || body.id || null;
       referrer = 'ghl-webhook';
+      // Store contact details from GHL webhook
+      meta = {};
+      if (body.name) meta.name = String(body.name).slice(0, 200);
+      if (body.phone) meta.phone = String(body.phone).slice(0, 50);
+      if (Object.keys(meta).length === 0) meta = null;
     } else {
       // Standard browser tracking payload
       page_slug = body.page_slug || body.slug;
       event_type = body.event_type || body.event;
       visitor_id = body.visitor_id;
       referrer = body.referrer;
+      // Accept optional meta from browser tracking (name, phone from form fields)
+      if (body.meta && typeof body.meta === 'object') {
+        meta = {};
+        if (body.meta.name) meta.name = String(body.meta.name).slice(0, 200);
+        if (body.meta.phone) meta.phone = String(body.meta.phone).slice(0, 50);
+        if (Object.keys(meta).length === 0) meta = null;
+      } else {
+        meta = null;
+      }
     }
 
     if (!page_slug || !event_type) {
@@ -70,6 +84,7 @@ export default async function handler(req, res) {
         event_type,
         visitor_id: visitor_id ? String(visitor_id).slice(0, 100) : null,
         referrer: referrer ? String(referrer).slice(0, 500) : null,
+        ...(meta ? { meta } : {}),
       }),
     });
 
