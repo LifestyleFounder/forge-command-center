@@ -21,14 +21,12 @@ let funnelChartInstance = null;
 const FUNNEL_PAGE_NAMES = {
   'free-skool': 'Free Skool',
   'application': 'Application',
-  'thanks': 'Thank You',
 };
 
 // What "submissions" means per page
 const SUBMISSION_LABELS = {
   'free-skool': 'Leads',
   'application': 'Applicants',
-  'thanks': 'Confirmations',
   'all': 'Submissions',
 };
 
