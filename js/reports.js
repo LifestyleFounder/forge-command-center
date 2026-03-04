@@ -13,14 +13,23 @@ let schedulesData = null;
 let docsIndexData = null;
 let funnelData = null;
 let funnelDays = 30;
+let funnelRange = '30d'; // '1d-today', '1d-yesterday', '7d', '30d', '90d'
 let funnelSlug = 'all';
 let funnelPages = [];
 let funnelChartInstance = null;
 
 const FUNNEL_PAGE_NAMES = {
-  'free-skool': 'Free Skool (Visitors)',
-  'application': 'Application (Leads)',
-  'thanks': 'Thank You (Applications)',
+  'free-skool': 'Free Skool',
+  'application': 'Application',
+  'thanks': 'Thank You',
+};
+
+// What "submissions" means per page
+const SUBMISSION_LABELS = {
+  'free-skool': 'Leads',
+  'application': 'Applicants',
+  'thanks': 'Confirmations',
+  'all': 'Submissions',
 };
 
 // ── Public init ──────────────────────────────────────────────────────
@@ -239,16 +248,20 @@ function renderFunnels() {
       return `<option value="${escapeHtml(slug)}" ${funnelSlug === slug ? 'selected' : ''}>${escapeHtml(name)}</option>`;
     }).join('');
 
+  const subLabel = SUBMISSION_LABELS[funnelSlug] || 'Submissions';
+
   return `
     <div class="funnel-toolbar" style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-4);align-items:center">
       <select id="funnelPageSelect" class="input-search" style="padding:var(--space-1) var(--space-2);font-size:var(--text-sm);min-width:160px;max-width:240px">
         <option value="all" ${funnelSlug === 'all' ? 'selected' : ''}>All Funnels</option>
         ${pageOptions}
       </select>
-      <div class="funnel-range-btns" style="display:flex;gap:var(--space-2)">
-        <button class="btn btn-sm ${funnelDays === 7 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="7">7d</button>
-        <button class="btn btn-sm ${funnelDays === 30 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="30">30d</button>
-        <button class="btn btn-sm ${funnelDays === 90 ? 'btn-primary' : 'btn-ghost'}" data-funnel-days="90">90d</button>
+      <div class="funnel-range-btns" style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+        <button class="btn btn-sm ${funnelRange === '1d-today' ? 'btn-primary' : 'btn-ghost'}" data-funnel-range="1d-today">Today</button>
+        <button class="btn btn-sm ${funnelRange === '1d-yesterday' ? 'btn-primary' : 'btn-ghost'}" data-funnel-range="1d-yesterday">Yesterday</button>
+        <button class="btn btn-sm ${funnelRange === '7d' ? 'btn-primary' : 'btn-ghost'}" data-funnel-range="7d">7d</button>
+        <button class="btn btn-sm ${funnelRange === '30d' ? 'btn-primary' : 'btn-ghost'}" data-funnel-range="30d">30d</button>
+        <button class="btn btn-sm ${funnelRange === '90d' ? 'btn-primary' : 'btn-ghost'}" data-funnel-range="90d">90d</button>
       </div>
     </div>
     <div class="funnel-summary-row">
@@ -257,7 +270,7 @@ function renderFunnels() {
         <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : formatNumber(s.views)}</div>
       </div>
       <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
-        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">Form Submissions</div>
+        <div class="text-xs text-secondary" style="margin-bottom:var(--space-1)">${escapeHtml(subLabel)}</div>
         <div style="font-size:var(--text-2xl);font-weight:700;color:var(--text-primary)">${loading ? '--' : formatNumber(s.submissions)}</div>
       </div>
       <div class="meta-chart-card" style="text-align:center;padding:var(--space-5)">
@@ -273,10 +286,32 @@ function renderFunnels() {
   `;
 }
 
-async function loadFunnelStats(days) {
-  funnelDays = days || funnelDays;
+function funnelRangeToParams(range) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+  switch (range) {
+    case '1d-today':
+      return `start=${todayStr}&end=${todayStr}`;
+    case '1d-yesterday':
+      return `start=${yesterdayStr}&end=${yesterdayStr}`;
+    case '7d':
+      return 'days=7';
+    case '90d':
+      return 'days=90';
+    case '30d':
+    default:
+      return 'days=30';
+  }
+}
+
+async function loadFunnelStats(range) {
+  if (range) funnelRange = range;
   try {
-    let url = `/api/funnel-stats?days=${funnelDays}`;
+    const rangeParams = funnelRangeToParams(funnelRange);
+    let url = `/api/funnel-stats?${rangeParams}`;
     if (funnelSlug && funnelSlug !== 'all') url += `&slug=${encodeURIComponent(funnelSlug)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -364,22 +399,22 @@ function bindReportEvents() {
       activeSubtab = tab.dataset.reportTab;
       renderReports();
       if (activeSubtab === 'reports-funnels' && !funnelData) {
-        loadFunnelStats(funnelDays);
+        loadFunnelStats(funnelRange);
       } else if (activeSubtab === 'reports-funnels') {
         requestAnimationFrame(() => renderFunnelChart());
       }
     }
 
-    const daysBtn = e.target.closest('[data-funnel-days]');
-    if (daysBtn) {
-      loadFunnelStats(parseInt(daysBtn.dataset.funnelDays));
+    const rangeBtn = e.target.closest('[data-funnel-range]');
+    if (rangeBtn) {
+      loadFunnelStats(rangeBtn.dataset.funnelRange);
     }
   });
 
   container.addEventListener('change', (e) => {
     if (e.target.id === 'funnelPageSelect') {
       funnelSlug = e.target.value;
-      loadFunnelStats(funnelDays);
+      loadFunnelStats(funnelRange);
     }
   });
 

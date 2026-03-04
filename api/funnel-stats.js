@@ -4,6 +4,11 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
+// Slug aliases — old tracking slugs that map to canonical funnel slugs
+const SLUG_ALIASES = {
+  'swipe-page': 'free-skool',
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -14,11 +19,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Date range: support start/end params or days
+    const startParam = req.query.start; // YYYY-MM-DD
+    const endParam = req.query.end;     // YYYY-MM-DD
     const days = Math.min(parseInt(req.query.days) || 30, 365);
     const slug = req.query.slug || null;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    const sinceISO = since.toISOString();
+
+    let sinceISO, untilISO;
+    if (startParam) {
+      sinceISO = new Date(startParam + 'T00:00:00Z').toISOString();
+      untilISO = endParam
+        ? new Date(endParam + 'T23:59:59.999Z').toISOString()
+        : new Date().toISOString();
+    } else {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      sinceISO = since.toISOString();
+      untilISO = null;
+    }
 
     // Fetch all events in the date range
     const params = new URLSearchParams({
@@ -27,7 +45,20 @@ export default async function handler(req, res) {
       order: 'created_at.asc',
       limit: '10000',
     });
-    if (slug) params.set('page_slug', `eq.${slug}`);
+    if (untilISO) params.append('created_at', `lte.${untilISO}`);
+
+    // When filtering by slug, also include its aliases
+    if (slug) {
+      const aliasedSlugs = [slug];
+      for (const [alias, canonical] of Object.entries(SLUG_ALIASES)) {
+        if (canonical === slug) aliasedSlugs.push(alias);
+      }
+      if (aliasedSlugs.length === 1) {
+        params.set('page_slug', `eq.${slug}`);
+      } else {
+        params.set('page_slug', `in.(${aliasedSlugs.join(',')})`);
+      }
+    }
 
     // Also fetch distinct page slugs (unfiltered, lightweight)
     const pagesParams = new URLSearchParams({
@@ -53,19 +84,23 @@ export default async function handler(req, res) {
 
     const events = await response.json();
 
-    // Extract distinct page slugs
+    // Extract distinct page slugs, normalizing aliases
     let pages = [];
     if (pagesResponse.ok) {
       const pagesRows = await pagesResponse.json();
-      pages = [...new Set(pagesRows.map(r => r.page_slug).filter(Boolean))].sort();
+      const rawSlugs = pagesRows.map(r => r.page_slug).filter(Boolean);
+      const normalized = rawSlugs.map(s => SLUG_ALIASES[s] || s);
+      pages = [...new Set(normalized)].sort();
     }
 
-    // Aggregate by day
+    // Aggregate by day, normalizing aliased slugs
     const dailyMap = {};
     let totalViews = 0;
     let totalSubmissions = 0;
 
     for (const e of events) {
+      // Normalize aliased slugs to canonical names
+      const canonical = SLUG_ALIASES[e.page_slug] || e.page_slug;
       const date = e.created_at.slice(0, 10); // YYYY-MM-DD
       if (!dailyMap[date]) dailyMap[date] = { date, views: 0, submissions: 0 };
 
@@ -80,12 +115,13 @@ export default async function handler(req, res) {
 
     // Fill in missing days with zeros
     const daily = [];
-    const cursor = new Date(since);
-    cursor.setHours(0, 0, 0, 0);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    const rangeStart = new Date(sinceISO);
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = untilISO ? new Date(untilISO) : new Date();
+    rangeEnd.setHours(23, 59, 59, 999);
+    const cursor = new Date(rangeStart);
 
-    while (cursor <= today) {
+    while (cursor <= rangeEnd) {
       const dateStr = cursor.toISOString().slice(0, 10);
       daily.push(dailyMap[dateStr] || { date: dateStr, views: 0, submissions: 0 });
       cursor.setDate(cursor.getDate() + 1);
