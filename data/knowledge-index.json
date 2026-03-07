@@ -1,7 +1,6 @@
 {
   "agents": {
-    "geeves": "geeves.md",
-    "forge": "forge.md",
+    "king-consultant": "king-consultant.md",
     "multiplier": "multiplier.md",
     "the-closer": "the-closer.md",
     "the-coach": "the-coach.md",

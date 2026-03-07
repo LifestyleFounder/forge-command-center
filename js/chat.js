@@ -19,10 +19,12 @@ const PANEL_KEY   = 'forge-agents-panel-open';
 
 // ── Chip configs ─────────────────────────────────────────────────────
 const AGENT_CHIPS = {
-  geeves: [
-    { key: 'strategize', icon: '&#9889;',    label: 'Strategize', prefill: 'Help me create a strategy for ' },
-    { key: 'analyze',    icon: '&#128202;',   label: 'Analyze',    prefill: 'Analyze my current ' },
-    { key: 'plan',       icon: '&#128203;',   label: 'Plan',       prefill: 'Help me plan out ' },
+  'king-consultant': [
+    { key: 'strategy',   icon: '&#9889;',    label: 'Strategy',   prefill: 'Help me create a strategy for ' },
+    { key: 'metrics',    icon: '&#128202;',   label: 'Metrics',    prefill: 'Break down my current metrics and tell me ' },
+    { key: 'clients',    icon: '&#128101;',   label: 'Clients',    prefill: 'Review my VIP clients and ' },
+    { key: 'ads',        icon: '&#127919;',   label: 'Ads',        prefill: 'Analyze my Meta ad performance and ' },
+    { key: 'content',    icon: '&#128221;',   label: 'Content',    prefill: 'Review my content performance and ' },
   ],
   multiplier: [
     { key: 'brainstorm', icon: '&#128161;',   label: 'Brainstorm',  prefill: 'Brainstorm time — give me 10 viral content ideas on ' },
@@ -66,11 +68,6 @@ const AGENT_CHIPS = {
     { key: 'targeting',  icon: '&#127919;',   label: 'Targeting',   prefill: 'Help me build an audience for ' },
     { key: 'diagnose',   icon: '&#128269;',   label: 'Diagnose',    prefill: 'Why is my ad underperforming? Here\'s the data: ' },
   ],
-  forge: [
-    { key: 'build',      icon: '&#128296;',   label: 'Build',       prefill: 'Help me build ' },
-    { key: 'fix',        icon: '&#128295;',   label: 'Fix',         prefill: 'Help me fix ' },
-    { key: 'idea',       icon: '&#128161;',   label: 'Brainstorm',  prefill: 'Help me think through ' },
-  ],
 };
 
 // Default chips for agents not in the map
@@ -79,7 +76,7 @@ const DEFAULT_CHIPS = [
 ];
 
 // ── State ────────────────────────────────────────────────────────────
-let activeAgentId  = 'geeves';
+let activeAgentId  = 'king-consultant';
 let activeThreadId = null;
 let isSending      = false;
 let chatState      = 'landing'; // 'landing' | 'conversation'
@@ -515,7 +512,15 @@ function formatMarkdown(content) {
 // ═══════════════════════════════════════════════════════════════════════
 //  AUTO-CONTEXT INJECTION
 // ═══════════════════════════════════════════════════════════════════════
-function buildDashboardContext() {
+async function fetchJSON(path) {
+  try {
+    const res = await fetch(`./data/${path}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function buildDashboardContext(agentId) {
   const parts = [];
 
   // Business metrics
@@ -548,10 +553,19 @@ function buildDashboardContext() {
       const d = new Date(c.joinDate);
       return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     });
-    parts.push(`## VIP Clients
+
+    if (agentId === 'king-consultant') {
+      // Full VIP roster for King Consultant
+      const vipLines = vip.map(c =>
+        `- ${c.name} | ${c.status || 'active'} | ${c.program || '?'} | joined ${c.joinDate || '?'} | ${c.health || 'healthy'}`
+      );
+      parts.push(`## VIP Client Roster (${vip.length} total)\n${vipLines.join('\n')}`);
+    } else {
+      parts.push(`## VIP Clients
 - Active: ${active.length}
 - At-risk/warning: ${atRiskVip.length}${atRiskVip.length > 0 ? ' (' + atRiskVip.map(c => c.name).join(', ') + ')' : ''}
 - Joined last 30 days: ${recent.length}`);
+    }
   }
 
   // Tasks
@@ -569,6 +583,80 @@ function buildDashboardContext() {
   if (content?.trending && content.trending.length > 0) {
     const topics = content.trending.slice(0, 5).map(t => `- ${t.title || t.topic || t}`);
     parts.push(`## Trending Content\n${topics.join('\n')}`);
+  }
+
+  // ── King Consultant: inject ALL data sources ──────────────────────
+  if (agentId === 'king-consultant') {
+    // Meta Ads
+    const metaAds = getState('metaAds') || await fetchJSON('meta-ads.json');
+    if (metaAds) {
+      const s = metaAds.summary || metaAds;
+      parts.push(`## Meta Ads Performance
+- Total spend: $${s.spend ?? '?'}
+- Leads: ${s.leads ?? '?'}
+- CPL: $${s.cpl ?? '?'}
+- Applications: ${s.applications ?? '?'}
+- CPA: $${s.cpa ?? '?'}
+- ROAS: ${s.roas ?? '?'}`);
+      if (metaAds.campaigns && Array.isArray(metaAds.campaigns)) {
+        const campLines = metaAds.campaigns.map(c =>
+          `- ${c.name}: $${c.spend ?? '?'} spend | ${c.leads ?? c.results ?? '?'} leads | ${c.status || 'unknown'}`
+        );
+        parts.push(`### Campaigns\n${campLines.join('\n')}`);
+      }
+    }
+
+    // Ad Swipes (competitor hooks)
+    const adSwipes = getState('adSwipes') || await fetchJSON('ad-swipes.json');
+    if (adSwipes) {
+      const swipeArr = Array.isArray(adSwipes) ? adSwipes : adSwipes.swipes || [];
+      if (swipeArr.length > 0) {
+        const swipeLines = swipeArr.slice(0, 10).map(s =>
+          `- ${s.creator || s.name || 'Unknown'}: "${(s.hook || s.headline || '').slice(0, 80)}"`
+        );
+        parts.push(`## Ad Swipes (Competitor Hooks)\n${swipeLines.join('\n')}`);
+      }
+    }
+
+    // Instagram stats
+    const ig = getState('instagram') || await fetchJSON('instagram.json');
+    if (ig) {
+      parts.push(`## Instagram Performance
+- Followers: ${ig.followers ?? '?'}
+- Engagement rate: ${ig.engagementRate ?? '?'}%
+- Posts last 30 days: ${ig.postsLast30 ?? ig.recentPosts?.length ?? '?'}
+- Top post: ${ig.topPost?.caption?.slice(0, 80) ?? ig.topContent ?? '?'}`);
+    }
+
+    // YouTube stats
+    const yt = getState('youtube') || await fetchJSON('youtube.json');
+    if (yt) {
+      parts.push(`## YouTube Performance
+- Subscribers: ${yt.subscribers ?? '?'}
+- Total views: ${yt.totalViews ?? '?'}
+- Videos: ${yt.videoCount ?? yt.videos ?? '?'}
+- Avg views: ${yt.avgViews ?? '?'}`);
+    }
+
+    // Competitor analysis
+    const creators = await fetchJSON('creators.json');
+    if (creators) {
+      const creatorArr = Array.isArray(creators) ? creators : creators.creators || [];
+      if (creatorArr.length > 0) {
+        const creatorLines = creatorArr.map(c =>
+          `- ${c.name || c.username}: ${c.followers ?? '?'} followers | ${c.engagementRate ?? '?'}% engagement | ${c.platform || 'IG'}`
+        );
+        parts.push(`## Competitor Analysis\n${creatorLines.join('\n')}`);
+      }
+    }
+
+    // Content pipeline
+    if (content?.pipeline && Array.isArray(content.pipeline)) {
+      const pipeLines = content.pipeline.slice(0, 10).map(p =>
+        `- [${p.status || '?'}] ${p.title || p.topic || p}`
+      );
+      parts.push(`## Content Pipeline\n${pipeLines.join('\n')}`);
+    }
   }
 
   if (parts.length === 0) return '';
@@ -734,7 +822,7 @@ async function callLLM(messages, agent) {
     systemPrompt += '\n\n---\n\n# Knowledge Base\n\n' + knowledge;
   }
 
-  systemPrompt += buildDashboardContext();
+  systemPrompt += await buildDashboardContext(agent?.id);
 
   const res = await fetch(`${proxyUrl}/anthropic`, {
     method: 'POST',
