@@ -1,0 +1,14 @@
+{
+  "projects": [
+    {
+      "id": "prj_revenue_unlock_sprint",
+      "name": "Revenue Unlock Sprint",
+      "description": "30-day sprint to close the $43K → $100K MRR gap. Five workstreams: (1) Wire up AI DM Closer checkout + AI Audit Quiz form, (2) Triage 116 unresponded Sendblue convos, (3) Build VIP ascension trigger system — auto-flag Premium members ready for upgrade, (4) Launch n8n content intelligence scraper for competitor + performance insights, (5) Create 3 new Meta creatives in Kim Pep Talk style with fresh angles. Target: 44 more VIP clients + $16K low-ticket revenue stream.",
+      "status": "progress",
+      "color": "gold",
+      "createdAt": "2026-03-06T12:00:00.000Z",
+      "completedAt": null,
+      "linkedTasks": []
+    }
+  ]
+}

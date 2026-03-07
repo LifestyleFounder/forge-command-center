@@ -14,7 +14,7 @@ import {
   showToast
 } from './app.js';
 
-import { getProjects, saveProjects, onProjectsChange } from './project-store.js';
+import { getProjects, saveProjects, onProjectsChange, seedProjects } from './project-store.js';
 import {
   completeTaskById,
   uncompleteTaskById,
@@ -65,8 +65,9 @@ function cacheProjectElements() {
 
 // ---- Public Init ----------------------------------------------
 
-export function initProjects() {
+export async function initProjects() {
   cacheProjectElements();
+  await seedProjects();
   renderKanban();
   initDragAndDrop();
   bindProjectEvents();

@@ -46,4 +46,31 @@ function onProjectsChange(fn) {
   };
 }
 
-export { getProjects, saveProjects, getProjectForTask, getAllProjectOptions, onProjectsChange };
+async function seedProjects() {
+  try {
+    const res = await fetch(`data/seed-projects.json?t=${Date.now()}`);
+    if (!res.ok) return;
+    const seed = await res.json();
+    if (!seed.projects || !Array.isArray(seed.projects)) return;
+
+    const data = getProjects();
+    const existingIds = new Set(data.projects.map(p => p.id));
+    let added = 0;
+
+    seed.projects.forEach(sp => {
+      if (!existingIds.has(sp.id)) {
+        data.projects.push(sp);
+        added++;
+      }
+    });
+
+    if (added > 0) {
+      saveProjects(data);
+      console.log(`[project-store] Seeded ${added} project(s)`);
+    }
+  } catch (e) {
+    console.warn('[project-store] Seed file not found or invalid', e);
+  }
+}
+
+export { getProjects, saveProjects, getProjectForTask, getAllProjectOptions, onProjectsChange, seedProjects };
