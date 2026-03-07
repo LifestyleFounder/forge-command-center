@@ -543,27 +543,27 @@ async function buildDashboardContext(agentId) {
 - At-risk: ${atRisk}${atRisk > 0 && biz.clients?.atRisk ? ' (' + biz.clients.atRisk.map(c => c.name || c).join(', ') + ')' : ''}`);
   }
 
-  // VIP clients
+  // VIP clients (fields: name, status, program[], joined, payment, pif, email)
   const vip = getState('vipClients');
   if (vip && Array.isArray(vip)) {
-    const active = vip.filter(c => c.status === 'active' || !c.status);
-    const atRiskVip = vip.filter(c => c.health === 'at-risk' || c.health === 'warning');
+    const active = vip.filter(c => c.status === 'Active' || !c.status);
+    const atRiskVip = vip.filter(c => c.status === 'At Risk');
     const recent = vip.filter(c => {
-      if (!c.joinDate) return false;
-      const d = new Date(c.joinDate);
+      if (!c.joined) return false;
+      const d = new Date(c.joined);
       return (Date.now() - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
     });
 
     if (agentId === 'king-consultant') {
-      // Full VIP roster for King Consultant
-      const vipLines = vip.map(c =>
-        `- ${c.name} | ${c.status || 'active'} | ${c.program || '?'} | joined ${c.joinDate || '?'} | ${c.health || 'healthy'}`
-      );
-      parts.push(`## VIP Client Roster (${vip.length} total)\n${vipLines.join('\n')}`);
+      const vipLines = vip.map(c => {
+        const prog = Array.isArray(c.program) ? c.program.join(', ') : (c.program || '?');
+        return `- ${c.name} | ${c.status || 'Active'} | ${prog} | joined ${c.joined || '?'} | ${c.payment || '?'}`;
+      });
+      parts.push(`## VIP Client Roster (${vip.length} total, ${active.length} active, ${atRiskVip.length} at-risk)\n${vipLines.join('\n')}`);
     } else {
       parts.push(`## VIP Clients
 - Active: ${active.length}
-- At-risk/warning: ${atRiskVip.length}${atRiskVip.length > 0 ? ' (' + atRiskVip.map(c => c.name).join(', ') + ')' : ''}
+- At-risk: ${atRiskVip.length}${atRiskVip.length > 0 ? ' (' + atRiskVip.map(c => c.name).join(', ') + ')' : ''}
 - Joined last 30 days: ${recent.length}`);
     }
   }
@@ -578,81 +578,91 @@ async function buildDashboardContext(agentId) {
     }
   }
 
-  // Content trending
+  // Content trending (data uses trends.hot / trends.rising)
   const content = getState('content');
-  if (content?.trending && content.trending.length > 0) {
-    const topics = content.trending.slice(0, 5).map(t => `- ${t.title || t.topic || t}`);
+  const trending = content?.trending || content?.trends?.hot || content?.trends?.rising || [];
+  if (trending.length > 0) {
+    const topics = trending.slice(0, 5).map(t => `- ${t.title || t.topic || t}`);
     parts.push(`## Trending Content\n${topics.join('\n')}`);
   }
 
   // ── King Consultant: inject ALL data sources ──────────────────────
   if (agentId === 'king-consultant') {
-    // Meta Ads
+    // Meta Ads (fields: summary.spend/leads/cpl/applications/roas, campaigns[])
     const metaAds = getState('metaAds') || await fetchJSON('meta-ads.json');
     if (metaAds) {
       const s = metaAds.summary || metaAds;
+      const cpa = (s.spend && s.applications) ? (s.spend / s.applications).toFixed(2) : '?';
       parts.push(`## Meta Ads Performance
 - Total spend: $${s.spend ?? '?'}
 - Leads: ${s.leads ?? '?'}
 - CPL: $${s.cpl ?? '?'}
 - Applications: ${s.applications ?? '?'}
-- CPA: $${s.cpa ?? '?'}
-- ROAS: ${s.roas ?? '?'}`);
+- CPA: $${cpa}
+- ROAS: ${s.roas ?? '?'}
+- Impressions: ${s.impressions ?? '?'}
+- Clicks: ${s.clicks ?? '?'}
+- CTR: ${s.ctr ?? '?'}%`);
       if (metaAds.campaigns && Array.isArray(metaAds.campaigns)) {
         const campLines = metaAds.campaigns.map(c =>
-          `- ${c.name}: $${c.spend ?? '?'} spend | ${c.leads ?? c.results ?? '?'} leads | ${c.status || 'unknown'}`
+          `- ${c.name}: $${c.spend ?? '?'} spend | ${c.leads ?? '?'} leads | ${c.applications ?? '?'} apps | ${c.status || 'unknown'}`
         );
         parts.push(`### Campaigns\n${campLines.join('\n')}`);
       }
     }
 
-    // Ad Swipes (competitor hooks)
+    // Ad Swipes (fields: swipes[].advertiser, .headline, .primaryText, .hookFramework)
     const adSwipes = getState('adSwipes') || await fetchJSON('ad-swipes.json');
     if (adSwipes) {
       const swipeArr = Array.isArray(adSwipes) ? adSwipes : adSwipes.swipes || [];
       if (swipeArr.length > 0) {
         const swipeLines = swipeArr.slice(0, 10).map(s =>
-          `- ${s.creator || s.name || 'Unknown'}: "${(s.hook || s.headline || '').slice(0, 80)}"`
+          `- ${s.advertiser || 'Unknown'}: "${(s.headline || s.primaryText || '').slice(0, 80)}" [${s.hookFramework || s.hookType || ''}]`
         );
         parts.push(`## Ad Swipes (Competitor Hooks)\n${swipeLines.join('\n')}`);
       }
     }
 
-    // Instagram stats
+    // Instagram (fields: currentStats.followers/engagementRate/posts/avgLikes/avgComments)
     const ig = getState('instagram') || await fetchJSON('instagram.json');
     if (ig) {
+      const stats = ig.currentStats || ig;
       parts.push(`## Instagram Performance
-- Followers: ${ig.followers ?? '?'}
-- Engagement rate: ${ig.engagementRate ?? '?'}%
-- Posts last 30 days: ${ig.postsLast30 ?? ig.recentPosts?.length ?? '?'}
-- Top post: ${ig.topPost?.caption?.slice(0, 80) ?? ig.topContent ?? '?'}`);
+- Handle: ${ig.handle ?? '?'}
+- Followers: ${stats.followers ?? '?'}
+- Engagement rate: ${stats.engagementRate ?? '?'}%
+- Total posts: ${stats.posts ?? '?'}
+- Avg likes: ${stats.avgLikes ?? '?'}
+- Avg comments: ${stats.avgComments ?? '?'}`);
     }
 
-    // YouTube stats
+    // YouTube (fields: manualStats.subscribers/totalViews/totalVideos/avgViewsPerVideo)
     const yt = getState('youtube') || await fetchJSON('youtube.json');
     if (yt) {
+      const stats = yt.manualStats || yt.channelStats || yt;
       parts.push(`## YouTube Performance
-- Subscribers: ${yt.subscribers ?? '?'}
-- Total views: ${yt.totalViews ?? '?'}
-- Videos: ${yt.videoCount ?? yt.videos ?? '?'}
-- Avg views: ${yt.avgViews ?? '?'}`);
+- Subscribers: ${stats.subscribers ?? '?'}
+- Total views: ${stats.totalViews ?? '?'}
+- Videos: ${stats.totalVideos ?? '?'}
+- Avg views/video: ${stats.avgViewsPerVideo ?? '?'}`);
     }
 
-    // Competitor analysis
+    // Competitor analysis (fields: creators[].fullName/username/followers/engagementRate)
     const creators = await fetchJSON('creators.json');
     if (creators) {
       const creatorArr = Array.isArray(creators) ? creators : creators.creators || [];
       if (creatorArr.length > 0) {
         const creatorLines = creatorArr.map(c =>
-          `- ${c.name || c.username}: ${c.followers ?? '?'} followers | ${c.engagementRate ?? '?'}% engagement | ${c.platform || 'IG'}`
+          `- ${c.fullName || c.username}: @${c.username} | ${c.followers ?? '?'} followers | ${c.engagementRate ?? '?'}% engagement | ${c.niche || 'coaching'}`
         );
-        parts.push(`## Competitor Analysis\n${creatorLines.join('\n')}`);
+        parts.push(`## Competitor Analysis (Organic)\n${creatorLines.join('\n')}`);
       }
     }
 
     // Content pipeline
-    if (content?.pipeline && Array.isArray(content.pipeline)) {
-      const pipeLines = content.pipeline.slice(0, 10).map(p =>
+    const pipeline = content?.pipeline || content?.upcoming || [];
+    if (Array.isArray(pipeline) && pipeline.length > 0) {
+      const pipeLines = pipeline.slice(0, 10).map(p =>
         `- [${p.status || '?'}] ${p.title || p.topic || p}`
       );
       parts.push(`## Content Pipeline\n${pipeLines.join('\n')}`);
