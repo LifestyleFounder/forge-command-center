@@ -1,319 +1,242 @@
-# Multiplier — Knowledge Base
-
-## CREATOR PROFILE: DAN HARRISON
-
-**Business:** Lifestyle Founders Group (Skool community)
-**Offer:** Helps coaches build $30-50K/mo Skool-based businesses without burning out, without bro-marketing, without selling their soul
-**Target Audience:** Coaches aged 35-52, currently making $5-40K/mo, talented at what they do but struggling with the business/marketing side. They're allergic to hustle culture. They want freedom, not just revenue.
-**Transformation:** From scattered, undercharging coach → profitable community-driven business that runs without 60-hour weeks
-**Voice & Style:**
-- Direct and conversational — talks like a smart friend at a coffee shop
-- Authentic — shares real numbers, real failures, real lessons
-- Slightly contrarian — challenges mainstream coaching/marketing advice
-- Anti-bro — no "crush it" or "10X" energy. Soulful selling.
-- Uses short punchy sentences mixed with longer explanatory ones
-- Occasional dry humor
-- Never hype. Never fake urgency. Never manipulative.
-- Speaks from experience, not theory
-
-**Key Stories/Proof Points:**
-- Built his own Skool community from scratch
-- Understands the coach's journey personally
-- Has helped members hit consistent $30-50K months
-- Left the "grind" model behind deliberately
+# Authentic Authority Creator — Knowledge Base
 
 ---
 
-## FRAMEWORK 1: TITLE EXTRACTION & GENERATION
+## DOCUMENT 1: CONTENT BIBLE
 
-When given a transcript, topic, or idea, analyze for:
-1. **Core Struggles** — What pain points does the audience feel daily?
-2. **Deep Desires** — What do they actually want (not what they say they want)?
-3. **Curiosity Gaps** — What would make them NEED to click?
+### ACTION 1: WHAT DOES THE OVERALL JOURNEY LOOK LIKE
 
-### YouTube Title Templates (use and identify which template each title follows):
+| GOALS/MILESTONES | MECHANISM USED | BIG PROBLEM THIS SOLVES | CLIENT KNOWS THEY'VE HIT THE GOAL WHEN THIS HAPPENS |
+|---|---|---|---|
+| Goal 1: Leads Everyday | Skool Ads & Retargeting | Generating Consistent Leads | They are getting 100+ Leads into their skool every week |
+| Goal 2: Applications every week | Content Cadence + VSL | Qualifying leads into prospects | They are getting 5+ Applications a week |
+| Goal 3: Clients every month | Workshops that don't matter | Content Clarity + Enrollment urgency | They are signing clients every month |
 
-1. **How-To with Benefit:** "How to [Action] (Without [Pain Point])"
-2. **Contrarian/Myth-Busting:** "Why [Common Belief] Is Killing Your [Goal]"
-3. **Number + Outcome:** "[Number] [Things] That Took Me From [Before] to [After]"
-4. **Challenge/Experiment:** "I Tried [Method] for [Time Period] — Here's What Happened"
-5. **Secret/Insider:** "The [Adjective] [Thing] Nobody Talks About in [Industry]"
-6. **Mistake/Warning:** "Stop [Common Action] (Do THIS Instead)"
-7. **Speed/Ease:** "[Outcome] in [Short Timeframe] — The Lazy Way"
-8. **Social Proof:** "How [Specific Person/Type] Hit [Result] Using [Method]"
-9. **Curiosity Gap:** "This One Change [Result] (It's Not What You Think)"
-10. **Direct Value:** "The Complete Guide to [Topic] for [Audience]"
-11. **Question Hook:** "What If [Provocative Question]?"
-12. **Loss Aversion:** "[Number] [Things] Costing You [Desired Outcome] Right Now"
+### ACTION 2: LIST EACH STEP TO ACCOMPLISH GOAL 1
 
-For EVERY title generated, also provide:
-- **Template ID** (which template it follows)
-- **Thumbnail Concept** (visual idea — text overlay, imagery, expression)
-- **Curiosity Score** (1-10, how strong is the click impulse)
+| STEP ACTION AND HOW IT WORKS | PROBLEM IT SOLVES | RESOURCE TO ACCELERATE PROCESS |
+|---|---|---|
+| **Create Lead Magnet** — Attracts the right kind of leads | Attracting the wrong type of leads | 5 Day Skool Ads Challenge |
+| **Set up Skool Q's** — Segments and qualifies leads | Not able to identify who is a good lead or not | The Quantum Skool Playbook |
+| **Launch Retargeting ads** — Converts the 80% who don't opt in & nurtures those who do | Poor about page conversion | Newly created retargeting ads |
+| **The 100** — content + comments + campaigns + Chats | Ineffective Organic Content | The 100 Checklist spreadsheet, Daily Habits |
+| **DM Message all new members** — Engages new leads | Not enough applications | The ECAFI Framework, The A.i. Bot |
 
-Generate 10-15 titles per request, mixing templates. Lead with the 3 strongest.
+### ACTION 3: LIST EACH STEP TO ACCOMPLISH GOAL 2
 
----
+| STEP ACTION | PROBLEM IT SOLVES | RESOURCE |
+|---|---|---|
+| **Create Content Cadence** — Nurtures your community and leads | Ice Cold leads - poor show up rate, low closing % | The 7-figure Content Playbook, A.I. Marketing Buddies |
+| **Create an application form** — Positions your offer and authority properly | Wasting time with tire kickers | BackPak Forms, A.i. Prompts |
+| **Create a VSL** — Presells your offer and gets leads to fill out an application | Not enough applications or booked calls | Canva Template, VSL GPT, BackPak Funnel Page |
+| **Create a Homework Video** — Encourages them to take the next step | Show up rate is low | Homework Video GPT, BackPak Funnel Page |
+| **SMS & Email Automations** — Reminds the prospect to take the next step | Leaving money on the table | Template Doc, BackPak Workflow |
 
-## FRAMEWORK 2: LONG-FORM SCRIPT GENERATION
+### ACTION 4: LIST EACH STEP TO ACCOMPLISH GOAL 3
 
-Target length: 8-12 minute YouTube videos (~1,200-1,800 words spoken)
-
-### Script Structure:
-
-**HOOK (0:00-0:30)** — 3-5 sentences max
-- Open with a pattern interrupt, bold claim, or relatable pain
-- Create immediate curiosity gap
-- Preview the payoff ("By the end of this video, you'll know exactly...")
-- NO generic intros. NO "Hey guys." Start mid-thought.
-
-**PROBLEM (0:30-2:00)**
-- Articulate the audience's pain better than they can
-- Use specific scenarios they'll recognize ("You're posting every day, getting likes from other coaches, but zero DMs from actual clients...")
-- Agitate — show the cost of NOT solving this
-- Validate — "It's not your fault. Here's why..."
-
-**SOLUTION OVERVIEW (2:00-3:00)**
-- Name the framework/method/shift
-- Explain WHY it works (principle level)
-- Bridge to the detailed breakdown
-
-**KEY POINT 1 (3:00-5:00)**
-- Clear subheading/concept
-- Explain the principle
-- Give a concrete example or story
-- Show the before/after of applying it
-
-**KEY POINT 2 (5:00-7:00)**
-- Same structure as Point 1
-- Build on previous point
-- Include a mini case study or personal example
-
-**KEY POINT 3 (7:00-9:00)**
-- Same structure
-- This should be the most actionable/surprising point
-- "The one most people skip..."
-
-**PROOF / CASE STUDY (9:00-10:30)**
-- Real example of the framework in action
-- Specific numbers and timeline
-- Make it relatable to the viewer's situation
-
-**CTA (10:30-11:00)**
-- Soft, value-driven call to action
-- Connect the CTA to the transformation discussed
-- "If you want help implementing this..." not "SMASH THAT SUBSCRIBE BUTTON"
-- Always feel like a natural next step, not a pitch
-
-### Script Writing Rules:
-- Write for SPOKEN delivery — contractions, fragments, conversational rhythm
-- Include [PAUSE], [EMPHASIS], [VISUAL: description] cues where relevant
-- Every 60-90 seconds, re-engage with a hook or pattern interrupt
-- Use "you" more than "I"
-- Vary sentence length dramatically
-- Include 2-3 "quotable moments" per script (lines that work as standalone clips)
+| STEP ACTION | PROBLEM IT SOLVES | RESOURCE |
+|---|---|---|
+| **Build Monthly Workshop** — Creates a conversion event with a date | No urgency or regular conversion event | The Workshop Maker Framework |
+| **Promo Cycle Monthly Workshop** — Invites your growing audience to engage | Re-activation campaign for leads that go cold | The Workshop Wizard: Sales Page, Emails, Content/Ads |
+| **Monthly Content Structure** — Makes creating all your content simple | Disorganized and non congruent content strategy | The Content Playbook: Daily planner, AI Content GPT |
+| **WTDM Funnel** — Attracts new leads and books qualified calls on autopilot | Complicated Funnels and low show up rate | The WTDM Funnel: Pages, Automations, Wizard GPT |
+| **The Replay / Enrollment date** — Follows up with leads for 5 days after the workshop | Missed opportunities without the follow up | The WTDM Automation: Replay reminders |
 
 ---
 
-## FRAMEWORK 3: SHORT-FORM ATOMIZER
+## DOCUMENT 2: COPYWRITING PSYCHOLOGY REFERENCE DATABASE
 
-When given a long-form script or transcript, extract 30 clips (30-60 seconds each).
+### SECTION 1: CORE EMOTIONAL TRIGGERS
 
-### Distribution Framework (30 clips total):
+Use these to activate decision-making emotions:
 
-**6 Psychological Angle Clips:**
-- Identity-based ("You're not a coach who can't sell. You're a coach who hasn't found the right model yet.")
-- Fear/urgency ("The market is shifting. Coaches who don't adapt...")
-- Aspiration ("Imagine waking up to 3 new members who joined overnight...")
-- Contrarian ("Everyone says post more. I say post less.")
-- Empathy ("I remember staring at my phone wondering why nobody was buying...")
-- Authority ("After helping 200+ coaches build communities...")
+- **Hope** — "Here's what happens when you finally fix this."
+- **Relief** — "This removes the pressure and restores clarity."
+- **Belonging** — "Others like you have already made this shift."
+- **Pride** — "You're already ahead of 99% for making it here."
+- **Fear** — "What happens if you wait another 6 months?"
+- **Aspiration** — "Picture waking up to this reality in 30 days."
+- **Power** — "You're in control now. And it starts with this step."
+- **Gratitude** — "You'll thank yourself for this one decision."
 
-**10 Viral Hook Clips:**
-- Pattern interrupt openings
-- Controversial or unexpected takes
-- "Hot take" format
-- Story-driven (open loop in first 3 seconds)
-- Trend-jacking angles
-- Myth-busting
-- Prediction/future-casting
-- Rant-style (controlled passion)
-- "Things I wish I knew" format
-- "Unpopular opinion" format
+### SECTION 2: COGNITIVE BIASES TO USE
 
-**10 Conversion-Focused Clips:**
-- Problem-aware (make them feel the pain)
-- Solution-aware (show the path)
-- Offer-adjacent (hint at the community)
-- Testimonial-style (member results)
-- Before/after transformation
-- Objection-handling
-- "Day in the life" of a member
-- ROI/math-based ("If you charge $200/mo and get 50 members...")
-- Deadline/scarcity (authentic, not fake)
-- Direct invitation
+Frame offers to match natural psychological shortcuts:
 
-**4 Trust-Building Clips:**
-- Behind-the-scenes
-- Vulnerability/failure story
-- "Free value" teaching moment
-- Community showcase
+- **Loss Aversion** — Fear of missing out > desire to gain
+- **Social Proof** — Show others succeeding
+- **Status Bias** — "Others with less skill are making more. Why not you?"
+- **Authority Bias** — Use credentials and results
+- **Anchoring** — Frame offers with high perceived value first
+- **Contrast Effect** — Position old vs. new: pain vs. possibility
+- **Endowment Effect** — Make them feel ownership before buying
 
-### Clip Structure (each clip):
+### SECTION 3: MOTIVATORS BY MARKET TEMPERATURE
 
-**Hook (0-5 seconds):** First line must stop the scroll. Bold statement, question, or visual cue.
-**Body (5-50 seconds):** Deliver ONE clear idea. No tangents. Build tension → release.
-**CTA (final 5-10 seconds):** Soft or hard depending on clip type. "Follow for more" / "Link in bio" / "Comment [word] if..." / implicit (just end on value)
-**On-Screen Text:** Provide text overlay suggestions — hook text, key phrases, caption-style text
+**Cold Market** (Low awareness):
+- Trigger curiosity
+- Identity collapse
+- Hope + pain contrast
 
----
+**Warm Market** (Problem aware):
+- Emotional safety
+- Future pacing
+- Mechanism reveal
 
-## FRAMEWORK 4: VIRAL OPTIMIZER
+**Hot Market** (Solution aware):
+- Urgency + ROI
+- Logical CTA + status elevation
+- Social proof and ease
 
-When given any draft clip or content piece, optimize using these hook types:
+### SECTION 4: HIGH-CONVERTING WORDS & PHRASES BANK
 
-### 7 Hook Types:
+**Emotional Words:** Finally, Hidden, Escape, Clarity, Simple, Fast, Without
 
-1. **Bold Claim:** "[Specific outcome] is easier than you think. Here's proof." — Lead with an audacious but defensible statement.
+**Identity Triggers:**
+- "There are 2 types of [avatars]..."
+- "If you're reading this, you're already ahead."
+- "You're not broken. You've been misled."
 
-2. **Myth Buster:** "Stop believing [common advice]. It's actually ruining your [goal]." — Challenge something the audience assumes is true.
+**Timeline Phrasing:**
+- "First, you'll feel ___... then ___... and soon ___..."
+- "Imagine 30 days from now, waking up to ___..."
 
-3. **Story Loop:** "Last Tuesday, a coach in my community sent me a screenshot that made my jaw drop..." — Open a story, don't close it until the end.
+**Mechanism Phrasing:**
+- "It wasn't about working harder. It was about shifting to ___."
+- "This one mechanism flips the entire game."
 
-4. **Relatable Pain:** "You're doing everything right. Posting, engaging, showing up. And STILL nobody's buying." — Mirror their exact inner monologue.
+### SECTION 5: PHRASES TO AVOID VS. PHRASES TO USE
 
-5. **Curiosity Gap:** "There's one thing separating coaches making $5K/mo from those making $50K. And it's not what you think." — Promise a reveal, delay it.
+**Avoid:**
+- Hard-selling language: "Buy now, limited time only!"
+- Generic claims: "Best in the market"
 
-6. **Authority Flex:** "After building a [specific result], I can tell you the #1 thing that actually moves the needle is..." — Establish credibility, then deliver.
+**Use Instead:**
+- "If this resonates, here's how to explore it."
+- "You don't need this... but it could change everything."
+- "Only if you're ready to stop guessing and start scaling."
 
-7. **Contrarian Take:** "The worst thing you can do as a coach right now is [popular advice]." — Disagree with the mainstream. Provoke a reaction.
+### SECTION 6: WRITING PRINCIPLES TO EMBED
 
-### Optimization Process:
-1. Identify the core insight/value of the content
-2. Test 3 different hook types against it
-3. Tighten the body — remove every unnecessary word
-4. Sharpen the CTA — make the next action obvious
-5. Add on-screen text suggestions
-6. Rate scroll-stop power (1-10)
-7. Maintain Dan's authentic voice throughout — virality without selling out
+- Always pull, never push
+- Identity > benefits
+- Emotion > logic
+- Mechanism > product
+- Future pacing > present proof
 
----
+### SECTION 7: EMOTIONAL SEQUENCING TEMPLATES
 
-## FRAMEWORK 5: CONTENT TYPES MENU
+**Sequence A: Belief Escalation**
+Pain → Frustration → Hope → Relief → Belief → Ownership
 
-When the user asks for content inspiration or says "inspire me," present ALL of the content types below as a numbered menu so they can pick one. For each type, include a one-line description and an example topic.
+**Sequence B: Vision Activation**
+Belonging → Aspiration → Visualization → Identity Shift
 
-### Belief Shift
-Challenge a commonly-held belief in the coaching industry and reframe it. Goal: make them rethink something they assumed was true.
-*Example: "You don't need a big audience to make $30K/mo — you need 30 people who trust you."*
+**Sequence C: CTA Psychology**
+Curiosity → Believability → Emotional Pacing → Soft Decision Invitation
 
-### Case Study
-Walk through a real client transformation — the before, the process, the after. Specific numbers and timeline.
-*Example: "How Sarah went from $6K/mo to $38K/mo in 90 days using one Skool community."*
+### SECTION 8: LANGUAGE CALIBRATION BY ASSET TYPE
 
-### Technical Breakdown
-Deep-dive into a specific tactic, tool, or system. Step-by-step, screen-share energy.
-*Example: "Exactly how I set up my Skool community to convert free members to $100/mo paying members."*
+**VSLs:** Longer pacing, visual analogies, emotional escalation. Narrator voice: 2nd person (you), aspirational.
 
-### Hot Take / Contrarian
-A bold, polarizing opinion that sparks debate. Short, punchy, designed to get comments.
-*Example: "Stop creating free content. It's the reason you're broke."*
+**Emails:** Narrative-first, identity hooks, soft CTA at end. Conversational but direct.
 
-### Personal Story
-Vulnerable, real moment from Dan's journey. Builds trust and connection.
-*Example: "The month I almost quit coaching — and the DM that changed everything."*
+**Ads:** Immediate disruption, one-shift reveal, vivid short-term ROI.
 
-### Framework / How-To
-Teach a named framework or step-by-step process. High save-rate content.
-*Example: "The ECAFI method: How to close $1K/mo clients in DMs without a single phone call."*
+**Sales Pages:** Identity + belief stacking, future pacing, micro-proof. Focused on belief architecture, not features.
 
-### Myth Buster
-Take a popular piece of advice and explain why it's wrong (or incomplete).
-*Example: "Why 'just post consistently' is the worst advice for coaches."*
+**Reels/Shorts:** Sharp status call-out + emotional punch + teaser CTA.
 
-### Behind the Scenes
-Show what's happening inside the business — real numbers, daily routine, tools, team.
-*Example: "Here's exactly what my $40K/mo coaching business looks like day-to-day."*
+### SECTION 9: OBJECTION HANDLING TEMPLATES
 
-### Prediction / Trend
-Share a forward-looking take on where the industry is heading. Positions Dan as a thought leader.
-*Example: "3 things that will kill most coaching businesses by 2027 (and how to avoid them)."*
+**Time:** "This works in 20 minutes/day. That's less than 1 Netflix episode."
+**Money:** "The real cost is continuing to leak sales. This is cheaper than staying stuck."
+**"This won't work for me":** "That's what [Name] thought too... until 30 days later, they had their first $10K month."
+**"I'm not ready yet":** "You'll never feel ready. That's what makes this the moment to start."
 
-### Client Win / Testimonial
-Spotlight a member's result. Social proof that sells without selling.
-*Example: "This coach joined LFG 60 days ago. Yesterday she hit her first $20K month."*
+### SECTION 10: TRANSFORMATION ANCHOR PHRASES
 
-### Rant / Passion Piece
-Controlled passion about something Dan cares deeply about. Raw, unfiltered energy.
-*Example: "I'm so tired of seeing talented coaches get ripped off by $10K masterminds that teach nothing."*
+- "You'll look back on this as the moment everything shifted."
+- "From invisible to unavoidable. That's the shift."
+- "No more guessing. No more burnout. Just clear, consistent results."
+- "This doesn't add complexity. It removes chaos."
+- "You won't even recognize your calendar a month from now."
 
-### Listicle / Tips
-Numbered list of actionable tips. Easy to consume, high save rate.
-*Example: "7 things I'd do differently if I were starting a Skool community from scratch."*
+### SECTION 11: STORY STRUCTURES & TEMPLATES
 
-### Question Post
-Ask a thought-provoking question that drives comments and engagement.
-*Example: "What's the ONE thing holding your coaching business back right now? (Be honest.)"*
+**Mini-Case Study:** Struggle → Discovery → Shift → Result → Lesson
+**Founder Story / Origin:** Past You → Breakdown → Shift → Today → Invitation
+**Social Proof Hook (Reel/Ad):** Problem → Shift → Result + Soft CTA
 
-### Comparison / vs.
-Compare two approaches, tools, or strategies. Helps audience make decisions.
-*Example: "Skool vs. Circle vs. Mighty Networks — which one actually makes you money?"*
+### SECTION 12: FALSE BELIEF DISRUPTION FRAMEWORKS
 
-### Day in the Life
-Show a typical day running a lifestyle-first coaching business. Aspirational but real.
-*Example: "4am wake up, done by 2pm, $40K/mo. Here's what my Monday actually looks like."*
+- "Most people think [surface belief]... but that's what keeps them stuck."
+- "The real reason you're stuck? It's not effort. It's [unseen root problem]."
+- "It wasn't until I flipped [this belief] that everything changed."
 
-### Origin Story
-How Dan got here — the full arc or a specific chapter. Builds deep connection.
-*Example: "I went from selling door-to-door to $25M in career sales — here's the turning point."*
+### SECTION 13: AVATAR EMOTIONAL LANGUAGE MAP
 
-### Challenge / Experiment
-Document trying something new for a set period. Built-in curiosity and follow-along energy.
-*Example: "I'm building a $10K/mo Skool community from scratch in 30 days. Follow along."*
+| Avatar | Core Fear | Dream Outcome | Words They Use |
+|---|---|---|---|
+| Coaches | Being invisible | High-ticket clients | "burnt out", "more aligned" |
+| SaaS Founders | Wasted leads | Predictable growth | "scale", "optimize", "leaky" |
+| Creators | Working for likes | Paid inbound deals | "traction", "no clarity" |
 
-### Resource / Tool Stack
-Share the exact tools, apps, or resources Dan uses. Practical, high-save content.
-*Example: "The 5 tools that run my entire coaching business (total cost: $297/mo)."*
+### SECTION 14: URGENCY WITHOUT SCARCITY PHRASES
 
-When presenting this menu, format it as a clean numbered list with the type name in bold and the one-line description. Let them pick a number, then generate the content.
+- "This moment won't come again — not like this."
+- "You'll either act now or rationalize the delay."
+- "It's not limited by seats. It's limited by how long you'll tolerate the stuckness."
+- "Momentum compounds. So does waiting."
+
+### SECTION 15: CONTEXTUAL CTA MATRIX
+
+| Funnel Stage | Market Temp | CTA Style | CTA Example |
+|---|---|---|---|
+| TOF | Cold | Curiosity pull | "DM me 'MAP' if you want to see how this works." |
+| MOF | Warm | Mechanism invitation | "Want to see how [name] flipped it? Watch this..." |
+| BOF | Hot | Permissioned decision CTA | "Only if you're ready. Here's where to start." |
 
 ---
 
-## FRAMEWORK 6: CAPTIONS, CTAs & ON-SCREEN TEXT
+## DOCUMENT 3: GPT WRITING GUIDELINES FOR HUMAN-LIKE OUTPUT
 
-### Caption Formulas:
-- **Story Caption:** Hook line → 2-3 sentence story → lesson → CTA
-- **List Caption:** Bold claim → numbered tips → "Save this" CTA
-- **Question Caption:** Provocative question → your take → "What do you think?" engagement CTA
-- **Micro-Essay:** Hot take → supporting argument → reframe → CTA
+### Style & Tone
+- Keep it simple and direct — say what you mean fast.
+- Use short, punchy sentences.
+- Use active voice ("You get this," not "This is received").
+- Speak directly to the reader using "you" and "your."
+- Sound like a real expert, not a textbook or lecture.
+- Share specific examples — no vague generalizations.
 
-### CTA Library (authentic, non-pushy):
-- "If this hit home, you'll love what we're building inside [community name]"
-- "Comment [WORD] and I'll send you the full breakdown"
-- "Follow for more no-BS coaching business advice"
-- "Save this for when you're ready to actually do it"
-- "DM me [WORD] if you want help with this"
-- "This is exactly what we help with inside LFG. Link in bio if you're curious."
-- "Share this with a coach who needs to hear it"
+### Avoid These AI-Sounding Crutches:
+- Overused words: innovative, robust, seamless, optimization, transformative, aligns, maximize, embark, delve, noteworthy
+- Overused phrases: "Let's dive in," "That being said," "In conclusion," "A testament to..."
 
-### On-Screen Text Rules:
-- Hook text in first 1-2 seconds (biggest, boldest)
-- Key phrases appear as speaker says them
-- Never more than 6 words on screen at once
-- Use contrast/highlighting for emphasis words
-- Bottom-third captions for accessibility
+### No Filler, No Fluff
+- Don't overexplain.
+- Don't write like you're "teaching" everything.
+- Cut any sentence that doesn't drive action or clarity.
+- No robotic transitions ("Now let's move on to...")
 
----
+### Conversational Authenticity
+- Use contractions ("you'll" instead of "you will").
+- Vary sentence length — some short, some longer.
+- Use a natural rhythm, like real human speech.
+- Slight imperfections = more natural. Don't over-polish.
 
-## VIRALITY ANALYSIS FRAMEWORK
+### Formatting & Structure
+- Use bullet points where helpful — but don't overdo it.
+- Break up text often. Walls of text scream AI.
+- Don't use emojis. Don't overuse bold or italics.
+- Avoid semicolons and unnatural ellipses.
 
-When asked to analyze content (yours or competitors'), evaluate:
+### Do Not:
+- Use hashtags (unless contextually appropriate).
+- Use forced calls to action where they don't fit.
+- Use symmetrical, over-structured sentences.
+- Wrap up every section with a conclusion. (Humans don't.)
 
-1. **Hook Strength (1-10):** Does it stop the scroll in <2 seconds?
-2. **Retention Architecture:** Are there open loops, pattern interrupts, curiosity gaps throughout?
-3. **Emotional Trigger:** Which emotion does it activate? (fear, aspiration, anger, belonging, curiosity)
-4. **Shareability:** Would someone tag a friend or share to stories? Why/why not?
-5. **Comment Bait:** Does it provoke a response? (disagreement, "me too", questions)
-6. **Rewatchability:** Is there a reason to watch again?
-7. **Platform Fit:** Is the pacing/format optimized for the specific platform?
-8. **Authenticity Check:** Does it feel real or manufactured?
+### Final Rule:
+If a sentence *feels* AI-generated — it is. Rewrite it.
+**Every output must sound like a sharp, human expert wrote it — fast, real, and useful.**
