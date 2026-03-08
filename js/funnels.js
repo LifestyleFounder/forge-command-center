@@ -88,29 +88,38 @@ async function fetchPageStats() {
   render();
 }
 
+// Known Vercel projects (update this list when you deploy new landing pages)
+const KNOWN_PROJECTS = [
+  { name: 'Chat Closer Checkout', slug: 'chat-closer-checkout', url: 'https://chat-closer-checkout.vercel.app' },
+  { name: 'Chat Closer Workshop', slug: 'chat-closer-workshop', url: 'https://chat-closer-workshop.vercel.app' },
+  { name: 'Swipe Page', slug: 'swipe-page', url: 'https://swipe-page.vercel.app' },
+];
+
 async function fetchPagePickerData() {
   // Only fetch once per session
-  if (vercelProjects !== null || trackedSlugs !== null) return;
+  if (vercelProjects !== null) return;
 
-  const [vpRes, tsRes] = await Promise.allSettled([
-    fetch('/api/vercel-projects').then(r => r.ok ? r.json() : { projects: [] }),
-    fetch('/api/funnel-stats?days=90').then(r => r.ok ? r.json() : { pages: [] }),
-  ]);
+  // Set known projects immediately so dropdown populates fast
+  vercelProjects = [...KNOWN_PROJECTS];
 
-  vercelProjects = vpRes.status === 'fulfilled' ? (vpRes.value.projects || []) : [];
-  trackedSlugs = tsRes.status === 'fulfilled' ? (tsRes.value.pages || []) : [];
+  // Also fetch tracked slugs from Supabase (adds any extra pages with data)
+  try {
+    const res = await fetch('/api/funnel-stats?days=365');
+    if (res.ok) {
+      const data = await res.json();
+      trackedSlugs = data.pages || [];
+    } else {
+      trackedSlugs = [];
+    }
+  } catch {
+    trackedSlugs = [];
+  }
 
   // Re-render the modal if it's open
   const modal = document.getElementById('addPageModal');
   if (modal && !modal.hidden) {
-    const savedName = $('#addPageName')?.value || '';
-    const savedSlug = $('#addPageSlug')?.value || '';
     render();
     openFunnelModal('addPageModal');
-    const nameInput = $('#addPageName');
-    const slugInput = $('#addPageSlug');
-    if (nameInput) nameInput.value = savedName;
-    if (slugInput) slugInput.value = savedSlug;
   }
 }
 
