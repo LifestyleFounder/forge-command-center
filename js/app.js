@@ -1028,6 +1028,18 @@ async function init() {
       loadJSON('vip-clients.json'),
     ]);
 
+    // Apply any localStorage metric overrides to business data
+    if (business) {
+      try {
+        const overrides = JSON.parse(localStorage.getItem('forge-metrics-overrides')) || {};
+        if (overrides._lastUpdated) {
+          // Use override date if it's more recent
+          if (!business.lastUpdated || overrides._lastUpdated > business.lastUpdated) {
+            business.lastUpdated = overrides._lastUpdated;
+          }
+        }
+      } catch { /* ignore */ }
+    }
     setState('business', business);
     setState('tasks', tasks);
     setState('activities', activities);

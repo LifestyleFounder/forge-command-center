@@ -17,6 +17,9 @@
     },
     "api/vip-clients.js": {
       "maxDuration": 30
+    },
+    "api/update-vip-client.js": {
+      "maxDuration": 15
     }
   }
 }

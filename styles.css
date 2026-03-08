@@ -6277,6 +6277,241 @@ a:focus:not(:focus-visible) {
   margin-bottom: var(--space-1);
 }
 
+/* ---- VIP Client Edit UI ---------------------------------------- */
+
+.vip-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.vip-edit-section h4 {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.vip-edit-field {
+  margin-bottom: var(--space-3);
+}
+
+.vip-edit-field label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-1);
+}
+
+.vip-edit-input,
+.vip-edit-select {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color 0.15s;
+}
+
+.vip-edit-input:focus,
+.vip-edit-select:focus {
+  outline: none;
+  border-color: var(--color-accent, #3B82F6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* Tag editor */
+.vip-tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.vip-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.vip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+}
+
+.vip-tag-todo {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--color-warning, #F59E0B);
+}
+
+.vip-tag-remove {
+  all: unset;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-tertiary);
+  padding: 0 2px;
+  border-radius: 50%;
+}
+
+.vip-tag-remove:hover {
+  color: var(--color-error, #EF4444);
+}
+
+.vip-tag-add {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.vip-tag-select,
+.vip-tag-input {
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  max-width: 200px;
+}
+
+.vip-tag-input:focus,
+.vip-tag-select:focus {
+  outline: none;
+  border-color: var(--color-accent, #3B82F6);
+  border-style: solid;
+}
+
+/* Edit footer with sync indicator */
+.vip-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-light);
+}
+
+.vip-sync-indicator {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.vip-sync-active {
+  color: var(--color-accent, #3B82F6);
+}
+
+.vip-sync-saved {
+  color: var(--color-success, #22C55E);
+}
+
+.vip-sync-error {
+  color: var(--color-error, #EF4444);
+}
+
+.vip-sync-fade {
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+/* ---- Home Alert Dismiss ---------------------------------------- */
+
+.cn-item {
+  position: relative;
+}
+
+.cn-dismiss {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+.cn-item:hover .cn-dismiss {
+  opacity: 1;
+}
+
+.cn-dismiss:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.cn-dismissing {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+/* ---- Home Click-to-Edit Health Counts -------------------------- */
+
+.health-count {
+  cursor: pointer;
+  position: relative;
+}
+
+.health-count:hover::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.health-count-input {
+  width: 48px;
+  padding: 2px 4px;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid var(--color-accent, #3B82F6);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: inherit;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.health-count-input::-webkit-outer-spin-button,
+.health-count-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---- Mobile Responsive for VIP Edit ---------------------------- */
+
+@media (max-width: 640px) {
+  .vip-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cn-dismiss {
+    opacity: 1;
+  }
+}
+
 /* ---- Competitors — Geeves-style -------------------------------- */
 .comp-subtabs {
   margin-bottom: var(--space-4);

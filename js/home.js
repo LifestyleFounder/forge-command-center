@@ -13,10 +13,58 @@ import {
   showToast,
   loadJSON,
   setState,
-  switchTab
+  switchTab,
+  saveLocal
 } from './app.js';
 import { getUpcomingTasks, completeTaskFromHome, getTaskLists } from './google-tasks.js';
 import { getUpcomingEvents } from './google-calendar.js';
+
+// ---- Dismissed Alerts (localStorage with 7-day expiry) ---------
+
+const DISMISSED_KEY = 'forge-dismissed-alerts';
+const DISMISS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getDismissed() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DISMISSED_KEY)) || {};
+    const now = Date.now();
+    // Prune expired
+    const valid = {};
+    for (const [key, ts] of Object.entries(raw)) {
+      if (now - ts < DISMISS_TTL) valid[key] = ts;
+    }
+    if (Object.keys(valid).length !== Object.keys(raw).length) {
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify(valid));
+    }
+    return valid;
+  } catch { return {}; }
+}
+
+function dismissAlert(alertKey) {
+  const dismissed = getDismissed();
+  dismissed[alertKey] = Date.now();
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissed));
+}
+
+function isAlertDismissed(alertKey) {
+  return !!getDismissed()[alertKey];
+}
+
+// ---- Metric Overrides (localStorage) ---------------------------
+
+const OVERRIDES_KEY = 'forge-metrics-overrides';
+
+function getMetricOverrides() {
+  try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveMetricOverride(key, value) {
+  const overrides = getMetricOverrides();
+  overrides[key] = value;
+  overrides._lastUpdated = new Date().toISOString().split('T')[0];
+  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+}
 
 // ---- DOM Cache (module-scoped) --------------------------------
 
@@ -66,6 +114,58 @@ export function initHome() {
   // Refresh all data
   if (el.refreshAllBtn) {
     el.refreshAllBtn.addEventListener('click', handleRefreshAll);
+  }
+
+  // Dismiss alert buttons (delegated)
+  const clientsCard = document.getElementById('clientsCard');
+  if (clientsCard) {
+    clientsCard.addEventListener('click', (e) => {
+      const dismissBtn = e.target.closest('.cn-dismiss');
+      if (dismissBtn) {
+        const key = dismissBtn.dataset.dismissKey;
+        if (!key) return;
+        dismissAlert(key);
+        const item = dismissBtn.closest('.cn-item');
+        if (item) {
+          item.classList.add('cn-dismissing');
+          setTimeout(() => renderClientNotifications(), 300);
+        }
+        return;
+      }
+
+      // Click-to-edit health counts
+      const healthCount = e.target.closest('.health-count');
+      if (healthCount && !healthCount.querySelector('input')) {
+        const metricId = healthCount.id;
+        const current = healthCount.textContent;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'health-count-input';
+        input.value = current;
+        input.min = '0';
+        healthCount.textContent = '';
+        healthCount.appendChild(input);
+        input.focus();
+        input.select();
+
+        const save = () => {
+          const val = parseInt(input.value, 10);
+          if (!isNaN(val) && val >= 0) {
+            saveMetricOverride(metricId, val);
+            healthCount.textContent = val;
+            renderStaleness();
+          } else {
+            healthCount.textContent = current;
+          }
+        };
+
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+          if (ev.key === 'Escape') { healthCount.textContent = current; }
+        });
+      }
+    });
   }
 
   // Tasks card: View All → Google Tasks tab
@@ -149,14 +249,19 @@ function renderClientHealth() {
   const biz = getState().business;
   if (!biz || !biz.clients) return;
 
+  const overrides = getMetricOverrides();
   const healthy = biz.clients.healthy || [];
   const warning = biz.clients.warning || [];
   const atRisk = biz.clients.atRisk || [];
 
-  // Update counts
-  if (el.clientsHealthy) el.clientsHealthy.textContent = healthy.length;
-  if (el.clientsWarning) el.clientsWarning.textContent = warning.length;
-  if (el.clientsAtRisk) el.clientsAtRisk.textContent = atRisk.length;
+  // Use overrides if present, otherwise use data length
+  const healthyCount = overrides.clientsHealthy != null ? overrides.clientsHealthy : healthy.length;
+  const warningCount = overrides.clientsWarning != null ? overrides.clientsWarning : warning.length;
+  const atRiskCount = overrides.clientsAtRisk != null ? overrides.clientsAtRisk : atRisk.length;
+
+  if (el.clientsHealthy) el.clientsHealthy.textContent = healthyCount;
+  if (el.clientsWarning) el.clientsWarning.textContent = warningCount;
+  if (el.clientsAtRisk) el.clientsAtRisk.textContent = atRiskCount;
 
   // Staleness badge
   renderStaleness();
@@ -165,11 +270,18 @@ function renderClientHealth() {
 function renderStaleness() {
   if (!el.clientsStaleness) return;
   const biz = getState().business;
-  if (!biz || !biz.lastUpdated) {
+  const overrides = getMetricOverrides();
+
+  // Use the most recent of: business.lastUpdated or override._lastUpdated
+  const bizDate = biz?.lastUpdated;
+  const overrideDate = overrides._lastUpdated;
+  const effectiveDate = overrideDate && (!bizDate || overrideDate > bizDate) ? overrideDate : bizDate;
+
+  if (!effectiveDate) {
     el.clientsStaleness.textContent = '';
     return;
   }
-  const days = daysBetween(biz.lastUpdated, null);
+  const days = daysBetween(effectiveDate, null);
   if (days === null) {
     el.clientsStaleness.textContent = '';
     return;
@@ -205,21 +317,21 @@ function renderClientNotifications() {
   if (biz?.clients?.alerts) {
     biz.clients.alerts.forEach(a => {
       const icon = a.type === 'warning' ? '\u26A0' : a.type === 'success' ? '\u2705' : '\u2139';
-      items.push({ icon, text: a.text, type: a.type || 'info' });
+      items.push({ icon, text: a.text, type: a.type || 'info', key: `alert-${a.text}` });
     });
   }
 
   // Watch list clients
   if (biz?.clients?.warning) {
     biz.clients.warning.forEach(c => {
-      items.push({ icon: '\uD83D\uDC41', text: `${c.name} — ${c.note}`, type: 'warning' });
+      items.push({ icon: '\uD83D\uDC41', text: `${c.name} — ${c.note}`, type: 'warning', key: `warn-${c.name}` });
     });
   }
 
   // At-risk clients from business data
   if (biz?.clients?.atRisk) {
     biz.clients.atRisk.forEach(c => {
-      items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — at risk${c.note ? ': ' + c.note : ''}`, type: 'danger' });
+      items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — at risk${c.note ? ': ' + c.note : ''}`, type: 'danger', key: `risk-${c.name}` });
     });
   }
 
@@ -229,27 +341,30 @@ function renderClientNotifications() {
     vipData.clients.forEach(c => {
       const s = (c.status || '').toLowerCase();
       if (s === 'at risk') {
-        // Avoid duplicate if already in biz data
         const already = items.some(i => i.text.startsWith(c.name));
         if (!already) {
-          items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — At Risk`, type: 'danger' });
+          items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — At Risk`, type: 'danger', key: `vip-risk-${c.name}` });
         }
       }
       if (c.todo && c.todo.length > 0) {
-        items.push({ icon: '\u2705', text: `${c.name} — ${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}`, type: 'warning' });
+        items.push({ icon: '\u2705', text: `${c.name} — ${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}`, type: 'warning', key: `vip-todo-${c.name}` });
       }
     });
   }
 
-  if (items.length === 0) {
+  // Filter out dismissed alerts
+  const visible = items.filter(i => !isAlertDismissed(i.key));
+
+  if (visible.length === 0) {
     container.innerHTML = '<div class="cn-empty">No alerts right now</div>';
     return;
   }
 
-  container.innerHTML = items.slice(0, 8).map(i => `
-    <div class="cn-item cn-${escapeHtml(i.type)}">
+  container.innerHTML = visible.slice(0, 8).map(i => `
+    <div class="cn-item cn-${escapeHtml(i.type)}" data-alert-key="${escapeHtml(i.key)}">
       <span class="cn-icon">${i.icon}</span>
       <span class="cn-text">${escapeHtml(i.text)}</span>
+      <button class="cn-dismiss" data-dismiss-key="${escapeHtml(i.key)}" title="Dismiss for 7 days">&times;</button>
     </div>
   `).join('');
 }
