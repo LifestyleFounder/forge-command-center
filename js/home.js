@@ -350,24 +350,22 @@ function renderClientNotifications() {
     });
   }
 
-  // VIP client alerts (at risk + action items)
-  const vipData = getState('vipClients');
-  if (vipData?.clients) {
-    vipData.clients.forEach(c => {
-      const s = (c.status || '').toLowerCase();
-      if (s === 'at risk') {
-        const already = items.some(i => i.text.startsWith(c.name));
-        if (!already) {
-          items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — At Risk`, type: 'danger', key: `vip-risk-${c.name}` });
-        }
+  // VIP client alerts (at risk + action items) — uses merged data for live edits
+  const vipClients = getMergedClients();
+  vipClients.forEach(c => {
+    const cls = classifyStatus(c.status);
+    if (cls === 'at-risk') {
+      const already = items.some(i => i.text.startsWith(c.name));
+      if (!already) {
+        items.push({ icon: '\uD83D\uDEA8', text: `${c.name} — At Risk`, type: 'danger', key: `vip-risk-${c.name}` });
       }
-      if (c.todo && c.todo.length > 0) {
-        c.todo.forEach((item, i) => {
-          items.push({ icon: '\u2705', text: `${c.name} — ${item}`, type: 'warning', key: `vip-todo-${c.name}-${i}` });
-        });
-      }
-    });
-  }
+    }
+    if (c.todo && c.todo.length > 0) {
+      c.todo.forEach((item, i) => {
+        items.push({ icon: '\u2705', text: `${c.name} — ${item}`, type: 'warning', key: `vip-todo-${c.name}-${i}` });
+      });
+    }
+  });
 
   // Filter out dismissed alerts
   const visible = items.filter(i => !isAlertDismissed(i.key));
