@@ -90,9 +90,9 @@ async function fetchPageStats() {
 
 // Known Vercel projects (update this list when you deploy new landing pages)
 const KNOWN_PROJECTS = [
-  { name: 'Chat Closer Checkout', slug: 'chat-closer-checkout', url: 'https://chat-closer-checkout.vercel.app' },
-  { name: 'Chat Closer Workshop', slug: 'chat-closer-workshop', url: 'https://chat-closer-workshop.vercel.app' },
-  { name: 'Swipe Page', slug: 'swipe-page', url: 'https://swipe-page.vercel.app' },
+  { name: 'Chat Closer Checkout', slug: 'chat-closer-checkout', url: 'https://ws-checkout.lifestylefounder.com' },
+  { name: 'Chat Closer Workshop', slug: 'chat-closer-workshop', url: 'https://chat-workshop.lifestylefounder.com' },
+  { name: 'Swipe Page', slug: 'swipe-page', url: 'https://swipe.lifestylefounder.com' },
 ];
 
 async function fetchPagePickerData() {
