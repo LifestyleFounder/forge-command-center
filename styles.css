@@ -8924,6 +8924,33 @@ a:focus:not(:focus-visible) {
   box-shadow: 0 0 0 2px rgba(200, 162, 74, 0.2);
 }
 
+/* Picker select (larger) */
+.funnel-select-lg {
+  padding: var(--space-3) var(--space-3) !important;
+  font-size: var(--text-base) !important;
+}
+
+/* Picker preview */
+.funnel-picker-preview {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.funnel-picker-preview-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.funnel-picker-preview-url {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
 /* Picker divider */
 .funnel-picker-divider {
   display: flex;

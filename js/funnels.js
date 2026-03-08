@@ -15,6 +15,7 @@ let loading = false;
 let expandedRows = new Set(); // page IDs with expanded daily detail
 let vercelProjects = null; // cached list from /api/vercel-projects
 let trackedSlugs = null;   // cached list from /api/funnel-stats (existing slugs)
+let addPageMode = 'picker'; // 'picker' or 'manual'
 
 function getDefaultDateRange() {
   const end = new Date();
@@ -363,34 +364,38 @@ function renderNewFunnelModal() {
 }
 
 function renderAddPageModal() {
-  const loadingPicker = vercelProjects === null && trackedSlugs === null;
-  const hasOptions = (vercelProjects?.length > 0) || (trackedSlugs?.length > 0);
+  const isLoading = vercelProjects === null;
+  const showManual = addPageMode === 'manual';
 
-  // Build dropdown options
-  let optionsHtml = '<option value="">-- Choose a page or enter manually --</option>';
+  // Build dropdown options from Vercel projects
+  let optionsHtml = '<option value="">Select a page...</option>';
 
-  if (loadingPicker) {
-    optionsHtml += '<option value="" disabled>Loading pages...</option>';
+  if (isLoading) {
+    optionsHtml = '<option value="">Loading your Vercel pages...</option>';
   }
 
   if (vercelProjects?.length > 0) {
-    optionsHtml += '<optgroup label="Vercel Projects">';
     for (const p of vercelProjects) {
-      const val = escapeHtml(JSON.stringify({ name: p.name, slug: p.slug }));
-      const label = p.url ? `${p.name} (${p.url.replace('https://', '')})` : p.name;
+      const displayUrl = p.url ? p.url.replace('https://', '') : '';
+      const label = displayUrl ? `${p.name} — ${displayUrl}` : p.name;
+      const val = escapeHtml(JSON.stringify({ name: p.name, slug: p.slug, url: p.url || '' }));
       optionsHtml += `<option value='${val}'>${escapeHtml(label)}</option>`;
     }
-    optionsHtml += '</optgroup>';
   }
 
   if (trackedSlugs?.length > 0) {
-    optionsHtml += '<optgroup label="Existing Tracked Pages">';
-    for (const slug of trackedSlugs) {
-      const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const val = escapeHtml(JSON.stringify({ name, slug }));
-      optionsHtml += `<option value='${val}'>${escapeHtml(name)} (${escapeHtml(slug)})</option>`;
+    // Add tracked slugs that aren't already Vercel projects
+    const vercelSlugs = new Set((vercelProjects || []).map(p => p.slug));
+    const extraSlugs = trackedSlugs.filter(s => !vercelSlugs.has(s));
+    if (extraSlugs.length > 0) {
+      optionsHtml += '<optgroup label="Other Tracked Pages">';
+      for (const slug of extraSlugs) {
+        const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const val = escapeHtml(JSON.stringify({ name, slug, url: '' }));
+        optionsHtml += `<option value='${val}'>${escapeHtml(name)}</option>`;
+      }
+      optionsHtml += '</optgroup>';
     }
-    optionsHtml += '</optgroup>';
   }
 
   return `
@@ -401,20 +406,24 @@ function renderAddPageModal() {
           <button class="funnel-modal-close" data-close-funnel-modal="addPageModal">&times;</button>
         </div>
         <div class="funnel-modal-body">
-          ${hasOptions || loadingPicker ? `
-            <label class="funnel-label">Choose from existing pages</label>
-            <select id="addPagePicker" class="funnel-input" style="margin-bottom:var(--space-3)">
+          ${!showManual ? `
+            <label class="funnel-label">Choose a page</label>
+            <select id="addPagePicker" class="funnel-input funnel-select-lg">
               ${optionsHtml}
             </select>
-            <div class="funnel-picker-divider">
-              <span>or enter manually</span>
+            <div id="addPagePickerPreview" class="funnel-picker-preview" style="display:none"></div>
+            <div style="margin-top:var(--space-3)">
+              <button class="btn btn-ghost btn-xs" id="addPageManualToggle">Enter manually instead</button>
             </div>
-          ` : ''}
-          <label class="funnel-label">Page Name</label>
-          <input type="text" id="addPageName" class="funnel-input" placeholder="e.g. Workshop Template">
-          <label class="funnel-label" style="margin-top:var(--space-3)">Tracking Slug</label>
-          <input type="text" id="addPageSlug" class="funnel-input" placeholder="e.g. workshop-template">
-          <p class="text-xs text-tertiary" style="margin-top:var(--space-1)">The slug must match the page_slug in your tracking events.</p>
+          ` : `
+            <label class="funnel-label">Page Name</label>
+            <input type="text" id="addPageName" class="funnel-input" placeholder="e.g. Checkout Page">
+            <label class="funnel-label" style="margin-top:var(--space-3)">Slug</label>
+            <input type="text" id="addPageSlug" class="funnel-input" placeholder="e.g. checkout-page">
+            <div style="margin-top:var(--space-3)">
+              <button class="btn btn-ghost btn-xs" id="addPagePickerToggle">Choose from Vercel instead</button>
+            </div>
+          `}
         </div>
         <div class="funnel-modal-footer">
           <button class="btn btn-ghost btn-sm" data-close-funnel-modal="addPageModal">Cancel</button>
@@ -473,6 +482,8 @@ function bindEvents() {
 
     // Add page button
     if (e.target.closest('#funnelAddPageBtn') || e.target.closest('#funnelAddPageEmpty')) {
+      addPageMode = 'picker';
+      render();
       openFunnelModal('addPageModal');
       fetchPagePickerData();
       return;
@@ -553,20 +564,58 @@ function bindEvents() {
       return;
     }
 
+    // Toggle between picker and manual mode
+    if (e.target.closest('#addPageManualToggle')) {
+      addPageMode = 'manual';
+      render();
+      openFunnelModal('addPageModal');
+      return;
+    }
+    if (e.target.closest('#addPagePickerToggle')) {
+      addPageMode = 'picker';
+      render();
+      openFunnelModal('addPageModal');
+      fetchPagePickerData();
+      return;
+    }
+
     // Add page submit
     if (e.target.closest('#addPageSubmit')) {
-      const nameInput = $('#addPageName');
-      const slugInput = $('#addPageSlug');
-      const name = nameInput?.value.trim();
-      const slug = slugInput?.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      let name, slug;
+
+      if (addPageMode === 'picker') {
+        // Get value from dropdown
+        const picker = $('#addPagePicker');
+        const val = picker?.value;
+        if (!val) {
+          showToast('Select a page from the dropdown', 'error');
+          return;
+        }
+        try {
+          const parsed = JSON.parse(val);
+          name = parsed.name;
+          slug = parsed.slug;
+        } catch {
+          showToast('Invalid selection', 'error');
+          return;
+        }
+      } else {
+        // Manual mode
+        const nameInput = $('#addPageName');
+        const slugInput = $('#addPageSlug');
+        name = nameInput?.value.trim();
+        slug = slugInput?.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      }
+
       if (!name || !slug) {
-        showToast('Enter both name and slug', 'error');
+        showToast('Select or enter a page', 'error');
         return;
       }
       const funnel = getActiveFunnel();
       if (funnel) {
         funnel.pages.push({ id: generateId(), name, slug });
         saveConfig();
+        addPageMode = 'picker'; // reset for next time
         closeFunnelModal('addPageModal');
         render();
         fetchPageStats();
@@ -625,17 +674,22 @@ function bindEvents() {
       dateRange.end = e.target.value;
       fetchPageStats();
     }
-    // Page picker dropdown — auto-fill name and slug
+    // Page picker dropdown — show preview
     if (e.target.id === 'addPagePicker') {
       const val = e.target.value;
-      if (!val) return;
+      const preview = $('#addPagePickerPreview');
+      if (!val || !preview) {
+        if (preview) preview.style.display = 'none';
+        return;
+      }
       try {
         const parsed = JSON.parse(val);
-        const nameInput = $('#addPageName');
-        const slugInput = $('#addPageSlug');
-        if (nameInput && parsed.name) nameInput.value = parsed.name;
-        if (slugInput && parsed.slug) slugInput.value = parsed.slug;
-      } catch { /* ignore parse errors */ }
+        preview.style.display = 'block';
+        preview.innerHTML = `
+          <div class="funnel-picker-preview-name">${escapeHtml(parsed.name)}</div>
+          ${parsed.url ? `<div class="funnel-picker-preview-url">${escapeHtml(parsed.url)}</div>` : ''}
+        `;
+      } catch { preview.style.display = 'none'; }
     }
   });
 
