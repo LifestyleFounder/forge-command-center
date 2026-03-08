@@ -8924,6 +8924,24 @@ a:focus:not(:focus-visible) {
   box-shadow: 0 0 0 2px rgba(200, 162, 74, 0.2);
 }
 
+/* Picker divider */
+.funnel-picker-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.funnel-picker-divider::before,
+.funnel-picker-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 /* Settings list */
 .funnel-settings-item {
   display: flex;

@@ -13,6 +13,8 @@ let dateRange = getDefaultDateRange();
 let pageStats = {};  // slug -> { views: {all, unique}, optins: {all, rate}, daily: [] }
 let loading = false;
 let expandedRows = new Set(); // page IDs with expanded daily detail
+let vercelProjects = null; // cached list from /api/vercel-projects
+let trackedSlugs = null;   // cached list from /api/funnel-stats (existing slugs)
 
 function getDefaultDateRange() {
   const end = new Date();
@@ -83,6 +85,32 @@ async function fetchPageStats() {
 
   loading = false;
   render();
+}
+
+async function fetchPagePickerData() {
+  // Only fetch once per session
+  if (vercelProjects !== null || trackedSlugs !== null) return;
+
+  const [vpRes, tsRes] = await Promise.allSettled([
+    fetch('/api/vercel-projects').then(r => r.ok ? r.json() : { projects: [] }),
+    fetch('/api/funnel-stats?days=90').then(r => r.ok ? r.json() : { pages: [] }),
+  ]);
+
+  vercelProjects = vpRes.status === 'fulfilled' ? (vpRes.value.projects || []) : [];
+  trackedSlugs = tsRes.status === 'fulfilled' ? (tsRes.value.pages || []) : [];
+
+  // Re-render the modal if it's open
+  const modal = document.getElementById('addPageModal');
+  if (modal && !modal.hidden) {
+    const savedName = $('#addPageName')?.value || '';
+    const savedSlug = $('#addPageSlug')?.value || '';
+    render();
+    openFunnelModal('addPageModal');
+    const nameInput = $('#addPageName');
+    const slugInput = $('#addPageSlug');
+    if (nameInput) nameInput.value = savedName;
+    if (slugInput) slugInput.value = savedSlug;
+  }
 }
 
 // ── Rendering ───────────────────────────────────────────────────────
@@ -335,6 +363,36 @@ function renderNewFunnelModal() {
 }
 
 function renderAddPageModal() {
+  const loadingPicker = vercelProjects === null && trackedSlugs === null;
+  const hasOptions = (vercelProjects?.length > 0) || (trackedSlugs?.length > 0);
+
+  // Build dropdown options
+  let optionsHtml = '<option value="">-- Choose a page or enter manually --</option>';
+
+  if (loadingPicker) {
+    optionsHtml += '<option value="" disabled>Loading pages...</option>';
+  }
+
+  if (vercelProjects?.length > 0) {
+    optionsHtml += '<optgroup label="Vercel Projects">';
+    for (const p of vercelProjects) {
+      const val = escapeHtml(JSON.stringify({ name: p.name, slug: p.slug }));
+      const label = p.url ? `${p.name} (${p.url.replace('https://', '')})` : p.name;
+      optionsHtml += `<option value='${val}'>${escapeHtml(label)}</option>`;
+    }
+    optionsHtml += '</optgroup>';
+  }
+
+  if (trackedSlugs?.length > 0) {
+    optionsHtml += '<optgroup label="Existing Tracked Pages">';
+    for (const slug of trackedSlugs) {
+      const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const val = escapeHtml(JSON.stringify({ name, slug }));
+      optionsHtml += `<option value='${val}'>${escapeHtml(name)} (${escapeHtml(slug)})</option>`;
+    }
+    optionsHtml += '</optgroup>';
+  }
+
   return `
     <div class="funnel-modal-overlay" id="addPageModal" hidden>
       <div class="funnel-modal">
@@ -343,6 +401,15 @@ function renderAddPageModal() {
           <button class="funnel-modal-close" data-close-funnel-modal="addPageModal">&times;</button>
         </div>
         <div class="funnel-modal-body">
+          ${hasOptions || loadingPicker ? `
+            <label class="funnel-label">Choose from existing pages</label>
+            <select id="addPagePicker" class="funnel-input" style="margin-bottom:var(--space-3)">
+              ${optionsHtml}
+            </select>
+            <div class="funnel-picker-divider">
+              <span>or enter manually</span>
+            </div>
+          ` : ''}
           <label class="funnel-label">Page Name</label>
           <input type="text" id="addPageName" class="funnel-input" placeholder="e.g. Workshop Template">
           <label class="funnel-label" style="margin-top:var(--space-3)">Tracking Slug</label>
@@ -407,6 +474,7 @@ function bindEvents() {
     // Add page button
     if (e.target.closest('#funnelAddPageBtn') || e.target.closest('#funnelAddPageEmpty')) {
       openFunnelModal('addPageModal');
+      fetchPagePickerData();
       return;
     }
 
@@ -547,7 +615,7 @@ function bindEvents() {
     }
   });
 
-  // Date range changes
+  // Date range changes + page picker
   container.addEventListener('change', (e) => {
     if (e.target.id === 'funnelDateStart') {
       dateRange.start = e.target.value;
@@ -556,6 +624,18 @@ function bindEvents() {
     if (e.target.id === 'funnelDateEnd') {
       dateRange.end = e.target.value;
       fetchPageStats();
+    }
+    // Page picker dropdown — auto-fill name and slug
+    if (e.target.id === 'addPagePicker') {
+      const val = e.target.value;
+      if (!val) return;
+      try {
+        const parsed = JSON.parse(val);
+        const nameInput = $('#addPageName');
+        const slugInput = $('#addPageSlug');
+        if (nameInput && parsed.name) nameInput.value = parsed.name;
+        if (slugInput && parsed.slug) slugInput.value = parsed.slug;
+      } catch { /* ignore parse errors */ }
     }
   });
 
