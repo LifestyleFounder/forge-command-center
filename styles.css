@@ -8534,3 +8534,454 @@ a:focus:not(:focus-visible) {
     display: inline-flex;
   }
 }
+
+/* ============================================================
+   FUNNELS TAB — GHL-style funnel tracking dashboard
+   ============================================================ */
+
+/* Funnel tabs (funnel selector) */
+.funnel-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.funnel-tab {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.funnel-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.funnel-tab.is-active {
+  color: var(--text-primary);
+  border-bottom-color: var(--color-gold);
+}
+
+.funnel-tab-settings {
+  margin-left: auto;
+  padding: var(--space-1);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+}
+
+.funnel-tab-settings:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+/* Controls bar (date range) */
+.funnel-controls {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.funnel-date-range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.funnel-date-input {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.funnel-date-arrow {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* Funnel Table */
+.funnel-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.funnel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.funnel-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Group header row (Page Views, Opt-Ins, Sales, Earnings) */
+.funnel-table-group-row th {
+  padding: var(--space-2) var(--space-3);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-align: center;
+  color: #fff;
+  border-bottom: none;
+}
+
+.funnel-table-name-col {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  text-align: left !important;
+  min-width: 220px;
+  border-right: 1px solid var(--border);
+}
+
+/* Color-coded column groups matching GHL */
+.funnel-col-views { background: #4a90d9; }
+.funnel-col-optins { background: #7ec8e3; }
+.funnel-col-sales { background: #56c596; }
+.funnel-col-earnings { background: #3cc0ad; }
+
+/* Sub-header row (All, Uniques, Rate, etc.) */
+.funnel-table-sub-row th {
+  padding: var(--space-1) var(--space-3);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-align: center;
+  border-bottom: 2px solid var(--border);
+  color: #fff;
+}
+
+.funnel-col-views-sub { background: #5a9ee0; }
+.funnel-col-optins-sub { background: #8ed4ed; }
+.funnel-col-sales-sub { background: #66d1a6; }
+.funnel-col-earnings-sub { background: #4cd0bd; }
+
+/* Data rows */
+.funnel-page-row {
+  transition: background 0.1s ease;
+}
+
+.funnel-page-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.funnel-page-row:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+.funnel-table-name-cell {
+  padding: var(--space-3) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-right: 1px solid var(--border);
+  min-width: 220px;
+  position: relative;
+}
+
+.funnel-row-toggle {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.funnel-row-toggle:hover {
+  color: var(--text-primary);
+}
+
+.funnel-row-toggle.is-hidden {
+  visibility: hidden;
+}
+
+.funnel-page-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.funnel-page-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.funnel-page-delete {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 2px;
+  display: none;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.funnel-page-row:hover .funnel-page-delete {
+  display: flex;
+}
+
+.funnel-page-delete:hover {
+  color: #dc2626;
+}
+
+.funnel-conversion-badge {
+  font-size: 0.65rem;
+  background: var(--color-gold);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.funnel-data-cell {
+  padding: var(--space-3) var(--space-3);
+  text-align: center;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expanded daily breakdown */
+.funnel-daily-header td {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.funnel-daily-table-wrap {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-tertiary);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.funnel-daily-table {
+  width: 100%;
+  max-width: 500px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.funnel-daily-table th {
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.funnel-daily-table td {
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Empty state */
+.funnel-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.funnel-empty-icon {
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.funnel-empty-state h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-2);
+}
+
+.funnel-empty-state p {
+  margin-bottom: var(--space-4);
+}
+
+/* Modal */
+.funnel-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.funnel-modal {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 440px;
+  margin: var(--space-4);
+}
+
+.funnel-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.funnel-modal-header h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.funnel-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: var(--space-1);
+}
+
+.funnel-modal-close:hover {
+  color: var(--text-primary);
+}
+
+.funnel-modal-body {
+  padding: var(--space-4) var(--space-5);
+}
+
+.funnel-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.funnel-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.funnel-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.funnel-input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 2px rgba(200, 162, 74, 0.2);
+}
+
+/* Settings list */
+.funnel-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+
+.funnel-settings-item:last-child {
+  border-bottom: none;
+}
+
+.text-danger {
+  color: #dc2626 !important;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .funnel-table-name-col {
+  background: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .funnel-date-input {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .funnel-daily-table-wrap {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .funnel-daily-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .funnel-table-wrapper {
+    font-size: 0.75rem;
+  }
+
+  .funnel-table-name-cell {
+    min-width: 160px;
+    padding: var(--space-2);
+  }
+
+  .funnel-data-cell {
+    padding: var(--space-2);
+  }
+
+  .funnel-controls {
+    justify-content: center;
+  }
+
+  .funnel-date-range {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

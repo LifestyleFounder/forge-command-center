@@ -16,6 +16,7 @@ import { initReports, loadReportData } from './reports.js';
 import { initIframes, loadIframe } from './iframes.js';
 import { initBlockEditor, openBlockEditor, closeBlockEditor, isEditorModalOpen } from './block-editor.js';
 import { initEmail } from './email.js';
+import { initFunnels, loadFunnelData } from './funnels.js';
 import { initNoteAi } from './note-ai.js';
 
 // ---- State Management ----------------------------------------
@@ -231,6 +232,7 @@ const TAB_LABELS = {
   competitors: 'Competitors',
   'meta-ads': 'Meta Ads',
   'google-tasks': 'Google Tasks',
+  funnels: 'Funnels',
   reports: 'Reports',
   calendar: 'Calendar',
   'performance-tracker': 'Performance',
@@ -252,6 +254,7 @@ function onTabFirstVisit(tabName) {
     case 'competitors': loadCompetitorData(); break;
     case 'meta-ads': loadMetaAdsData(); break;
     case 'google-tasks': loadGoogleTaskData(); break;
+    case 'funnels': loadFunnelData(); break;
     case 'reports': loadReportData(); break;
     case 'calendar': loadIframe('google-calendar'); break;
     case 'performance-tracker': loadIframe('performance-tracker'); break;
@@ -1069,6 +1072,7 @@ async function init() {
   initBlockEditor();
   initNoteAi();
   initEmail();
+  initFunnels();
 
   // FAB button to open block editor
   const blockEditorFab = document.getElementById('blockEditorFab');
