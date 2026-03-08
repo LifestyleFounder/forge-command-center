@@ -156,7 +156,7 @@ function renderVipClients() {
   container.innerHTML = `
     <div class="vip-stats-row">
       <button class="vip-stat-card ${activeFilter === 'all' ? 'is-active' : ''}" data-vip-filter="all">
-        <span class="vip-stat-value">${stats.total}</span><span class="vip-stat-label">Total</span>
+        <span class="vip-stat-value">$${stats.mrr.toLocaleString()}</span><span class="vip-stat-label">MRR</span>
       </button>
       <button class="vip-stat-card ${activeFilter === 'active' ? 'is-active' : ''}" data-vip-filter="active">
         <span class="vip-stat-value">${stats.active}</span><span class="vip-stat-label">Active</span>
@@ -333,7 +333,7 @@ function renderExpandedRow(client) {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function computeStats(clients) {
-  const stats = { total: clients.length, active: 0, warning: 0, atRisk: 0, churned: 0, onboarding: 0 };
+  const stats = { total: clients.length, active: 0, warning: 0, atRisk: 0, churned: 0, onboarding: 0, mrr: 0 };
   clients.forEach(c => {
     const cls = classifyStatus(c.status);
     if (cls === 'active') stats.active++;
@@ -341,6 +341,11 @@ function computeStats(clients) {
     else if (cls === 'at-risk') stats.atRisk++;
     else if (cls === 'churned') stats.churned++;
     else if (cls === 'onboarding') stats.onboarding++;
+    // MRR: count non-churned clients with 1k/month payment
+    if (cls !== 'churned') {
+      const pay = (c.payment || '').toLowerCase();
+      if (pay.includes('1k/month') || pay === '1k') stats.mrr += 1000;
+    }
   });
   return stats;
 }
