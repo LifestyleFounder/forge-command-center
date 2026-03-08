@@ -146,7 +146,10 @@ function render() {
         <input type="date" id="funnelDateStart" class="funnel-date-input" value="${dateRange.start}">
         <span class="funnel-date-arrow">→</span>
         <input type="date" id="funnelDateEnd" class="funnel-date-input" value="${dateRange.end}">
-        <button class="btn btn-sm btn-danger" id="funnelResetDates" style="margin-left:var(--space-2)">Reset</button>
+        <button class="btn btn-sm btn-ghost" id="funnelRefreshBtn" title="Refresh stats" style="margin-left:var(--space-2)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+        <button class="btn btn-sm btn-danger" id="funnelResetDates" style="margin-left:var(--space-1)">Reset</button>
       </div>
     </div>
 
@@ -624,6 +627,13 @@ function bindEvents() {
         render();
         fetchPageStats();
       }
+      return;
+    }
+
+    // Refresh stats
+    if (e.target.closest('#funnelRefreshBtn')) {
+      pageStats = {};
+      fetchPageStats();
       return;
     }
 
