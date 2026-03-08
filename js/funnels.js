@@ -99,28 +99,23 @@ async function fetchPagePickerData() {
   // Only fetch once per session
   if (vercelProjects !== null) return;
 
-  // Set known projects immediately so dropdown populates fast
+  // Set known projects immediately and re-render so dropdown shows right away
   vercelProjects = [...KNOWN_PROJECTS];
+  trackedSlugs = [];
+  render();
+  openFunnelModal('addPageModal');
 
-  // Also fetch tracked slugs from Supabase (adds any extra pages with data)
+  // Then fetch tracked slugs from Supabase in background (adds extra pages)
   try {
     const res = await fetch('/api/funnel-stats?days=365');
     if (res.ok) {
       const data = await res.json();
       trackedSlugs = data.pages || [];
-    } else {
-      trackedSlugs = [];
+      // Re-render to add tracked slugs to dropdown
+      render();
+      openFunnelModal('addPageModal');
     }
-  } catch {
-    trackedSlugs = [];
-  }
-
-  // Re-render the modal if it's open
-  const modal = document.getElementById('addPageModal');
-  if (modal && !modal.hidden) {
-    render();
-    openFunnelModal('addPageModal');
-  }
+  } catch { /* keep what we have */ }
 }
 
 // ── Rendering ───────────────────────────────────────────────────────
