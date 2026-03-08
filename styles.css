@@ -8443,6 +8443,255 @@ a:focus:not(:focus-visible) {
   gap: var(--space-2);
 }
 
+/* ---- Campaigns -------------------------------------------------- */
+.email-campaigns {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.email-campaign-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.email-campaign-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.email-campaign-card-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.email-campaign-card-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.email-campaign-chart-wrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.email-campaign-chart-container {
+  height: 220px;
+  position: relative;
+}
+
+.email-campaign-table-wrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.email-campaign-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.email-campaign-table thead th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  background: var(--bg-tertiary);
+}
+
+.email-campaign-table tbody td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.email-campaign-row {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.email-campaign-row:hover {
+  background: var(--bg-hover);
+}
+
+.email-campaign-row.is-expanded {
+  background: var(--bg-tertiary);
+}
+
+.email-campaign-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-campaign-rate {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.email-campaign-rate.rate-good {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.email-campaign-rate.rate-ok {
+  background: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+}
+
+.email-campaign-rate.rate-bad {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+[data-theme="dark"] .email-campaign-rate.rate-good {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+[data-theme="dark"] .email-campaign-rate.rate-ok {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+}
+
+[data-theme="dark"] .email-campaign-rate.rate-bad {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.email-campaign-detail-inner {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-tertiary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.email-campaigns-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16) var(--space-6);
+  gap: var(--space-3);
+}
+
+/* ---- Send Button Loading State ---------------------------------- */
+.email-send-btn.is-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.email-send-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: email-spin 0.6s linear infinite;
+}
+
+@keyframes email-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- GHL Contact Search + Tag Chips ----------------------------- */
+.email-ghl-search {
+  max-width: 720px;
+  margin: 0 auto var(--space-4);
+}
+
+.email-ghl-search-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.email-ghl-search-row .form-input {
+  flex: 1;
+}
+
+.email-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.email-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.email-tag-chip:hover {
+  border-color: var(--color-gold);
+  color: var(--text-primary);
+}
+
+.email-tag-chip.is-active {
+  background: var(--color-gold);
+  color: #fff;
+  border-color: var(--color-gold);
+}
+
+/* ---- Autocomplete GHL Badge ------------------------------------ */
+.email-ac-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--color-gold);
+  color: #fff;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+}
+
+/* ---- Contact Tags (in results) --------------------------------- */
+.email-contact-tags {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
 /* ---- Mobile ----------------------------------------------------- */
 @media (max-width: 768px) {
   .email-compose {
@@ -8488,6 +8737,31 @@ a:focus:not(:focus-visible) {
 
   .email-contact-source {
     display: none;
+  }
+
+  .email-campaign-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+  }
+
+  .email-campaign-card {
+    padding: var(--space-3);
+  }
+
+  .email-campaign-card-value {
+    font-size: var(--text-lg);
+  }
+
+  .email-campaign-table-wrap {
+    overflow-x: auto;
+  }
+
+  .email-campaign-name {
+    max-width: 160px;
+  }
+
+  .email-ghl-search-row {
+    flex-direction: column;
   }
 }
 
