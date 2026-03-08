@@ -102,6 +102,17 @@ async function saveToNotion(clientId, properties) {
   }
 }
 
+// ── Navigate to a specific client (used by home.js) ─────────────────
+export function navigateToClient(clientId) {
+  expandedClientId = clientId;
+  renderVipClients();
+  // Scroll to the expanded row after render
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`.vip-row[data-client-id="${clientId}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
 // ── Public init ──────────────────────────────────────────────────────
 export function initVipClients() {
   renderVipClients();

@@ -1237,6 +1237,21 @@ textarea.form-input {
   padding: var(--space-3);
   background-color: var(--bg-tertiary);
   border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.health-stat:hover {
+  background-color: var(--bg-secondary);
+}
+
+.health-stat:active {
+  transform: scale(0.97);
+}
+
+.health-stat.is-expanded {
+  box-shadow: inset 0 -2px 0 var(--color-accent, #3B82F6);
+  background-color: var(--bg-secondary);
 }
 
 .health-stat[data-health="healthy"] .health-count {
@@ -6464,40 +6479,63 @@ a:focus:not(:focus-visible) {
   transition: opacity 0.25s, transform 0.25s;
 }
 
-/* ---- Home Click-to-Edit Health Counts -------------------------- */
+/* ---- Home Health Expand List ----------------------------------- */
 
-.health-count {
+.health-client-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: var(--space-3);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: healthExpandIn 0.2s ease-out;
+}
+
+@keyframes healthExpandIn {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 500px; }
+}
+
+.health-client-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--bg-primary);
+  border: none;
   cursor: pointer;
-  position: relative;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+  transition: background-color 0.1s;
+  width: 100%;
 }
 
-.health-count:hover::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border: 1px dashed var(--border-light);
-  border-radius: var(--radius-sm);
-  pointer-events: none;
+.health-client-item:hover {
+  background-color: var(--bg-secondary);
 }
 
-.health-count-input {
-  width: 48px;
-  padding: 2px 4px;
-  font-size: var(--text-2xl);
-  font-weight: 700;
+.health-client-name {
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+.health-client-program {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+}
+
+.health-client-empty {
+  padding: var(--space-3);
   text-align: center;
-  border: 1px solid var(--color-accent, #3B82F6);
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
-  color: inherit;
-  outline: none;
-  -moz-appearance: textfield;
-}
-
-.health-count-input::-webkit-outer-spin-button,
-.health-count-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
 }
 
 /* ---- Mobile Responsive for VIP Edit ---------------------------- */

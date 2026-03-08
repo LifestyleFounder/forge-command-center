@@ -8,6 +8,7 @@ import {
   subscribe,
   escapeHtml,
   formatDate,
+  formatRelativeTime,
   daysBetween,
   $,
   showToast,
@@ -18,6 +19,7 @@ import {
 } from './app.js';
 import { getUpcomingTasks, completeTaskFromHome, getTaskLists } from './google-tasks.js';
 import { getUpcomingEvents } from './google-calendar.js';
+import { navigateToClient } from './vip-clients.js';
 
 // ---- Dismissed Alerts (localStorage with 7-day expiry) ---------
 
@@ -50,30 +52,16 @@ function isAlertDismissed(alertKey) {
   return !!getDismissed()[alertKey];
 }
 
-// ---- Metric Overrides (localStorage) ---------------------------
-
-const OVERRIDES_KEY = 'forge-metrics-overrides';
-
-function getMetricOverrides() {
-  try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY)) || {}; }
-  catch { return {}; }
-}
-
-function saveMetricOverride(key, value) {
-  const overrides = getMetricOverrides();
-  overrides[key] = value;
-  overrides._lastUpdated = new Date().toISOString().split('T')[0];
-  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
-}
-
 // ---- DOM Cache (module-scoped) --------------------------------
 
 let el = {};
+let expandedHealthCategory = null; // null | 'healthy' | 'warning' | 'atRisk'
 
 function cacheHomeElements() {
   el = {
     greeting: $('#homeGreeting'),
     healthSummary: $('#healthSummary'),
+    healthClientList: $('#healthClientList'),
     clientsHealthy: $('#clientsHealthy'),
     clientsWarning: $('#clientsWarning'),
     clientsAtRisk: $('#clientsAtRisk'),
@@ -102,10 +90,10 @@ export function initHome() {
   // Subscribe to state changes
   subscribe((key) => {
     if (key === 'business') {
-      renderClientHealth();
       renderClientNotifications();
     }
     if (key === 'vipClients') {
+      renderClientHealth();
       renderClientNotifications();
       renderVipMetrics();
     }
@@ -133,37 +121,24 @@ export function initHome() {
         return;
       }
 
-      // Click-to-edit health counts
-      const healthCount = e.target.closest('.health-count');
-      if (healthCount && !healthCount.querySelector('input')) {
-        const metricId = healthCount.id;
-        const current = healthCount.textContent;
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.className = 'health-count-input';
-        input.value = current;
-        input.min = '0';
-        healthCount.textContent = '';
-        healthCount.appendChild(input);
-        input.focus();
-        input.select();
+      // Click-to-expand health categories
+      const healthStat = e.target.closest('.health-stat');
+      if (healthStat) {
+        const category = healthStat.dataset.health;
+        if (category) {
+          expandedHealthCategory = expandedHealthCategory === category ? null : category;
+          renderHealthExpand();
+        }
+      }
 
-        const save = () => {
-          const val = parseInt(input.value, 10);
-          if (!isNaN(val) && val >= 0) {
-            saveMetricOverride(metricId, val);
-            healthCount.textContent = val;
-            renderStaleness();
-          } else {
-            healthCount.textContent = current;
-          }
-        };
-
-        input.addEventListener('blur', save);
-        input.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-          if (ev.key === 'Escape') { healthCount.textContent = current; }
-        });
+      // Click client name in expanded health list → jump to VIP tab
+      const clientItem = e.target.closest('.health-client-item');
+      if (clientItem) {
+        const clientId = clientItem.dataset.clientId;
+        if (clientId) {
+          switchTab('vip-clients');
+          navigateToClient(clientId);
+        }
       }
     });
   }
@@ -226,15 +201,38 @@ function updateGreeting() {
 
 // ---- VIP Metrics (4-card row) ---------------------------------
 
+// Reuse classifyStatus logic from vip-clients.js
+function classifyStatus(status) {
+  if (!status) return 'active';
+  const s = status.toLowerCase();
+  if (s === 'active') return 'active';
+  if (s === 'at risk') return 'at-risk';
+  if (s === 'churned' || s === 'cancelled' || s === 'graduated') return 'churned';
+  if (s === 'onboarding') return 'onboarding';
+  if (s.includes('needs attention') || s.includes('paused')) return 'warning';
+  return 'active';
+}
+
+function parseMrr(clients) {
+  let total = 0;
+  clients.forEach(c => {
+    const cls = classifyStatus(c.status);
+    if (cls === 'churned') return;
+    const pay = (c.payment || '').toLowerCase();
+    if (pay.includes('1k/month') || pay === '1k') total += 1000;
+  });
+  return total;
+}
+
 function renderVipMetrics() {
   const VIP_GOAL = 72;
   const data = getState('vipClients');
   if (!data || !data.clients) return;
 
   const clients = data.clients;
-  const activeCount = clients.filter(c => c.status === 'Active').length;
-  const atRiskCount = clients.filter(c => c.status === 'At Risk').length;
-  const mrr = activeCount * 1000;
+  const activeCount = clients.filter(c => classifyStatus(c.status) === 'active').length;
+  const atRiskCount = clients.filter(c => classifyStatus(c.status) === 'at-risk').length;
+  const mrr = parseMrr(clients);
   const toGoal = VIP_GOAL - activeCount;
 
   if (el.vipActiveCount) el.vipActiveCount.textContent = activeCount;
@@ -245,63 +243,93 @@ function renderVipMetrics() {
 
 // ---- Client Health --------------------------------------------
 
+function getClassifiedClients() {
+  const data = getState('vipClients');
+  if (!data || !data.clients) return { healthy: [], warning: [], atRisk: [] };
+
+  const healthy = [];
+  const warning = [];
+  const atRisk = [];
+
+  data.clients.forEach(c => {
+    const cls = classifyStatus(c.status);
+    if (cls === 'active' || cls === 'onboarding') healthy.push(c);
+    else if (cls === 'warning') warning.push(c);
+    else if (cls === 'at-risk') atRisk.push(c);
+  });
+
+  return { healthy, warning, atRisk };
+}
+
 function renderClientHealth() {
-  const biz = getState().business;
-  if (!biz || !biz.clients) return;
+  const { healthy, warning, atRisk } = getClassifiedClients();
 
-  const overrides = getMetricOverrides();
-  const healthy = biz.clients.healthy || [];
-  const warning = biz.clients.warning || [];
-  const atRisk = biz.clients.atRisk || [];
+  if (el.clientsHealthy) el.clientsHealthy.textContent = healthy.length;
+  if (el.clientsWarning) el.clientsWarning.textContent = warning.length;
+  if (el.clientsAtRisk) el.clientsAtRisk.textContent = atRisk.length;
 
-  // Use overrides if present, otherwise use data length
-  const healthyCount = overrides.clientsHealthy != null ? overrides.clientsHealthy : healthy.length;
-  const warningCount = overrides.clientsWarning != null ? overrides.clientsWarning : warning.length;
-  const atRiskCount = overrides.clientsAtRisk != null ? overrides.clientsAtRisk : atRisk.length;
-
-  if (el.clientsHealthy) el.clientsHealthy.textContent = healthyCount;
-  if (el.clientsWarning) el.clientsWarning.textContent = warningCount;
-  if (el.clientsAtRisk) el.clientsAtRisk.textContent = atRiskCount;
-
-  // Staleness badge
   renderStaleness();
+  renderHealthExpand();
 }
 
 function renderStaleness() {
   if (!el.clientsStaleness) return;
-  const biz = getState().business;
-  const overrides = getMetricOverrides();
+  const data = getState('vipClients');
+  const lastSynced = data?.lastSynced;
 
-  // Use the most recent of: business.lastUpdated or override._lastUpdated
-  const bizDate = biz?.lastUpdated;
-  const overrideDate = overrides._lastUpdated;
-  const effectiveDate = overrideDate && (!bizDate || overrideDate > bizDate) ? overrideDate : bizDate;
-
-  if (!effectiveDate) {
-    el.clientsStaleness.textContent = '';
-    return;
-  }
-  const days = daysBetween(effectiveDate, null);
-  if (days === null) {
+  if (!lastSynced) {
     el.clientsStaleness.textContent = '';
     return;
   }
 
-  let colorClass;
-  let label;
+  el.clientsStaleness.textContent = formatRelativeTime(lastSynced);
+  const days = daysBetween(lastSynced, null);
+  if (days === null) return;
+
   if (days === 0) {
-    colorClass = 'staleness-fresh';
-    label = 'Updated today';
+    el.clientsStaleness.className = 'staleness staleness-fresh';
   } else if (days <= 3) {
-    colorClass = 'staleness-recent';
-    label = `${days}d ago`;
+    el.clientsStaleness.className = 'staleness staleness-recent';
   } else {
-    colorClass = 'staleness-stale';
-    label = `${days}d ago`;
+    el.clientsStaleness.className = 'staleness staleness-stale';
+  }
+}
+
+function renderHealthExpand() {
+  const container = el.healthClientList;
+  if (!container) return;
+
+  // Update active state on health-stat elements
+  if (el.healthSummary) {
+    el.healthSummary.querySelectorAll('.health-stat').forEach(stat => {
+      stat.classList.toggle('is-expanded', stat.dataset.health === expandedHealthCategory);
+    });
   }
 
-  el.clientsStaleness.className = `staleness ${colorClass}`;
-  el.clientsStaleness.textContent = label;
+  if (!expandedHealthCategory) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const { healthy, warning, atRisk } = getClassifiedClients();
+  const categoryMap = { healthy, warning, atRisk };
+  const clients = categoryMap[expandedHealthCategory] || [];
+
+  if (clients.length === 0) {
+    container.innerHTML = '<div class="health-client-list"><div class="health-client-empty">No clients in this category</div></div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="health-client-list">
+      ${clients.map(c => `
+        <button class="health-client-item" data-client-id="${escapeHtml(c.id)}">
+          <span class="health-client-name">${escapeHtml(c.name)}</span>
+          <span class="health-client-program">${escapeHtml((c.program || []).join(', '))}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
 }
 
 // ---- Client Notifications (flat list below health stats) ------
