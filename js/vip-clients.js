@@ -141,7 +141,12 @@ function renderVipClients() {
 
   // Filter
   let filtered = clients;
-  if (activeFilter !== 'all') {
+  if (activeFilter === 'healthy') {
+    filtered = clients.filter(c => {
+      const cls = classifyStatus(c.status);
+      return cls === 'active' || cls === 'onboarding';
+    });
+  } else if (activeFilter !== 'all') {
     filtered = clients.filter(c => classifyStatus(c.status) === activeFilter);
   }
   if (searchQuery) {
@@ -158,11 +163,11 @@ function renderVipClients() {
       <button class="vip-stat-card ${activeFilter === 'all' ? 'is-active' : ''}" data-vip-filter="all">
         <span class="vip-stat-value">$${stats.mrr.toLocaleString()}</span><span class="vip-stat-label">MRR</span>
       </button>
-      <button class="vip-stat-card ${activeFilter === 'active' ? 'is-active' : ''}" data-vip-filter="active">
-        <span class="vip-stat-value">${stats.active}</span><span class="vip-stat-label">Active</span>
+      <button class="vip-stat-card ${activeFilter === 'healthy' ? 'is-active' : ''}" data-vip-filter="healthy">
+        <span class="vip-stat-value">${stats.active + stats.onboarding}</span><span class="vip-stat-label">Healthy</span>
       </button>
       <button class="vip-stat-card vip-stat-warning ${activeFilter === 'warning' ? 'is-active' : ''}" data-vip-filter="warning">
-        <span class="vip-stat-value">${stats.warning}</span><span class="vip-stat-label">Attention</span>
+        <span class="vip-stat-value">${stats.warning}</span><span class="vip-stat-label">Watch</span>
       </button>
       <button class="vip-stat-card vip-stat-danger ${activeFilter === 'at-risk' ? 'is-active' : ''}" data-vip-filter="at-risk">
         <span class="vip-stat-value">${stats.atRisk}</span><span class="vip-stat-label">At Risk</span>
