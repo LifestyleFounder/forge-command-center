@@ -10,6 +10,7 @@ import {
   updateThreadTitle as sbUpdateTitle,
   saveMessage as sbSaveMessage
 } from './services/chat-persistence.js';
+import { attachVoiceInput } from './voice-input.js';
 
 // ── Constants ────────────────────────────────────────────────────────
 const THREADS_KEY = 'forge-chat-threads';
@@ -90,6 +91,9 @@ export function initChat() {
   updateTopbar();
   restorePanelState();
   bindEvents();
+
+  // Mobile voice input
+  attachVoiceInput({ button: $('#chatVoiceBtn'), textarea: $('#chatInput') });
 }
 
 // ═══════════════════════════════════════════════════════════════════════

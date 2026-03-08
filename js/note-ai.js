@@ -3,6 +3,7 @@
 
 import { $, escapeHtml, showToast } from './app.js';
 import { getEditorInstance } from './block-editor.js';
+import { attachVoiceInput } from './voice-input.js';
 
 // ── Constants ────────────────────────────────────────────────────────
 const PROXY_KEY   = 'forge-anthropic-proxy';
@@ -38,6 +39,9 @@ export function initNoteAi() {
   });
 
   renderEmptyState();
+
+  // Mobile voice input
+  attachVoiceInput({ button: $('#noteAiVoiceBtn'), textarea: $('#noteAiInput') });
 }
 
 // ── Panel open/close ─────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { $, showToast, debounce } from './app.js';
 import { updatePageBlocks, createPage } from './services/notion-blocks.js';
 import { tiptapToNotionBlocks } from './notion-converter.js';
 import { createSlashCommandSuggestion } from './slash-commands.js';
+import { attachVoiceInput } from './voice-input.js';
 
 // ── Workspace Storage (shared keys with knowledge.js) ─────
 const DOCS_KEY = 'forge-workspace-docs';
@@ -46,6 +47,9 @@ const AUTOSAVE_DELAY = 2000;
 
 export async function initBlockEditor() {
   bindModalEvents();
+
+  // Mobile voice input — uses lazy getter since editor initializes later
+  attachVoiceInput({ button: $('#beVoiceBtn'), getEditor: () => editor });
 }
 
 /**
