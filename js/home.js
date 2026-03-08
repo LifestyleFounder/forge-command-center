@@ -362,7 +362,9 @@ function renderClientNotifications() {
         }
       }
       if (c.todo && c.todo.length > 0) {
-        items.push({ icon: '\u2705', text: `${c.name} — ${c.todo.length} action item${c.todo.length > 1 ? 's' : ''}`, type: 'warning', key: `vip-todo-${c.name}` });
+        c.todo.forEach((item, i) => {
+          items.push({ icon: '\u2705', text: `${c.name} — ${item}`, type: 'warning', key: `vip-todo-${c.name}-${i}` });
+        });
       }
     });
   }
