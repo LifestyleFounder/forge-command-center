@@ -68,10 +68,10 @@ function cacheHomeElements() {
     clientsStaleness: $('#clientsStaleness'),
     clientNotifications: $('#clientNotifications'),
     refreshAllBtn: $('#refreshAllBtn'),
-    vipHealthyCount: $('#vipHealthyCount'),
+    vipTotalCount: $('#vipTotalCount'),
     vipMrr: $('#vipMrr'),
-    vipAtRiskCount: $('#vipAtRiskCount'),
     vipToGoal: $('#vipToGoal'),
+    vipChurnedCount: $('#vipChurnedCount'),
   };
 }
 
@@ -226,17 +226,19 @@ function parseMrr(clients) {
 
 function renderVipMetrics() {
   const VIP_GOAL = 72;
-  const { healthy, atRisk } = getClassifiedClients();
   const data = getState('vipClients');
   if (!data || !data.clients) return;
 
-  const mrr = parseMrr(data.clients);
-  const toGoal = VIP_GOAL - healthy.length;
+  const clients = data.clients;
+  const churnedCount = clients.filter(c => classifyStatus(c.status) === 'churned').length;
+  const totalActive = clients.length - churnedCount;
+  const mrr = parseMrr(clients);
+  const toGoal = VIP_GOAL - totalActive;
 
-  if (el.vipHealthyCount) el.vipHealthyCount.textContent = healthy.length;
+  if (el.vipTotalCount) el.vipTotalCount.textContent = totalActive;
   if (el.vipMrr) el.vipMrr.textContent = '$' + mrr.toLocaleString();
-  if (el.vipAtRiskCount) el.vipAtRiskCount.textContent = atRisk.length;
   if (el.vipToGoal) el.vipToGoal.textContent = toGoal;
+  if (el.vipChurnedCount) el.vipChurnedCount.textContent = churnedCount;
 }
 
 // ---- Client Health --------------------------------------------
