@@ -71,7 +71,6 @@ function cacheHomeElements() {
     vipActiveCount: $('#vipActiveCount'),
     vipMrr: $('#vipMrr'),
     vipAtRiskCount: $('#vipAtRiskCount'),
-    vipToGoal: $('#vipToGoal'),
   };
 }
 
@@ -225,7 +224,6 @@ function parseMrr(clients) {
 }
 
 function renderVipMetrics() {
-  const VIP_GOAL = 72;
   const data = getState('vipClients');
   if (!data || !data.clients) return;
 
@@ -233,12 +231,10 @@ function renderVipMetrics() {
   const activeCount = clients.filter(c => classifyStatus(c.status) === 'active').length;
   const atRiskCount = clients.filter(c => classifyStatus(c.status) === 'at-risk').length;
   const mrr = parseMrr(clients);
-  const toGoal = VIP_GOAL - activeCount;
 
   if (el.vipActiveCount) el.vipActiveCount.textContent = activeCount;
   if (el.vipMrr) el.vipMrr.textContent = '$' + mrr.toLocaleString();
   if (el.vipAtRiskCount) el.vipAtRiskCount.textContent = atRiskCount;
-  if (el.vipToGoal) el.vipToGoal.textContent = toGoal;
 }
 
 // ---- Client Health --------------------------------------------
