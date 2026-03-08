@@ -355,7 +355,7 @@ function computeStats(clients) {
   return stats;
 }
 
-function classifyStatus(status) {
+export function classifyStatus(status) {
   if (!status) return 'active';
   const s = status.toLowerCase();
   if (s === 'active') return 'active';
@@ -364,6 +364,13 @@ function classifyStatus(status) {
   if (s === 'onboarding') return 'onboarding';
   if (s.includes('needs attention') || s.includes('paused')) return 'warning';
   return 'active';
+}
+
+// Returns clients with local edits applied — single source of truth
+export function getMergedClients() {
+  const data = getState('vipClients');
+  if (!data || !data.clients) return [];
+  return data.clients.map(mergeEdits);
 }
 
 function tenureLabel(joinedDate) {

@@ -19,7 +19,7 @@ import {
 } from './app.js';
 import { getUpcomingTasks, completeTaskFromHome, getTaskLists } from './google-tasks.js';
 import { getUpcomingEvents } from './google-calendar.js';
-import { navigateToClient } from './vip-clients.js';
+import { navigateToClient, classifyStatus, getMergedClients } from './vip-clients.js';
 
 // ---- Dismissed Alerts (localStorage with 7-day expiry) ---------
 
@@ -201,18 +201,6 @@ function updateGreeting() {
 
 // ---- VIP Metrics (4-card row) ---------------------------------
 
-// Reuse classifyStatus logic from vip-clients.js
-function classifyStatus(status) {
-  if (!status) return 'active';
-  const s = status.toLowerCase();
-  if (s === 'active') return 'active';
-  if (s === 'at risk') return 'at-risk';
-  if (s === 'churned' || s === 'cancelled' || s === 'graduated') return 'churned';
-  if (s === 'onboarding') return 'onboarding';
-  if (s.includes('needs attention') || s.includes('paused')) return 'warning';
-  return 'active';
-}
-
 function parseMrr(clients) {
   let total = 0;
   clients.forEach(c => {
@@ -226,39 +214,38 @@ function parseMrr(clients) {
 
 function renderVipMetrics() {
   const VIP_GOAL = 72;
-  const data = getState('vipClients');
-  if (!data || !data.clients) return;
+  const clients = getMergedClients();
+  if (!clients.length) return;
 
-  const clients = data.clients;
-  const churnedCount = clients.filter(c => classifyStatus(c.status) === 'churned').length;
-  const totalActive = clients.length - churnedCount;
+  const { healthy, warning, atRisk, churned } = getClassifiedClients();
+  const totalActive = healthy.length + warning.length + atRisk.length;
   const mrr = parseMrr(clients);
   const toGoal = VIP_GOAL - totalActive;
 
   if (el.vipTotalCount) el.vipTotalCount.textContent = totalActive;
   if (el.vipMrr) el.vipMrr.textContent = '$' + mrr.toLocaleString();
   if (el.vipToGoal) el.vipToGoal.textContent = toGoal;
-  if (el.vipChurnedCount) el.vipChurnedCount.textContent = churnedCount;
+  if (el.vipChurnedCount) el.vipChurnedCount.textContent = churned.length;
 }
 
 // ---- Client Health --------------------------------------------
 
 function getClassifiedClients() {
-  const data = getState('vipClients');
-  if (!data || !data.clients) return { healthy: [], warning: [], atRisk: [] };
-
+  const clients = getMergedClients();
   const healthy = [];
   const warning = [];
   const atRisk = [];
+  const churned = [];
 
-  data.clients.forEach(c => {
+  clients.forEach(c => {
     const cls = classifyStatus(c.status);
     if (cls === 'active' || cls === 'onboarding') healthy.push(c);
     else if (cls === 'warning') warning.push(c);
     else if (cls === 'at-risk') atRisk.push(c);
+    else if (cls === 'churned') churned.push(c);
   });
 
-  return { healthy, warning, atRisk };
+  return { healthy, warning, atRisk, churned };
 }
 
 function renderClientHealth() {
