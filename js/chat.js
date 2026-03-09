@@ -6,6 +6,8 @@ import {
   generateId, $, $$, showToast
 } from './app.js';
 import {
+  getThreads as sbGetThreads,
+  getMessages as sbGetMessages,
   createThread as sbCreateThread,
   updateThreadTitle as sbUpdateTitle,
   saveMessage as sbSaveMessage
@@ -94,6 +96,9 @@ export function initChat() {
 
   // Mobile voice input
   attachVoiceInput({ button: $('#chatVoiceBtn'), textarea: $('#chatInput') });
+
+  // Fire-and-forget Supabase sync (doesn't block render)
+  syncChatsFromSupabase();
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -323,6 +328,103 @@ async function syncMessageToSupabase(threadId, msg) {
 
 async function syncTitleToSupabase(threadId, title) {
   try { await sbUpdateTitle(threadId, title); } catch { /* silent */ }
+}
+
+// ── Sync from Supabase on Init ──────────────────────────────────────
+async function syncChatsFromSupabase() {
+  try {
+    const remoteThreads = await sbGetThreads();
+    if (!remoteThreads || !Array.isArray(remoteThreads)) return; // Supabase unavailable
+
+    const localThreads = getThreads();
+    const hasRemote = remoteThreads.length > 0;
+    const hasLocal = localThreads.length > 0;
+
+    if (!hasRemote && hasLocal) {
+      // First-time migration: push all local threads + messages to Supabase
+      console.log('[chat] First-time sync — pushing local chats to Supabase');
+      for (const t of localThreads) {
+        syncThreadToSupabase(t);
+        for (const m of (t.messages || [])) {
+          syncMessageToSupabase(t.id, m);
+        }
+      }
+      return;
+    }
+
+    if (!hasRemote) return; // Both empty
+
+    // Build merged thread list
+    const localMap = new Map(localThreads.map(t => [t.id, t]));
+    const mergedMap = new Map();
+
+    // Process remote threads — fetch their messages
+    for (const rt of remoteThreads) {
+      const localThread = localMap.get(rt.id);
+      if (localThread) {
+        // Both have it — pick newer, merge messages
+        const localTime = localThread.updatedAt ? new Date(localThread.updatedAt).getTime() : 0;
+        const remoteTime = rt.updatedAt ? new Date(rt.updatedAt).getTime() : 0;
+        const base = remoteTime >= localTime ? { ...rt } : { ...localThread };
+
+        // Merge messages: fetch remote messages, combine with local
+        const remoteMessages = await sbGetMessages(rt.id) || [];
+        const localMessages = localThread.messages || [];
+        base.messages = mergeMessages(localMessages, remoteMessages);
+        base.updatedAt = remoteTime >= localTime ? rt.updatedAt : localThread.updatedAt;
+        mergedMap.set(rt.id, base);
+      } else {
+        // Remote-only thread — fetch its messages
+        const messages = await sbGetMessages(rt.id) || [];
+        mergedMap.set(rt.id, { ...rt, messages });
+      }
+      localMap.delete(rt.id);
+    }
+
+    // Remaining local-only threads — keep them, push to Supabase
+    for (const [, lt] of localMap) {
+      mergedMap.set(lt.id, lt);
+      syncThreadToSupabase(lt);
+      for (const m of (lt.messages || [])) {
+        syncMessageToSupabase(lt.id, m);
+      }
+    }
+
+    const merged = Array.from(mergedMap.values());
+    saveThreads(merged);
+    renderHistoryList();
+    highlightActiveHistory();
+
+    // If we're viewing a conversation, refresh its messages
+    if (activeThreadId && chatState === 'conversation') {
+      const active = merged.find(t => t.id === activeThreadId);
+      if (active) renderMessages(active.messages || []);
+    }
+
+    console.log('[chat] Synced from Supabase:', merged.length, 'threads');
+  } catch (err) {
+    console.warn('[chat] syncChatsFromSupabase failed (non-blocking)', err);
+  }
+}
+
+function mergeMessages(local, remote) {
+  const map = new Map();
+  // Index remote by timestamp+role (no stable ID across systems)
+  for (const m of remote) {
+    const key = `${m.timestamp || m.created_at}|${m.role}`;
+    map.set(key, m);
+  }
+  // Add local messages that don't exist in remote
+  for (const m of local) {
+    const key = `${m.timestamp}|${m.role}`;
+    if (!map.has(key)) map.set(key, m);
+  }
+  // Sort by timestamp
+  return Array.from(map.values()).sort((a, b) => {
+    const ta = new Date(a.timestamp || a.created_at || 0).getTime();
+    const tb = new Date(b.timestamp || b.created_at || 0).getTime();
+    return ta - tb;
+  });
 }
 
 // ── History List Rendering ───────────────────────────────────────────
