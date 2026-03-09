@@ -5,6 +5,10 @@ import {
   escapeHtml, formatRelativeTime, generateId, $, $$, showToast,
   openBlockEditor
 } from './app.js';
+import {
+  fetchFolders, fetchDocs, upsertFolders,
+  deleteDoc as sbDeleteDoc, deleteFolder as sbDeleteFolder, pushAllDocs
+} from './services/workspace-persistence.js';
 
 // ── Storage Keys ────────────────────────────────────────────────────
 const DOCS_KEY = 'forge-workspace-docs';
@@ -26,6 +30,8 @@ export function initKnowledge() {
   ensureDefaults();
   render();
   bindEvents();
+  // Fire-and-forget Supabase sync (doesn't block render)
+  syncFromSupabase();
 }
 
 export function onKnowledgeTabVisit() {
@@ -64,6 +70,7 @@ export function getWorkspaceFolders() {
 
 function saveFolders(folders) {
   localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders));
+  upsertFolders(folders); // fire-and-forget Supabase sync
 }
 
 function ensureDefaults() {
@@ -79,6 +86,102 @@ function ensureDefaults() {
 
   // Auto-expand all dividers so children are visible
   folders.filter(f => f.type === 'divider').forEach(f => expandedFolders.add(f.id));
+}
+
+// ── Supabase Sync ──────────────────────────────────────────────────
+
+async function syncFromSupabase() {
+  try {
+    const [remoteFolders, remoteDocs] = await Promise.all([fetchFolders(), fetchDocs()]);
+
+    // If Supabase is unavailable, skip sync
+    if (remoteFolders === null && remoteDocs === null) return;
+
+    const localFolders = getWorkspaceFolders();
+    const localDocs = getWorkspaceDocs();
+
+    const hasRemoteFolders = remoteFolders && remoteFolders.length > 0;
+    const hasRemoteDocs = remoteDocs && remoteDocs.length > 0;
+    const hasLocalDocs = localDocs.length > 0;
+
+    if (!hasRemoteFolders && !hasRemoteDocs && hasLocalDocs) {
+      // First-time migration: push all local data to Supabase
+      console.log('[workspace] First-time sync — pushing local data to Supabase');
+      upsertFolders(localFolders);
+      pushAllDocs(localDocs);
+      return;
+    }
+
+    if (!hasRemoteFolders && !hasRemoteDocs) {
+      // Both empty — nothing to sync
+      return;
+    }
+
+    // Merge folders: remote wins on newer updatedAt
+    const mergedFolders = mergeFolders(localFolders, remoteFolders || []);
+    saveFoldersLocal(mergedFolders);
+
+    // Merge docs: remote wins on newer updatedAt
+    const mergedDocs = mergeDocs(localDocs, remoteDocs || []);
+    saveDocsLocal(mergedDocs);
+
+    // Push merged result back to Supabase (local-only items sync up)
+    upsertFolders(mergedFolders);
+    pushAllDocs(mergedDocs);
+
+    render();
+    console.log('[workspace] Synced from Supabase:', mergedFolders.length, 'folders,', mergedDocs.length, 'docs');
+  } catch (err) {
+    console.warn('[workspace] syncFromSupabase failed (non-blocking)', err);
+  }
+}
+
+function mergeFolders(local, remote) {
+  const map = new Map();
+  // Start with remote
+  for (const f of remote) map.set(f.id, f);
+  // Overlay local where newer
+  for (const f of local) {
+    const existing = map.get(f.id);
+    if (!existing) {
+      map.set(f.id, f); // local-only, keep
+    } else {
+      const localTime = f.updatedAt ? new Date(f.updatedAt).getTime() : 0;
+      const remoteTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      if (localTime > remoteTime) map.set(f.id, f);
+    }
+  }
+  return Array.from(map.values());
+}
+
+function mergeDocs(local, remote) {
+  const map = new Map();
+  for (const d of remote) map.set(d.id, d);
+  for (const d of local) {
+    const existing = map.get(d.id);
+    if (!existing) {
+      map.set(d.id, d);
+    } else {
+      const localTime = d.updatedAt ? new Date(d.updatedAt).getTime() : 0;
+      const remoteTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      if (localTime > remoteTime) map.set(d.id, d);
+    }
+  }
+  return Array.from(map.values());
+}
+
+/** Write folders to localStorage only (no Supabase side-effect) */
+function saveFoldersLocal(folders) {
+  localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders));
+}
+
+/** Write docs to localStorage only (no Supabase side-effect) */
+function saveDocsLocal(docs) {
+  try {
+    localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
+  } catch (e) {
+    console.error('[workspace] Failed to save docs:', e);
+  }
 }
 
 // ── Folder Helpers ──────────────────────────────────────────────────
@@ -151,7 +254,7 @@ function renderFolderTree(folders, parentId, depth, docs, isMobile) {
     const isDivider = f.type === 'divider';
     const hasKids = hasChildren(folders, f.id);
     const isExpanded = expandedFolders.has(f.id);
-    const indent = isMobile ? 0 : depth * 16;
+    const indent = isMobile ? depth * 10 : depth * 16;
 
     if (isDivider) {
       // Divider: section header, not selectable, toggle only
@@ -525,6 +628,7 @@ function deleteDoc(docId) {
   let docs = getWorkspaceDocs();
   docs = docs.filter(d => d.id !== docId);
   saveWorkspaceDocs(docs);
+  sbDeleteDoc(docId); // fire-and-forget Supabase delete
   showToast('Note deleted');
   render();
 }
@@ -568,6 +672,7 @@ function deleteFolder(folderId) {
   siblings.forEach((f, i) => { f.order = i; });
 
   saveFolders(updatedFolders);
+  sbDeleteFolder(folderId); // fire-and-forget Supabase delete
   expandedFolders.delete(folderId);
 
   // If we deleted the active folder, go to All Notes

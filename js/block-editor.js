@@ -6,6 +6,7 @@ import { updatePageBlocks, createPage } from './services/notion-blocks.js';
 import { tiptapToNotionBlocks } from './notion-converter.js';
 import { createSlashCommandSuggestion } from './slash-commands.js';
 import { attachVoiceInput } from './voice-input.js';
+import { upsertDoc as sbUpsertDoc, deleteDoc as sbDeleteDoc } from './services/workspace-persistence.js';
 
 // ── Workspace Storage (shared keys with knowledge.js) ─────
 const DOCS_KEY = 'forge-workspace-docs';
@@ -695,6 +696,11 @@ function saveToLocal() {
   }
 
   saveWorkspaceDocs(docs);
+
+  // Fire-and-forget Supabase sync
+  const savedDoc = docs.find(d => d.id === currentDocId);
+  if (savedDoc) sbUpsertDoc(savedDoc);
+
   currentDocTitle = title;
   isDirty = false;
   setSyncStatus('saved', 'Saved locally');
@@ -922,6 +928,7 @@ function bindModalEvents() {
       let docs = getWorkspaceDocs();
       docs = docs.filter(d => d.id !== currentDocId);
       saveWorkspaceDocs(docs);
+      sbDeleteDoc(currentDocId); // fire-and-forget Supabase delete
       showToast('Note deleted');
       isDirty = false;
       closeBlockEditor();
