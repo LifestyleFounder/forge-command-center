@@ -3,8 +3,9 @@
 
 import {
   getState, setState, subscribe, escapeHtml, formatRelativeTime,
-  debounce, $, $$, showToast
+  formatDate, debounce, $, $$, showToast
 } from './app.js';
+import { attachVoiceInput } from './voice-input.js';
 
 // ── State ────────────────────────────────────────────────────────────
 let conversations = [];       // grouped by phone number
@@ -13,6 +14,12 @@ let messages = [];             // messages for active conversation
 let loading = false;
 let searchQuery = '';
 let sendingMessage = false;
+let contactMap = new Map();    // phone → { name, email, tags, ... }
+let contactsLoaded = false;
+let contactPanelOpen = false;
+let isRecordingVoice = false;
+let mediaRecorder = null;
+let audioChunks = [];
 
 // ── API Helpers ─────────────────────────────────────────────────────
 
@@ -24,17 +31,14 @@ async function fetchMessages(number, limit = 50, offset = 0) {
   return res.json();
 }
 
-async function fetchContacts() {
-  const res = await fetch('/api/sendblue-messages?action=contacts');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
-
-async function sendMessage(number, content) {
+async function sendMessageAPI(number, content, media_url) {
+  const body = { number };
+  if (content) body.content = content;
+  if (media_url) body.media_url = media_url;
   const res = await fetch('/api/sendblue-send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ number, content }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json();
@@ -43,23 +47,99 @@ async function sendMessage(number, content) {
   return res.json();
 }
 
+async function uploadVoiceNote(blob) {
+  const res = await fetch('/api/sendblue-upload', {
+    method: 'POST',
+    body: blob,
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Upload failed');
+  }
+  return res.json();
+}
+
+async function fetchGHLContacts() {
+  if (contactsLoaded) return;
+  try {
+    // Fetch a broad set of contacts from GHL
+    const res = await fetch('/api/ghl-contacts?limit=100');
+    if (!res.ok) return;
+    const data = await res.json();
+    const contacts = data.contacts || [];
+    for (const c of contacts) {
+      if (c.phone) {
+        const normalized = normalizePhone(c.phone);
+        contactMap.set(normalized, {
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          tags: c.tags || [],
+          source: 'ghl',
+          id: c.id,
+        });
+      }
+    }
+    contactsLoaded = true;
+  } catch (err) {
+    console.warn('[messages] Failed to load GHL contacts:', err);
+  }
+}
+
+async function lookupContact(phone) {
+  const normalized = normalizePhone(phone);
+  if (contactMap.has(normalized)) return contactMap.get(normalized);
+
+  // Try GHL search by phone
+  try {
+    const res = await fetch(`/api/ghl-contacts?query=${encodeURIComponent(phone)}&limit=5`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const contacts = data.contacts || [];
+    for (const c of contacts) {
+      if (c.phone && normalizePhone(c.phone) === normalized) {
+        const contact = {
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          tags: c.tags || [],
+          source: 'ghl',
+          id: c.id,
+        };
+        contactMap.set(normalized, contact);
+        return contact;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function normalizePhone(phone) {
+  if (!phone) return '';
+  return phone.replace(/[^\d+]/g, '');
+}
+
+function getContactName(phone) {
+  const normalized = normalizePhone(phone);
+  const contact = contactMap.get(normalized);
+  return contact?.name || null;
+}
+
 // ── Build Conversation List from Messages ───────────────────────────
 
 function buildConversations(allMessages) {
   const map = new Map();
 
   for (const msg of allMessages) {
-    // Determine the contact number (the other person)
     const contactNumber = msg.is_outbound ? msg.to_number : msg.from_number;
     if (!contactNumber) continue;
 
-    // Use date_updated as primary (date_sent is epoch for inbound)
     const msgDate = msg.date_updated || msg.date_sent;
 
     if (!map.has(contactNumber)) {
       map.set(contactNumber, {
         number: contactNumber,
-        name: msg.contact_name || null,
+        name: getContactName(contactNumber),
         lastMessage: msg.content || (msg.media_url ? '[Media]' : ''),
         lastDate: msgDate,
         isOutbound: msg.is_outbound,
@@ -80,7 +160,6 @@ function buildConversations(allMessages) {
 
 function formatPhone(number) {
   if (!number) return '';
-  // Format US numbers nicely
   const clean = number.replace(/[^\d+]/g, '');
   if (clean.length === 12 && clean.startsWith('+1')) {
     return `(${clean.slice(2, 5)}) ${clean.slice(5, 8)}-${clean.slice(8)}`;
@@ -88,12 +167,16 @@ function formatPhone(number) {
   return number;
 }
 
+function getDisplayName(number) {
+  return getContactName(number) || formatPhone(number);
+}
+
 function renderContainer() {
   const container = document.getElementById('messagesContainer');
   if (!container) return;
 
   container.innerHTML = `
-    <div class="messages-layout">
+    <div class="messages-layout ${activeConversation ? 'has-active-convo' : ''} ${contactPanelOpen ? 'has-contact-panel' : ''}">
       <div class="messages-sidebar">
         <div class="messages-sidebar-header">
           <h2>Messages</h2>
@@ -102,7 +185,7 @@ function renderContainer() {
           </button>
         </div>
         <div class="messages-search">
-          <input type="text" id="msgSearchInput" placeholder="Search conversations..." autocomplete="off" />
+          <input type="text" id="msgSearchInput" placeholder="Search conversations..." autocomplete="off" value="${escapeHtml(searchQuery)}" />
         </div>
         <div class="messages-list" id="msgConvoList">
           <div class="messages-empty-state">Loading conversations...</div>
@@ -114,11 +197,15 @@ function renderContainer() {
           <p>Select a conversation to view messages</p>
         </div>
       </div>
+      <div class="messages-contact-panel" id="msgContactPanel"></div>
     </div>
   `;
 
-  // Event listeners
-  document.getElementById('msgRefreshBtn')?.addEventListener('click', loadAllMessages);
+  document.getElementById('msgRefreshBtn')?.addEventListener('click', () => {
+    contactsLoaded = false;
+    contactMap.clear();
+    loadAllMessages();
+  });
   document.getElementById('msgSearchInput')?.addEventListener('input', debounce((e) => {
     searchQuery = e.target.value.toLowerCase();
     renderConversationList();
@@ -143,29 +230,31 @@ function renderConversationList() {
     return;
   }
 
-  list.innerHTML = filtered.map(c => `
-    <button class="msg-convo-item ${activeConversation === c.number ? 'is-active' : ''}"
-            data-number="${escapeHtml(c.number)}">
-      <div class="msg-convo-avatar">${(c.name || c.number || '?').charAt(0).toUpperCase()}</div>
-      <div class="msg-convo-info">
-        <div class="msg-convo-top">
-          <span class="msg-convo-name">${escapeHtml(c.name || formatPhone(c.number))}</span>
-          <span class="msg-convo-time">${formatRelativeTime(c.lastDate)}</span>
-        </div>
-        <div class="msg-convo-preview">
-          ${c.isOutbound ? '<span class="msg-you">You: </span>' : ''}${escapeHtml((c.lastMessage || '').substring(0, 60))}
-        </div>
-      </div>
-      ${c.service ? `<span class="msg-service-badge msg-service-${c.service?.toLowerCase()}">${c.service === 'iMessage' ? 'iM' : 'SMS'}</span>` : ''}
-    </button>
-  `).join('');
+  list.innerHTML = filtered.map(c => {
+    const name = c.name || getContactName(c.number) || formatPhone(c.number);
+    const initial = (name || c.number || '?').charAt(0).toUpperCase();
+    const isLetter = /[A-Z]/.test(initial);
 
-  // Click handlers
+    return `
+      <button class="msg-convo-item ${activeConversation === c.number ? 'is-active' : ''}"
+              data-number="${escapeHtml(c.number)}">
+        <div class="msg-convo-avatar ${isLetter ? '' : 'msg-convo-avatar-num'}">${initial}</div>
+        <div class="msg-convo-info">
+          <div class="msg-convo-top">
+            <span class="msg-convo-name">${escapeHtml(name)}</span>
+            <span class="msg-convo-time">${formatRelativeTime(c.lastDate)}</span>
+          </div>
+          <div class="msg-convo-preview">
+            ${c.isOutbound ? '<span class="msg-you">You: </span>' : ''}${escapeHtml((c.lastMessage || '').substring(0, 60))}
+          </div>
+        </div>
+        ${c.service ? `<span class="msg-service-badge msg-service-${c.service?.toLowerCase()}">${c.service === 'iMessage' ? 'iM' : 'SMS'}</span>` : ''}
+      </button>
+    `;
+  }).join('');
+
   list.querySelectorAll('.msg-convo-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const num = btn.dataset.number;
-      selectConversation(num);
-    });
+    btn.addEventListener('click', () => selectConversation(btn.dataset.number));
   });
 }
 
@@ -173,23 +262,28 @@ function renderThread() {
   const thread = document.getElementById('msgThread');
   if (!thread || !activeConversation) return;
 
-  const convo = conversations.find(c => c.number === activeConversation);
-  const displayName = convo?.name || formatPhone(activeConversation);
+  const displayName = getDisplayName(activeConversation);
 
   thread.innerHTML = `
     <div class="msg-thread-header">
       <button class="btn-icon msg-back-btn" id="msgBackBtn" title="Back">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <div class="msg-thread-contact">
+      <div class="msg-thread-contact" id="msgThreadContactClick">
         <span class="msg-thread-name">${escapeHtml(displayName)}</span>
         <span class="msg-thread-number">${escapeHtml(formatPhone(activeConversation))}</span>
       </div>
+      <button class="btn-icon msg-info-btn" id="msgInfoBtn" title="Contact info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </button>
     </div>
     <div class="msg-thread-messages" id="msgThreadMessages">
       ${loading ? '<div class="messages-empty-state">Loading messages...</div>' : renderMessages()}
     </div>
     <div class="msg-compose">
+      <button class="btn-icon msg-voice-btn ${isRecordingVoice ? 'is-recording' : ''}" id="msgVoiceBtn" title="${isRecordingVoice ? 'Stop recording' : 'Record voice note'}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
       <textarea id="msgComposeInput" placeholder="Type a message..." rows="1"></textarea>
       <button class="btn btn-primary btn-sm" id="msgSendBtn" ${sendingMessage ? 'disabled' : ''}>
         ${sendingMessage ? 'Sending...' : 'Send'}
@@ -199,27 +293,29 @@ function renderThread() {
 
   // Scroll to bottom
   const msgContainer = document.getElementById('msgThreadMessages');
-  if (msgContainer) {
-    msgContainer.scrollTop = msgContainer.scrollHeight;
-  }
+  if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
 
-  // Event listeners
+  // Back button
   document.getElementById('msgBackBtn')?.addEventListener('click', () => {
     activeConversation = null;
+    contactPanelOpen = false;
     renderContainer();
     renderConversationList();
   });
 
+  // Contact info toggle
+  document.getElementById('msgInfoBtn')?.addEventListener('click', toggleContactPanel);
+  document.getElementById('msgThreadContactClick')?.addEventListener('click', toggleContactPanel);
+
+  // Compose
   const input = document.getElementById('msgComposeInput');
   const sendBtn = document.getElementById('msgSendBtn');
 
-  // Auto-resize textarea
   input?.addEventListener('input', () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
 
-  // Send on Enter (Shift+Enter for newline)
   input?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -228,6 +324,12 @@ function renderThread() {
   });
 
   sendBtn?.addEventListener('click', handleSend);
+
+  // Voice note
+  document.getElementById('msgVoiceBtn')?.addEventListener('click', handleVoiceToggle);
+
+  // Render contact panel if open
+  if (contactPanelOpen) renderContactPanel();
 }
 
 function renderMessages() {
@@ -235,10 +337,11 @@ function renderMessages() {
     return '<div class="messages-empty-state">No messages yet</div>';
   }
 
-  // Messages come in desc order from API, reverse for display
-  const sorted = [...messages].sort((a, b) =>
-    new Date(a.date_sent || a.created_at) - new Date(b.date_sent || b.created_at)
-  );
+  const sorted = [...messages].sort((a, b) => {
+    const da = new Date(a.date_updated || a.date_sent);
+    const db = new Date(b.date_updated || b.date_sent);
+    return da - db;
+  });
 
   let lastDate = '';
 
@@ -254,9 +357,16 @@ function renderMessages() {
     }
 
     const direction = msg.is_outbound ? 'outbound' : 'inbound';
-    const mediaHtml = msg.media_url
-      ? `<div class="msg-media"><img src="${escapeHtml(msg.media_url)}" alt="Media" loading="lazy" /></div>`
-      : '';
+
+    let mediaHtml = '';
+    if (msg.media_url) {
+      const url = escapeHtml(msg.media_url);
+      if (/\.(m4a|caf|mp3|ogg|wav|aac)/i.test(msg.media_url)) {
+        mediaHtml = `<div class="msg-media"><audio controls preload="none" src="${url}"></audio></div>`;
+      } else {
+        mediaHtml = `<div class="msg-media"><img src="${url}" alt="Media" loading="lazy" /></div>`;
+      }
+    }
 
     return `
       ${dateDivider}
@@ -272,6 +382,196 @@ function renderMessages() {
   }).join('');
 }
 
+// ── Contact Panel ────────────────────────────────────────────────────
+
+function toggleContactPanel() {
+  contactPanelOpen = !contactPanelOpen;
+  const layout = document.querySelector('.messages-layout');
+  if (layout) layout.classList.toggle('has-contact-panel', contactPanelOpen);
+  if (contactPanelOpen) {
+    renderContactPanel();
+  } else {
+    const panel = document.getElementById('msgContactPanel');
+    if (panel) panel.innerHTML = '';
+  }
+}
+
+async function renderContactPanel() {
+  const panel = document.getElementById('msgContactPanel');
+  if (!panel || !activeConversation) return;
+
+  // Show loading state
+  panel.innerHTML = `
+    <div class="msg-cp-header">
+      <h3>Contact Info</h3>
+      <button class="btn-icon" id="msgCpClose" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="msg-cp-body"><div class="messages-empty-state">Loading...</div></div>
+  `;
+  panel.querySelector('#msgCpClose')?.addEventListener('click', toggleContactPanel);
+
+  // Look up contact
+  const contact = await lookupContact(activeConversation);
+
+  const displayName = contact?.name || formatPhone(activeConversation);
+  const initial = (displayName || '?').charAt(0).toUpperCase();
+
+  // Gather message stats
+  const totalMessages = messages.length;
+  const inbound = messages.filter(m => !m.is_outbound).length;
+  const outbound = messages.filter(m => m.is_outbound).length;
+  const firstMsg = messages.length ? messages.reduce((a, b) => {
+    const da = new Date(a.date_updated || a.date_sent);
+    const db = new Date(b.date_updated || b.date_sent);
+    return da < db ? a : b;
+  }) : null;
+  const firstDate = firstMsg ? new Date(firstMsg.date_updated || firstMsg.date_sent).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '--';
+
+  panel.innerHTML = `
+    <div class="msg-cp-header">
+      <h3>Contact Info</h3>
+      <button class="btn-icon" id="msgCpClose" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="msg-cp-body">
+      <div class="msg-cp-avatar">${initial}</div>
+      <div class="msg-cp-name">${escapeHtml(displayName)}</div>
+      <div class="msg-cp-phone">${escapeHtml(formatPhone(activeConversation))}</div>
+
+      ${contact ? `
+        <div class="msg-cp-section">
+          <div class="msg-cp-label">Details</div>
+          ${contact.email ? `<div class="msg-cp-row"><span class="msg-cp-row-label">Email</span><span class="msg-cp-row-value">${escapeHtml(contact.email)}</span></div>` : ''}
+          ${contact.phone ? `<div class="msg-cp-row"><span class="msg-cp-row-label">Phone</span><span class="msg-cp-row-value">${escapeHtml(contact.phone)}</span></div>` : ''}
+          <div class="msg-cp-row"><span class="msg-cp-row-label">Source</span><span class="msg-cp-row-value">GoHighLevel</span></div>
+        </div>
+        ${contact.tags?.length ? `
+          <div class="msg-cp-section">
+            <div class="msg-cp-label">Tags</div>
+            <div class="msg-cp-tags">${contact.tags.map(t => `<span class="msg-cp-tag">${escapeHtml(t)}</span>`).join('')}</div>
+          </div>
+        ` : ''}
+      ` : `
+        <div class="msg-cp-section">
+          <div class="msg-cp-no-data">No GHL contact found for this number</div>
+        </div>
+      `}
+
+      <div class="msg-cp-section">
+        <div class="msg-cp-label">Conversation</div>
+        <div class="msg-cp-row"><span class="msg-cp-row-label">Total messages</span><span class="msg-cp-row-value">${totalMessages}</span></div>
+        <div class="msg-cp-row"><span class="msg-cp-row-label">From them</span><span class="msg-cp-row-value">${inbound}</span></div>
+        <div class="msg-cp-row"><span class="msg-cp-row-label">From you</span><span class="msg-cp-row-value">${outbound}</span></div>
+        <div class="msg-cp-row"><span class="msg-cp-row-label">First message</span><span class="msg-cp-row-value">${firstDate}</span></div>
+      </div>
+    </div>
+  `;
+
+  panel.querySelector('#msgCpClose')?.addEventListener('click', toggleContactPanel);
+}
+
+// ── Voice Notes ──────────────────────────────────────────────────────
+
+async function handleVoiceToggle() {
+  if (isRecordingVoice) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+
+    // Try to record in m4a-compatible format, fallback to webm
+    const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+      : MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+      if (blob.size > 0) {
+        await sendVoiceNote(blob);
+      }
+    };
+
+    mediaRecorder.start();
+    isRecordingVoice = true;
+    updateVoiceButton();
+    showToast('Recording... tap mic to stop', 'info');
+  } catch (err) {
+    showToast('Microphone access denied', 'error');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  isRecordingVoice = false;
+  updateVoiceButton();
+}
+
+function updateVoiceButton() {
+  const btn = document.getElementById('msgVoiceBtn');
+  if (btn) {
+    btn.classList.toggle('is-recording', isRecordingVoice);
+    btn.title = isRecordingVoice ? 'Stop recording' : 'Record voice note';
+  }
+}
+
+async function sendVoiceNote(blob) {
+  if (!activeConversation) return;
+
+  sendingMessage = true;
+  renderThread();
+
+  try {
+    showToast('Uploading voice note...', 'info');
+    const { url } = await uploadVoiceNote(blob);
+
+    await sendMessageAPI(activeConversation, null, url);
+
+    messages.push({
+      content: null,
+      media_url: url,
+      is_outbound: true,
+      date_updated: new Date().toISOString(),
+      date_sent: new Date().toISOString(),
+      status: 'QUEUED',
+      to_number: activeConversation,
+    });
+
+    const convo = conversations.find(c => c.number === activeConversation);
+    if (convo) {
+      convo.lastMessage = '[Voice Note]';
+      convo.lastDate = new Date().toISOString();
+      convo.isOutbound = true;
+    }
+
+    sendingMessage = false;
+    renderThread();
+    renderConversationList();
+    showToast('Voice note sent', 'success');
+  } catch (err) {
+    sendingMessage = false;
+    renderThread();
+    showToast('Failed to send voice note: ' + err.message, 'error');
+  }
+}
+
 // ── Actions ──────────────────────────────────────────────────────────
 
 async function loadAllMessages() {
@@ -279,7 +579,11 @@ async function loadAllMessages() {
   renderConversationList();
 
   try {
-    const data = await fetchMessages(null, 100, 0);
+    // Load GHL contacts in parallel with messages
+    const [data] = await Promise.all([
+      fetchMessages(null, 100, 0),
+      fetchGHLContacts(),
+    ]);
     const allMsgs = data.messages || data || [];
     conversations = buildConversations(allMsgs);
     loading = false;
@@ -294,15 +598,36 @@ async function loadAllMessages() {
 
 async function selectConversation(number) {
   activeConversation = number;
+  contactPanelOpen = false;
   loading = true;
+
+  // Update layout class
+  const layout = document.querySelector('.messages-layout');
+  if (layout) {
+    layout.classList.add('has-active-convo');
+    layout.classList.remove('has-contact-panel');
+  }
+
   renderConversationList();
   renderThread();
 
   try {
-    const data = await fetchMessages(number, 100, 0);
+    // Load messages and look up contact in parallel
+    const [data] = await Promise.all([
+      fetchMessages(number, 100, 0),
+      lookupContact(number),
+    ]);
     messages = data.messages || data || [];
+
+    // Update conversation name now that we may have contact info
+    const convo = conversations.find(c => c.number === number);
+    if (convo && !convo.name) {
+      convo.name = getContactName(number);
+    }
+
     loading = false;
     renderThread();
+    renderConversationList();
   } catch (err) {
     loading = false;
     console.error('[messages] Failed to load thread:', err);
@@ -320,19 +645,18 @@ async function handleSend() {
   renderThread();
 
   try {
-    await sendMessage(activeConversation, content);
+    await sendMessageAPI(activeConversation, content);
 
-    // Add optimistic message to local list
     messages.push({
       content,
       is_outbound: true,
+      date_updated: new Date().toISOString(),
       date_sent: new Date().toISOString(),
       status: 'QUEUED',
       from_number: null,
       to_number: activeConversation,
     });
 
-    // Update conversation preview
     const convo = conversations.find(c => c.number === activeConversation);
     if (convo) {
       convo.lastMessage = content;

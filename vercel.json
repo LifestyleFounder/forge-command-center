@@ -20,6 +20,9 @@
     },
     "api/update-vip-client.js": {
       "maxDuration": 15
+    },
+    "api/sendblue-upload.js": {
+      "maxDuration": 30
     }
   }
 }
