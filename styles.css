@@ -5480,16 +5480,8 @@ body.block-editor-open .block-editor-fab {
     margin-bottom: var(--space-3);
   }
 
-  .ws-folder-children .ws-folder-item {
-    padding-left: var(--space-5) !important;
-  }
-
-  .ws-folder-item[style] {
-    padding-left: var(--space-3) !important;
-  }
-
   .ws-folder-delete {
-    display: none;
+    opacity: 1;
   }
 
   /* Chat: no changes needed for tablet — layout is already centered */
@@ -5662,24 +5654,12 @@ body.block-editor-open .block-editor-fab {
     font-size: var(--text-xs);
   }
 
-  .ws-folder-children .ws-folder-item {
-    padding-left: var(--space-5) !important;
-  }
-
-  .ws-folder-item[style] {
-    padding-left: var(--space-2) !important;
-  }
-
   .ws-folder-count {
-    display: none;
-  }
-
-  .ws-folder-toggle-spacer {
-    display: none;
+    font-size: 10px;
   }
 
   .ws-folder-delete {
-    display: none;
+    opacity: 1;
   }
 
   /* Note cards */
@@ -7476,6 +7456,22 @@ a:focus:not(:focus-visible) {
   height: 100%;
   border: none;
   border-radius: var(--radius-md);
+}
+
+/* ---- Combined Calendar Tab sections ------------------------- */
+#tab-calendar .iframe-container {
+  height: 60vh;
+  min-height: 400px;
+}
+
+#tab-calendar .calendar-section {
+  margin-top: var(--space-6, 1.5rem);
+  padding-top: var(--space-6, 1.5rem);
+  border-top: 1px solid var(--border);
+}
+
+#tab-calendar .kanban {
+  min-height: auto;
 }
 
 /* ---- Shared Subtabs (small) -------------------------------- */
@@ -9302,5 +9298,355 @@ a:focus:not(:focus-visible) {
   .funnel-date-range {
     flex-wrap: wrap;
     justify-content: center;
+  }
+}
+
+/* ============================================================
+   MESSAGES TAB — Sendblue DM Conversations
+   ============================================================ */
+
+.messages-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+.messages-sidebar {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.messages-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.messages-sidebar-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.messages-search {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.messages-search input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.messages-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.messages-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.messages-empty-state {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+}
+
+/* Conversation list items */
+.msg-convo-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.msg-convo-item:hover {
+  background: var(--bg-secondary);
+}
+
+.msg-convo-item.is-active {
+  background: var(--bg-tertiary, var(--bg-secondary));
+  border-left: 3px solid var(--accent);
+}
+
+.msg-convo-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.msg-convo-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.msg-convo-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.msg-convo-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msg-convo-time {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.msg-convo-preview {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.msg-you {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.msg-service-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.msg-service-imessage {
+  background: #007aff20;
+  color: #007aff;
+}
+
+.msg-service-sms {
+  background: #34c75920;
+  color: #34c759;
+}
+
+/* Thread view */
+.messages-thread {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.messages-thread-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-3);
+  color: var(--text-tertiary);
+}
+
+.messages-thread-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.msg-thread-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.msg-back-btn {
+  display: none;
+}
+
+.msg-thread-contact {
+  display: flex;
+  flex-direction: column;
+}
+
+.msg-thread-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.msg-thread-number {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.msg-thread-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Date divider */
+.msg-date-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.msg-date-divider span {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  background: var(--bg-primary);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--border);
+}
+
+/* Message bubbles */
+.msg-bubble {
+  max-width: 70%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 16px;
+  word-wrap: break-word;
+}
+
+.msg-inbound {
+  align-self: flex-start;
+  background: var(--bg-secondary);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-outbound {
+  align-self: flex-end;
+  background: #007aff;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-text {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.msg-media {
+  margin-bottom: var(--space-1);
+}
+
+.msg-media img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  display: block;
+}
+
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 2px;
+}
+
+.msg-time {
+  font-size: 0.6875rem;
+  opacity: 0.7;
+}
+
+.msg-status {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* Compose bar */
+.msg-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.msg-compose textarea {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.875rem;
+  resize: none;
+  line-height: 1.4;
+  max-height: 120px;
+}
+
+.msg-compose textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .messages-layout {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 120px);
+  }
+
+  .messages-sidebar {
+    border-right: none;
+  }
+
+  /* When a conversation is selected, hide sidebar and show thread */
+  .messages-layout:has(.msg-thread-header) .messages-sidebar {
+    display: none;
+  }
+
+  .msg-back-btn {
+    display: flex;
+  }
+
+  .msg-bubble {
+    max-width: 85%;
   }
 }

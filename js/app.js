@@ -17,6 +17,7 @@ import { initIframes, loadIframe } from './iframes.js';
 import { initBlockEditor, openBlockEditor, closeBlockEditor, isEditorModalOpen } from './block-editor.js';
 import { initEmail } from './email.js';
 import { initFunnels, loadFunnelData } from './funnels.js';
+import { initMessages, loadMessageData } from './messages.js';
 import { initNoteAi } from './note-ai.js';
 
 // ---- State Management ----------------------------------------
@@ -223,7 +224,6 @@ function cacheElements() {
 
 const TAB_LABELS = {
   home: 'Home',
-  projects: 'Projects',
   content: 'Content',
   knowledge: 'Workspace',
   chat: 'Agents',
@@ -231,8 +231,8 @@ const TAB_LABELS = {
   'vip-clients': 'Clients',
   competitors: 'Competitors',
   'meta-ads': 'Meta Ads',
-  'google-tasks': 'Google Tasks',
   funnels: 'Funnels',
+  messages: 'Messages',
   reports: 'Reports',
   calendar: 'Calendar',
   'performance-tracker': 'Performance',
@@ -240,8 +240,8 @@ const TAB_LABELS = {
 };
 
 const TAB_SHORTCUTS = {
-  '1': 'home', '2': 'projects', '3': 'content', '4': 'knowledge', '5': 'chat',
-  '6': 'vip-clients', '7': 'competitors', '8': 'google-tasks', '9': 'reports', '0': 'calendar',
+  '1': 'home', '2': 'calendar', '3': 'content', '4': 'knowledge', '5': 'chat',
+  '6': 'vip-clients', '7': 'competitors', '8': 'reports', '9': 'funnels',
 };
 
 // Lazy-load handlers for tabs that fetch data on first visit
@@ -253,10 +253,10 @@ function onTabFirstVisit(tabName) {
     case 'content': loadContentData(); break;
     case 'competitors': loadCompetitorData(); break;
     case 'meta-ads': loadMetaAdsData(); break;
-    case 'google-tasks': loadGoogleTaskData(); break;
     case 'funnels': loadFunnelData(); break;
+    case 'messages': loadMessageData(); break;
     case 'reports': loadReportData(); break;
-    case 'calendar': loadIframe('google-calendar'); break;
+    case 'calendar': loadIframe('google-calendar'); loadGoogleTaskData(); break;
     case 'performance-tracker': loadIframe('performance-tracker'); break;
     case 'content-multiplier': loadIframe('content-multiplier'); break;
   }
@@ -730,7 +730,7 @@ function performSearch(query, container) {
         icon: 'project',
         title: project.name,
         subtitle: statusLabel,
-        tab: 'projects',
+        tab: 'calendar',
         id: project.id
       });
     }
@@ -956,9 +956,9 @@ function initKeyboardShortcuts() {
       return;
     }
 
-    // N: new project (when on projects tab)
+    // N: new project (when on calendar tab, which contains projects)
     if (e.key === 'n' || e.key === 'N') {
-      if (state.ui.activeTab === 'projects') {
+      if (state.ui.activeTab === 'calendar') {
         e.preventDefault();
         openModal('projectModal');
       }
@@ -1072,6 +1072,7 @@ async function init() {
   initBlockEditor();
   initNoteAi();
   initEmail();
+  initMessages();
   initFunnels();
 
   // FAB button to open block editor
