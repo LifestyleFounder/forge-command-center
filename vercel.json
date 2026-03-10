@@ -23,6 +23,9 @@
     },
     "api/sendblue-upload.js": {
       "maxDuration": 30
+    },
+    "api/sendblue-messages.js": {
+      "maxDuration": 30
     }
   }
 }

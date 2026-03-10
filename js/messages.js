@@ -59,59 +59,38 @@ async function uploadVoiceNote(blob) {
   return res.json();
 }
 
-async function fetchGHLContacts() {
+async function fetchSendblueContacts() {
   if (contactsLoaded) return;
   try {
-    // Fetch a broad set of contacts from GHL
-    const res = await fetch('/api/ghl-contacts?limit=100');
+    const res = await fetch('/api/sendblue-messages?action=contacts');
     if (!res.ok) return;
     const data = await res.json();
     const contacts = data.contacts || [];
     for (const c of contacts) {
       if (c.phone) {
         const normalized = normalizePhone(c.phone);
+        const name = [c.first_name || c.firstName, c.last_name || c.lastName]
+          .filter(Boolean).join(' ').trim();
         contactMap.set(normalized, {
-          name: c.name,
-          email: c.email,
+          name: name || null,
           phone: c.phone,
           tags: c.tags || [],
-          source: 'ghl',
-          id: c.id,
+          sendblueNumber: c.sendblue_number || c.sendblueNumber,
+          createdAt: c.created_at,
+          source: 'sendblue',
         });
       }
     }
     contactsLoaded = true;
+    console.log(`[messages] Loaded ${contacts.length} Sendblue contacts`);
   } catch (err) {
-    console.warn('[messages] Failed to load GHL contacts:', err);
+    console.warn('[messages] Failed to load Sendblue contacts:', err);
   }
 }
 
-async function lookupContact(phone) {
+function lookupContact(phone) {
   const normalized = normalizePhone(phone);
-  if (contactMap.has(normalized)) return contactMap.get(normalized);
-
-  // Try GHL search by phone
-  try {
-    const res = await fetch(`/api/ghl-contacts?query=${encodeURIComponent(phone)}&limit=5`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const contacts = data.contacts || [];
-    for (const c of contacts) {
-      if (c.phone && normalizePhone(c.phone) === normalized) {
-        const contact = {
-          name: c.name,
-          email: c.email,
-          phone: c.phone,
-          tags: c.tags || [],
-          source: 'ghl',
-          id: c.id,
-        };
-        contactMap.set(normalized, contact);
-        return contact;
-      }
-    }
-  } catch {}
-  return null;
+  return contactMap.get(normalized) || null;
 }
 
 function normalizePhone(phone) {
@@ -396,29 +375,15 @@ function toggleContactPanel() {
   }
 }
 
-async function renderContactPanel() {
+function renderContactPanel() {
   const panel = document.getElementById('msgContactPanel');
   if (!panel || !activeConversation) return;
 
-  // Show loading state
-  panel.innerHTML = `
-    <div class="msg-cp-header">
-      <h3>Contact Info</h3>
-      <button class="btn-icon" id="msgCpClose" title="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="msg-cp-body"><div class="messages-empty-state">Loading...</div></div>
-  `;
-  panel.querySelector('#msgCpClose')?.addEventListener('click', toggleContactPanel);
-
-  // Look up contact
-  const contact = await lookupContact(activeConversation);
-
+  const contact = lookupContact(activeConversation);
   const displayName = contact?.name || formatPhone(activeConversation);
   const initial = (displayName || '?').charAt(0).toUpperCase();
 
-  // Gather message stats
+  // Message stats
   const totalMessages = messages.length;
   const inbound = messages.filter(m => !m.is_outbound).length;
   const outbound = messages.filter(m => m.is_outbound).length;
@@ -428,6 +393,7 @@ async function renderContactPanel() {
     return da < db ? a : b;
   }) : null;
   const firstDate = firstMsg ? new Date(firstMsg.date_updated || firstMsg.date_sent).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '--';
+  const contactSince = contact?.createdAt ? new Date(contact.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
 
   panel.innerHTML = `
     <div class="msg-cp-header">
@@ -444,9 +410,9 @@ async function renderContactPanel() {
       ${contact ? `
         <div class="msg-cp-section">
           <div class="msg-cp-label">Details</div>
-          ${contact.email ? `<div class="msg-cp-row"><span class="msg-cp-row-label">Email</span><span class="msg-cp-row-value">${escapeHtml(contact.email)}</span></div>` : ''}
-          ${contact.phone ? `<div class="msg-cp-row"><span class="msg-cp-row-label">Phone</span><span class="msg-cp-row-value">${escapeHtml(contact.phone)}</span></div>` : ''}
-          <div class="msg-cp-row"><span class="msg-cp-row-label">Source</span><span class="msg-cp-row-value">GoHighLevel</span></div>
+          <div class="msg-cp-row"><span class="msg-cp-row-label">Phone</span><span class="msg-cp-row-value">${escapeHtml(contact.phone)}</span></div>
+          ${contact.sendblueNumber ? `<div class="msg-cp-row"><span class="msg-cp-row-label">Your line</span><span class="msg-cp-row-value">${escapeHtml(formatPhone(contact.sendblueNumber))}</span></div>` : ''}
+          ${contactSince ? `<div class="msg-cp-row"><span class="msg-cp-row-label">Contact since</span><span class="msg-cp-row-value">${contactSince}</span></div>` : ''}
         </div>
         ${contact.tags?.length ? `
           <div class="msg-cp-section">
@@ -456,7 +422,7 @@ async function renderContactPanel() {
         ` : ''}
       ` : `
         <div class="msg-cp-section">
-          <div class="msg-cp-no-data">No GHL contact found for this number</div>
+          <div class="msg-cp-no-data">No contact info found in Sendblue</div>
         </div>
       `}
 
@@ -579,10 +545,10 @@ async function loadAllMessages() {
   renderConversationList();
 
   try {
-    // Load GHL contacts in parallel with messages
+    // Load Sendblue contacts in parallel with messages
     const [data] = await Promise.all([
       fetchMessages(null, 100, 0),
-      fetchGHLContacts(),
+      fetchSendblueContacts(),
     ]);
     const allMsgs = data.messages || data || [];
     conversations = buildConversations(allMsgs);
@@ -612,11 +578,7 @@ async function selectConversation(number) {
   renderThread();
 
   try {
-    // Load messages and look up contact in parallel
-    const [data] = await Promise.all([
-      fetchMessages(number, 100, 0),
-      lookupContact(number),
-    ]);
+    const data = await fetchMessages(number, 100, 0);
     messages = data.messages || data || [];
 
     // Update conversation name now that we may have contact info

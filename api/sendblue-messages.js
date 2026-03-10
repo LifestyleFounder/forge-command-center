@@ -23,14 +23,34 @@ export default async function handler(req, res) {
   try {
     const { action } = req.query;
 
-    // Action: get contacts list
+    // Action: get all contacts (paginate through all)
     if (action === 'contacts') {
-      const contactsRes = await fetch(`${BASE_URL}/api/v2/contacts`, {
-        headers: getHeaders(),
-      });
-      const contacts = await contactsRes.json();
-      if (!contactsRes.ok) return res.status(contactsRes.status).json(contacts);
-      return res.status(200).json(contacts);
+      const allContacts = [];
+      let offset = 0;
+      const pageSize = 100;
+
+      while (true) {
+        const contactsRes = await fetch(
+          `${BASE_URL}/api/v2/contacts?limit=${pageSize}&offset=${offset}`,
+          { headers: getHeaders() }
+        );
+        if (!contactsRes.ok) {
+          const err = await contactsRes.json();
+          return res.status(contactsRes.status).json(err);
+        }
+        const page = await contactsRes.json();
+        const contacts = Array.isArray(page) ? page : (page.data || []);
+        allContacts.push(...contacts);
+
+        if (contacts.length < pageSize) break;
+        offset += pageSize;
+
+        // Safety cap at 5000 contacts
+        if (offset >= 5000) break;
+      }
+
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+      return res.status(200).json({ contacts: allContacts });
     }
 
     // Action: get messages (optionally filtered by phone number)
