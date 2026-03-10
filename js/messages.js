@@ -544,12 +544,22 @@ async function loadAllMessages() {
   loading = true;
   renderConversationList();
 
+  // Start contacts loading in background (don't block messages)
+  fetchSendblueContacts().then(() => {
+    // Re-render with names once contacts are loaded
+    conversations.forEach(c => {
+      if (!c.name) c.name = getContactName(c.number);
+    });
+    renderConversationList();
+    // Update thread header name if a convo is open
+    const threadName = document.querySelector('.msg-thread-name');
+    if (threadName && activeConversation) {
+      threadName.textContent = getDisplayName(activeConversation);
+    }
+  });
+
   try {
-    // Load Sendblue contacts in parallel with messages
-    const [data] = await Promise.all([
-      fetchMessages(null, 100, 0),
-      fetchSendblueContacts(),
-    ]);
+    const data = await fetchMessages(null, 100, 0);
     const allMsgs = data.messages || data || [];
     conversations = buildConversations(allMsgs);
     loading = false;
