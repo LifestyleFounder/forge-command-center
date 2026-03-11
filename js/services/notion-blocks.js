@@ -74,6 +74,25 @@ export async function updatePageTitle(pageId, title) {
 }
 
 /**
+ * Move a doc into a Notion folder (re-creates under new parent, archives old)
+ * Returns { newPageId, oldPageId } or null
+ */
+export async function moveDocToFolder(pageId, targetFolderId) {
+  try {
+    const r = await fetch(`${ENDPOINT}?action=move-doc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId, targetFolderId }),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return await r.json();
+  } catch (err) {
+    console.error('[notion-blocks] moveDocToFolder failed:', err);
+    return null;
+  }
+}
+
+/**
  * Fetch all blocks from a Notion page (recursive)
  */
 export async function getPageBlocks(pageId) {

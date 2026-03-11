@@ -5,7 +5,7 @@
 
 import {
   getWorkspaceIndex, createNotionFolder, createDocInFolder,
-  getPageBlocks, updatePageBlocks, updatePageTitle,
+  getPageBlocks, updatePageBlocks, updatePageTitle, moveDocToFolder,
 } from './notion-blocks.js';
 import { notionBlocksToTiptap, tiptapToNotionBlocks } from '../notion-converter.js';
 
@@ -193,6 +193,8 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
     }
 
     // 3b. Handle unfiled docs (root-level in Notion, no folder)
+    // These are docs that exist at the workspace root without a 📁 parent.
+    // If they match a local doc that has a folder, move them into that folder in Notion.
     if (unfiled.length > 0) {
       let unfiledFolderId = localFolders.find(f => f.type === 'folder')?.id;
       if (!unfiledFolderId) {
@@ -208,7 +210,9 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
 
       for (const ud of unfiled) {
         const existing = findLocalDoc(ud);
+
         if (!existing) {
+          // Brand new doc from Notion — add to local
           localDocs.push({
             id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             title: ud.title,
@@ -221,9 +225,28 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
             updatedAt: ud.lastEdited,
           });
           pulled++;
-        } else if (!existing.notionPageId) {
-          // Link existing local doc to this Notion page
-          existing.notionPageId = ud.id;
+        } else {
+          // Existing local doc — link if needed
+          if (!existing.notionPageId) existing.notionPageId = ud.id;
+
+          // If the local doc has a folder with a Notion mapping, move it there
+          const targetNotionFolder = folderMap[existing.folder];
+          if (targetNotionFolder && existing.notionPageId) {
+            console.log(`[workspace-sync] Moving "${ud.title}" into Notion folder...`);
+            moveDocToFolder(existing.notionPageId, targetNotionFolder).then(result => {
+              if (result?.newPageId) {
+                // Update the local doc's notionPageId to the new page
+                existing.notionPageId = result.newPageId;
+                // Save immediately so the ID persists
+                const allDocs = localDocs; // reference is still valid
+                saveLocalDocs(allDocs);
+                console.log(`[workspace-sync] Moved "${ud.title}" → new ID: ${result.newPageId}`);
+                pushed++;
+              }
+            }).catch(err => {
+              console.warn(`[workspace-sync] Failed to move "${ud.title}":`, err);
+            });
+          }
         }
       }
     }
