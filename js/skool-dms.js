@@ -14,6 +14,8 @@ let loading = false;
 let searchQuery = '';
 let sendingMessage = false;
 let filter = 'all'; // 'all' or 'unread'
+let refreshTimer = null;
+const REFRESH_INTERVAL = 30000; // 30 seconds
 
 const MY_USER_ID = '536462bbe1d54558aeac575be267e7bc';
 
@@ -180,6 +182,7 @@ function renderThread() {
 
   // Back button (mobile)
   document.getElementById('skdmBackBtn')?.addEventListener('click', () => {
+    stopAutoRefresh();
     activeConversation = null;
     activeConvoData = null;
     renderContainer();
@@ -260,6 +263,7 @@ async function loadConversations() {
 }
 
 async function selectConversation(channelId) {
+  stopAutoRefresh();
   activeConversation = channelId;
   activeConvoData = conversations.find(c => c.id === channelId) || null;
   loading = true;
@@ -276,11 +280,41 @@ async function selectConversation(channelId) {
     messages = data.messages || [];
     loading = false;
     renderThread();
+    startAutoRefresh(channelId);
   } catch (err) {
     loading = false;
     console.error('[skool-dms] Failed to load thread:', err);
     showToast('Failed to load messages', 'error');
     renderThread();
+  }
+}
+
+function startAutoRefresh(channelId) {
+  stopAutoRefresh();
+  refreshTimer = setInterval(async () => {
+    if (activeConversation !== channelId) { stopAutoRefresh(); return; }
+    try {
+      const data = await fetchMessages(channelId);
+      const newMsgs = data.messages || [];
+      // Only re-render if message count changed (new messages arrived)
+      if (newMsgs.length !== messages.length) {
+        messages = newMsgs;
+        renderThread();
+      }
+      // Also refresh conversation list for unread badges
+      const convoData = await fetchConversations(filter, searchQuery);
+      conversations = convoData.conversations || [];
+      renderConversationList();
+    } catch (err) {
+      // Silent fail on auto-refresh
+    }
+  }, REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
   }
 }
 
