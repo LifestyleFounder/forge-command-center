@@ -7460,8 +7460,44 @@ a:focus:not(:focus-visible) {
 
 /* ---- Combined Calendar Tab sections ------------------------- */
 #tab-calendar .iframe-container {
-  height: 60vh;
-  min-height: 400px;
+  height: calc(100vh - 80px);
+  min-height: 300px;
+  position: relative;
+}
+
+.calendar-resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  background: var(--border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.calendar-resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text-secondary);
+}
+
+#tab-calendar .iframe-container:hover .calendar-resize-handle,
+.calendar-resize-handle.dragging {
+  opacity: 1;
+}
+
+#tab-calendar .iframe-container.resizing .iframe-embed {
+  pointer-events: none;
 }
 
 #tab-calendar .calendar-section {
