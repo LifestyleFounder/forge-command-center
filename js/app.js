@@ -18,6 +18,7 @@ import { initBlockEditor, openBlockEditor, closeBlockEditor, isEditorModalOpen }
 import { initEmail } from './email.js';
 import { initFunnels, loadFunnelData } from './funnels.js';
 import { initMessages, loadMessageData } from './messages.js';
+import { initSkoolDms, loadSkoolDmData } from './skool-dms.js';
 import { initNoteAi } from './note-ai.js';
 
 // ---- State Management ----------------------------------------
@@ -232,6 +233,7 @@ const TAB_LABELS = {
   competitors: 'Competitors',
   'meta-ads': 'Meta Ads',
   funnels: 'Funnels',
+  'skool-dms': 'Skool DMs',
   messages: 'Messages',
   reports: 'Reports',
   calendar: 'Calendar',
@@ -254,6 +256,7 @@ function onTabFirstVisit(tabName) {
     case 'competitors': loadCompetitorData(); break;
     case 'meta-ads': loadMetaAdsData(); break;
     case 'funnels': loadFunnelData(); break;
+    case 'skool-dms': loadSkoolDmData(); break;
     case 'messages': loadMessageData(); break;
     case 'reports': loadReportData(); break;
     case 'calendar': loadIframe('google-calendar'); loadGoogleTaskData(); break;
@@ -1074,6 +1077,7 @@ async function init() {
   initNoteAi();
   initEmail();
   initMessages();
+  initSkoolDms();
   initFunnels();
 
   // FAB button to open block editor
