@@ -124,10 +124,27 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
 
     // ── 3. Sync docs ──────────────────────────────────────────
 
-    // Build lookup: notionPageId → local doc
+    // Build lookups: notionPageId → local doc (normalize IDs without dashes)
     const localDocsByNotion = {};
+    const localDocsByTitle = {};
     for (const doc of localDocs) {
-      if (doc.notionPageId) localDocsByNotion[doc.notionPageId] = doc;
+      if (doc.notionPageId) {
+        localDocsByNotion[doc.notionPageId] = doc;
+        localDocsByNotion[doc.notionPageId.replace(/-/g, '')] = doc;
+      }
+      // Title-based fallback for matching
+      if (doc.title) {
+        const key = doc.title.trim().toLowerCase();
+        if (!localDocsByTitle[key]) localDocsByTitle[key] = doc;
+      }
+    }
+
+    /** Find a local doc matching a Notion doc (by ID or title) */
+    function findLocalDoc(notionDoc) {
+      return localDocsByNotion[notionDoc.id]
+        || localDocsByNotion[notionDoc.id.replace(/-/g, '')]
+        || localDocsByTitle[notionDoc.title.trim().toLowerCase()]
+        || null;
     }
 
     // 3a. Check docs in each Notion folder
@@ -136,7 +153,7 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
       if (!localFolderId) continue;
 
       for (const nd of (nf.docs || [])) {
-        const localDoc = localDocsByNotion[nd.id];
+        const localDoc = findLocalDoc(nd);
 
         if (!localDoc) {
           // New doc from Notion — add to local (content lazy-loaded on open)
@@ -190,7 +207,8 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
       }
 
       for (const ud of unfiled) {
-        if (!localDocsByNotion[ud.id]) {
+        const existing = findLocalDoc(ud);
+        if (!existing) {
           localDocs.push({
             id: `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             title: ud.title,
@@ -203,6 +221,9 @@ export async function syncWorkspace({ getLocalFolders, getLocalDocs, saveLocalFo
             updatedAt: ud.lastEdited,
           });
           pulled++;
+        } else if (!existing.notionPageId) {
+          // Link existing local doc to this Notion page
+          existing.notionPageId = ud.id;
         }
       }
     }

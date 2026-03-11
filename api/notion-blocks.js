@@ -230,6 +230,67 @@ export default async function handler(req, res) {
       return res.status(200).json({ pageId: data.id, url: data.url });
     }
 
+    // ── POST ?action=move-doc ──────────────────────────────────
+    // Moves a doc into a folder by re-creating it under the new parent
+    // (Notion API 2022-06-28 doesn't support parent updates, so we copy + archive)
+    if (req.method === 'POST' && req.query.action === 'move-doc') {
+      const { pageId, targetFolderId } = req.body || {};
+      if (!pageId || !targetFolderId) {
+        return res.status(400).json({ error: 'pageId and targetFolderId required' });
+      }
+
+      // 1. Get the original page metadata
+      const metaR = await fetch(`${NOTION_API}/pages/${pageId}`, { headers });
+      const metaData = await metaR.json();
+      if (metaData.object === 'error') return res.status(400).json({ error: metaData.message });
+      const title = getPageTitle(metaData);
+
+      // 2. Fetch all blocks from original page
+      const blocks = await fetchBlocksRecursive(pageId, headers);
+
+      // 3. Strip IDs from blocks so Notion treats them as new
+      const cleanBlocks = stripBlockIds(blocks);
+
+      // 4. Create new page under target folder
+      const newPageBody = {
+        parent: { page_id: targetFolderId },
+        properties: {
+          title: { title: [{ text: { content: title } }] },
+        },
+        children: cleanBlocks.slice(0, 100),
+      };
+
+      const createR = await fetch(`${NOTION_API}/pages`, {
+        method: 'POST', headers, body: JSON.stringify(newPageBody),
+      });
+      const createData = await createR.json();
+      if (createData.object === 'error') {
+        return res.status(400).json({ error: createData.message });
+      }
+
+      // Append remaining blocks if > 100
+      if (cleanBlocks.length > 100) {
+        const chunks = chunkArray(cleanBlocks.slice(100), 100);
+        for (const chunk of chunks) {
+          await fetch(`${NOTION_API}/blocks/${createData.id}/children`, {
+            method: 'PATCH', headers, body: JSON.stringify({ children: chunk }),
+          });
+        }
+      }
+
+      // 5. Archive the old page
+      await fetch(`${NOTION_API}/pages/${pageId}`, {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ archived: true }),
+      });
+
+      return res.status(200).json({
+        newPageId: createData.id,
+        oldPageId: pageId,
+        url: createData.url,
+      });
+    }
+
     // ── PATCH — update page title ───────────────────────────────
     if (req.method === 'PATCH') {
       const { pageId, title } = req.body || {};
@@ -387,6 +448,22 @@ function chunkArray(arr, size) {
     chunks.push(arr.slice(i, i + size));
   }
   return chunks;
+}
+
+/** Strip IDs from blocks so they can be re-created under a new parent */
+function stripBlockIds(blocks) {
+  return blocks
+    .filter(b => b.type !== 'child_page') // skip nested page refs
+    .map(b => {
+      const clean = { type: b.type };
+      if (b[b.type]) clean[b.type] = b[b.type];
+      if (b.children && b.children.length > 0) {
+        clean[b.type] = { ...clean[b.type] };
+        // Notion API uses 'children' inside the block type for nested blocks
+        clean.children = stripBlockIds(b.children);
+      }
+      return clean;
+    });
 }
 
 function getPageTitle(page) {
