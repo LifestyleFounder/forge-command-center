@@ -368,7 +368,12 @@
         <section class="tab-panel" id="tab-knowledge" role="tabpanel" aria-labelledby="nav-knowledge" hidden>
           <div class="section-header">
             <h1>Workspace</h1>
+            <span class="ws-sync-status" id="wsSyncStatus"></span>
             <div class="section-actions" id="knowledgeActions">
+              <button class="btn btn-ghost btn-sm" id="wsSyncBtn" title="Sync with Notion">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                Sync
+              </button>
               <button class="btn btn-ghost btn-sm" id="wsNewFolderBtn">+ New Folder</button>
               <button class="btn btn-primary btn-sm" id="wsNewNoteBtn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -639,7 +644,7 @@
             <button class="btn btn-sm be-delete-btn" id="beDeleteBtn" title="Delete note">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
-            <button class="btn btn-primary btn-sm" id="beSaveBtn" title="Save &amp; backup to Notion">Save</button>
+            <button class="btn btn-primary btn-sm" id="beSaveBtn" title="Save &amp; sync to Notion">Save</button>
             <button class="btn-icon be-close-btn" id="blockEditorClose" aria-label="Close editor (Esc)">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>

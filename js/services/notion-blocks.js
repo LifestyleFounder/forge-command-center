@@ -3,6 +3,77 @@
 const ENDPOINT = '/api/notion-blocks';
 
 /**
+ * Fetch the full workspace index: folders + docs + unfiled
+ * Returns { folders: [...], unfiled: [...] } or null
+ */
+export async function getWorkspaceIndex() {
+  try {
+    const r = await fetch(`${ENDPOINT}?action=workspace-index`);
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return await r.json();
+  } catch (err) {
+    console.error('[notion-blocks] getWorkspaceIndex failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Create a folder page (📁 icon) under workspace root
+ * Returns { folderId } or null
+ */
+export async function createNotionFolder(name) {
+  try {
+    const r = await fetch(`${ENDPOINT}?action=create-folder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return await r.json();
+  } catch (err) {
+    console.error('[notion-blocks] createNotionFolder failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Create a doc page under a specific parent page (folder)
+ * Returns { pageId, url } or null
+ */
+export async function createDocInFolder(parentId, title, blocks = []) {
+  try {
+    const r = await fetch(`${ENDPOINT}?action=create-doc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parentId, title, blocks }),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return await r.json();
+  } catch (err) {
+    console.error('[notion-blocks] createDocInFolder failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Update a page's title in Notion
+ */
+export async function updatePageTitle(pageId, title) {
+  try {
+    const r = await fetch(ENDPOINT, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId, title }),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return true;
+  } catch (err) {
+    console.error('[notion-blocks] updatePageTitle failed:', err);
+    return false;
+  }
+}
+
+/**
  * Fetch all blocks from a Notion page (recursive)
  */
 export async function getPageBlocks(pageId) {
@@ -40,7 +111,7 @@ export async function updatePageBlocks(pageId, blocks) {
 }
 
 /**
- * Create a new page in the workspace parent (Notion backup)
+ * Create a new page in the workspace parent (legacy — used by old backup flow)
  * Returns { pageId, url } or null
  */
 export async function createPage(title, blocks = []) {

@@ -2870,6 +2870,16 @@ textarea.form-input {
    30. WORKSPACE LAYOUT
    ========================================================================== */
 
+/* Sync status */
+.ws-sync-status {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-left: var(--space-2);
+}
+.ws-sync-syncing { color: var(--color-warning); }
+.ws-sync-synced { color: var(--color-success); }
+.ws-sync-error { color: var(--color-error); }
+
 .ws-layout {
   display: grid;
   grid-template-columns: 200px 1fr;

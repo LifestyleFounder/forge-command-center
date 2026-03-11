@@ -7,6 +7,7 @@ import { tiptapToNotionBlocks } from './notion-converter.js';
 import { createSlashCommandSuggestion } from './slash-commands.js';
 import { attachVoiceInput } from './voice-input.js';
 import { upsertDoc as sbUpsertDoc, deleteDoc as sbDeleteDoc } from './services/workspace-persistence.js';
+import { pushDocToNotion, pullDocContent, createDocInNotion, getFolderMap } from './services/workspace-sync.js';
 
 // ── Workspace Storage (shared keys with knowledge.js) ─────
 const DOCS_KEY = 'forge-workspace-docs';
@@ -618,7 +619,7 @@ function hideSlashMenu() {
 
 // ── Doc Loading (from localStorage) ──────────────────────
 
-function loadDoc(docId) {
+async function loadDoc(docId) {
   if (!editor) return;
 
   const docs = getWorkspaceDocs();
@@ -635,18 +636,44 @@ function loadDoc(docId) {
 
   setEditorTitle(doc.title || '');
 
+  // Set folder in dropdown
+  const folderSelect = $('#beDocFolder');
+  if (folderSelect && doc.folder) {
+    folderSelect.value = doc.folder;
+  }
+
+  // Check if we need to pull fresh content from Notion
+  if (doc.notionPageId && (doc.needsNotionPull || !doc.content)) {
+    setSyncStatus('loading', 'Pulling from Notion...');
+    try {
+      const notionContent = await pullDocContent(doc.notionPageId);
+      if (notionContent) {
+        editor.commands.setContent(notionContent);
+        // Save the pulled content locally
+        const updatedDocs = getWorkspaceDocs().map(d => {
+          if (d.id === docId) {
+            return { ...d, content: notionContent, needsNotionPull: false, updatedAt: new Date().toISOString() };
+          }
+          return d;
+        });
+        saveWorkspaceDocs(updatedDocs);
+        sbUpsertDoc({ ...doc, content: notionContent, needsNotionPull: false });
+        setSyncStatus('saved', 'Pulled from Notion');
+        updateToolbarState();
+        return;
+      }
+    } catch (err) {
+      console.warn('[block-editor] Notion pull failed, using local content:', err);
+    }
+  }
+
+  // Use local content
   if (doc.content && typeof doc.content === 'object') {
     editor.commands.setContent(doc.content);
   } else if (doc.content && typeof doc.content === 'string') {
     editor.commands.setContent(doc.content);
   } else {
     editor.commands.clearContent();
-  }
-
-  // Set folder in dropdown
-  const folderSelect = $('#beDocFolder');
-  if (folderSelect && doc.folder) {
-    folderSelect.value = doc.folder;
   }
 
   setSyncStatus('saved', 'Loaded');
@@ -704,56 +731,59 @@ function saveToLocal() {
   currentDocTitle = title;
   isDirty = false;
   setSyncStatus('saved', 'Saved locally');
+
+  // Auto-sync to Notion (debounced)
+  debouncedNotionSync();
 }
 
-async function triggerNotionBackup() {
+async function syncToNotion() {
   if (!editor || !currentDocId) return;
 
   const docs = getWorkspaceDocs();
   const doc = docs.find(d => d.id === currentDocId);
   if (!doc) return;
 
-  setSyncStatus('saving', 'Backing up to Notion...');
+  setSyncStatus('saving', 'Syncing to Notion...');
 
   try {
-    const tiptapDoc = editor.getJSON();
-    const blocks = tiptapToNotionBlocks(tiptapDoc);
-
     if (doc.notionPageId) {
       // Update existing Notion page
-      const success = await updatePageBlocks(doc.notionPageId, blocks);
+      const success = await pushDocToNotion(doc);
       if (success) {
-        setSyncStatus('saved', 'Backed up to Notion');
-        showToast('Backed up to Notion', 'success');
+        setSyncStatus('saved', 'Synced to Notion');
       } else {
-        setSyncStatus('error', 'Notion backup failed');
-        showToast('Notion backup failed — saved locally', 'warning');
+        setSyncStatus('error', 'Notion sync failed');
+        showToast('Notion sync failed — saved locally', 'warning');
       }
     } else {
-      // Create new Notion page
-      const result = await createPage(doc.title || 'Untitled', blocks);
-      if (result && result.pageId) {
+      // Create new page in Notion under the correct folder
+      const folderMap = getFolderMap();
+      const notionPageId = await createDocInNotion(doc, folderMap);
+      if (notionPageId) {
         // Store Notion page ID
         const updatedDocs = getWorkspaceDocs().map(d => {
           if (d.id === currentDocId) {
-            return { ...d, notionPageId: result.pageId };
+            return { ...d, notionPageId };
           }
           return d;
         });
         saveWorkspaceDocs(updatedDocs);
-        setSyncStatus('saved', 'Backed up to Notion');
-        showToast('Backed up to Notion', 'success');
+        setSyncStatus('saved', 'Synced to Notion');
       } else {
-        setSyncStatus('error', 'Notion backup failed');
-        showToast('Notion backup failed — saved locally', 'warning');
+        setSyncStatus('error', 'Notion sync failed');
+        showToast('Notion sync failed — saved locally', 'warning');
       }
     }
   } catch (err) {
-    console.error('[block-editor] Notion backup failed:', err);
-    setSyncStatus('error', 'Notion backup failed');
-    showToast('Notion backup failed', 'error');
+    console.error('[block-editor] Notion sync failed:', err);
+    setSyncStatus('error', 'Notion sync failed');
   }
 }
+
+// Debounced Notion push — runs 5s after last edit to avoid hammering API
+const debouncedNotionSync = debounce(() => {
+  syncToNotion();
+}, 5000);
 
 // ── Folder Selector ───────────────────────────────────────
 
@@ -906,12 +936,12 @@ function bindModalEvents() {
     }
   });
 
-  // Save button — saves locally + triggers Notion backup
+  // Save button — saves locally + immediately syncs to Notion
   const saveBtn = $('#beSaveBtn');
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
       saveToLocal();
-      await triggerNotionBackup();
+      await syncToNotion();
     });
   }
 

@@ -9,6 +9,8 @@ import {
   fetchFolders, fetchDocs, upsertFolders,
   deleteDoc as sbDeleteDoc, deleteFolder as sbDeleteFolder, pushAllDocs
 } from './services/workspace-persistence.js';
+import { syncWorkspace, getFolderMap, saveFolderMap } from './services/workspace-sync.js';
+import { createNotionFolder } from './services/notion-blocks.js';
 
 // ── Storage Keys ────────────────────────────────────────────────────
 const DOCS_KEY = 'forge-workspace-docs';
@@ -24,6 +26,7 @@ const DEFAULT_FOLDERS = [
 let activeFolder = null; // null = no folder selected (empty state)
 let expandedFolders = new Set(); // track which folders are expanded
 let draggedFolderId = null;
+let isSyncing = false;
 
 // ── Public API ──────────────────────────────────────────────────────
 export function initKnowledge() {
@@ -36,6 +39,8 @@ export function initKnowledge() {
 
 export function onKnowledgeTabVisit() {
   render();
+  // Trigger bidirectional Notion sync on every tab visit
+  triggerNotionSync();
 }
 
 // ── Storage Helpers ─────────────────────────────────────────────────
@@ -181,6 +186,66 @@ function saveDocsLocal(docs) {
     localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
   } catch (e) {
     console.error('[workspace] Failed to save docs:', e);
+  }
+}
+
+// ── Notion Sync ─────────────────────────────────────────────────────
+
+async function triggerNotionSync() {
+  if (isSyncing) return;
+  isSyncing = true;
+  showSyncIndicator('syncing');
+
+  try {
+    const result = await syncWorkspace({
+      getLocalFolders: getWorkspaceFolders,
+      getLocalDocs: getWorkspaceDocs,
+      saveLocalFolders: saveFoldersLocal,
+      saveLocalDocs: saveDocsLocal,
+    });
+
+    if (result.synced) {
+      // Also push merged state to Supabase
+      upsertFolders(getWorkspaceFolders());
+      pushAllDocs(getWorkspaceDocs());
+
+      render();
+
+      if (result.pulled > 0 || result.pushed > 0) {
+        showToast(`Synced with Notion: ${result.pulled} pulled, ${result.pushed} pushed`, 'success');
+      }
+      showSyncIndicator('synced');
+    } else {
+      showSyncIndicator('idle');
+    }
+  } catch (err) {
+    console.error('[workspace] Notion sync failed:', err);
+    showSyncIndicator('error');
+  } finally {
+    isSyncing = false;
+  }
+}
+
+function showSyncIndicator(state) {
+  const el = $('#wsSyncStatus');
+  if (!el) return;
+  const labels = {
+    syncing: 'Syncing with Notion...',
+    synced: 'Synced',
+    error: 'Sync failed',
+    idle: '',
+  };
+  el.textContent = labels[state] || '';
+  el.className = `ws-sync-status ws-sync-${state}`;
+
+  // Auto-clear "Synced" after 3s
+  if (state === 'synced') {
+    setTimeout(() => {
+      if (el.textContent === 'Synced') {
+        el.textContent = '';
+        el.className = 'ws-sync-status';
+      }
+    }, 3000);
   }
 }
 
@@ -353,7 +418,7 @@ function renderDocsList() {
             <div class="ws-doc-card-meta">
               ${folderName ? `<span class="ws-doc-card-folder">${escapeHtml(folderName)}</span>` : ''}
               <span class="ws-doc-card-time">${doc.updatedAt ? formatRelativeTime(doc.updatedAt) : ''}</span>
-              ${doc.notionPageId ? '<span class="ws-doc-card-backed" title="Backed up to Notion">&#9729;</span>' : ''}
+              ${doc.notionPageId ? '<span class="ws-doc-card-backed" title="Synced with Notion">&#9729;</span>' : ''}
             </div>
             <button class="ws-doc-delete" data-delete-id="${escapeHtml(doc.id)}" title="Delete note">&times;</button>
           </button>
@@ -490,6 +555,16 @@ function bindEvents() {
   const newFolderBtn = $('#wsNewFolderBtn');
   if (newFolderBtn) {
     newFolderBtn.addEventListener('click', () => createNewFolder());
+  }
+
+  // Manual Sync button
+  const syncBtn = $('#wsSyncBtn');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', () => {
+      // Clear cooldown so manual sync always runs
+      localStorage.removeItem('forge-workspace-last-sync');
+      triggerNotionSync();
+    });
   }
 }
 
@@ -723,6 +798,18 @@ function createNewFolder() {
 
   // Auto-expand parent if nested
   if (parentId) expandedFolders.add(parentId);
+
+  // Create folder in Notion (fire-and-forget, unless it's a divider)
+  if (!isDivider) {
+    createNotionFolder(name.trim()).then(result => {
+      if (result?.folderId) {
+        const map = getFolderMap();
+        map[id] = result.folderId;
+        saveFolderMap(map);
+        console.log('[workspace] Created Notion folder:', name.trim(), result.folderId);
+      }
+    }).catch(() => {});
+  }
 
   showToast(`${label} "${name.trim()}" created`);
   render();
