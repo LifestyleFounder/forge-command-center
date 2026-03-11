@@ -287,8 +287,9 @@ function switchTab(tabName) {
   // Update document title
   document.title = `${TAB_LABELS[tabName]} — Forge`;
 
-  // Store in state
+  // Store in state and persist for refresh
   state.ui.activeTab = tabName;
+  localStorage.setItem('forge-activeTab', tabName);
 
   // Lazy-load data for tabs that need it
   onTabFirstVisit(tabName);
@@ -1088,6 +1089,12 @@ async function init() {
   subscribe((key) => {
     if (key === 'status') updateStatusBar();
   });
+
+  // Restore last active tab on refresh
+  const savedTab = localStorage.getItem('forge-activeTab');
+  if (savedTab && TAB_LABELS[savedTab]) {
+    switchTab(savedTab);
+  }
 
   console.log('[forge] Command Center initialized');
 }
