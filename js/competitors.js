@@ -24,6 +24,8 @@ let scraping = false;
 let scrapeProgress = { current: 0, total: 0, username: '', phase: 'idle' };
 let analyzeProgress = { done: 0, remaining: 0 };
 let feedLimit = 50;
+let scrapeSelection = new Set(); // usernames selected for scraping
+let scrapeDropdownOpen = false;
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initCompetitors() {
@@ -93,9 +95,12 @@ function renderCreatorsGrid() {
   return `
     <div class="comp-toolbar">
       <button class="btn btn-primary btn-sm" id="addCompCreatorBtn">Add Creator</button>
-      <button class="btn btn-ghost btn-sm" id="scrapeNowBtn" ${scraping ? 'disabled' : ''}>
-        ${getScrapeButtonLabel()}
-      </button>
+      <div class="scrape-dropdown-wrap">
+        <button class="btn btn-ghost btn-sm" id="scrapeDropdownBtn" ${scraping ? 'disabled' : ''}>
+          ${getScrapeButtonLabel()} ▾
+        </button>
+        ${scrapeDropdownOpen && !scraping ? renderScrapeDropdown() : ''}
+      </div>
       <span class="text-sm text-secondary">${creators.length} creator${creators.length !== 1 ? 's' : ''} tracked</span>
       ${scraping ? `<span class="text-sm text-secondary scrape-status">${getScrapeStatusText()}</span>` : ''}
     </div>
@@ -106,7 +111,10 @@ function renderCreatorsGrid() {
 }
 
 function getScrapeButtonLabel() {
-  if (!scraping) return 'Scrape & Analyze';
+  if (!scraping) {
+    const count = scrapeSelection.size;
+    return count > 0 ? `Scrape & Analyze (${count})` : 'Scrape & Analyze';
+  }
   if (scrapeProgress.phase === 'scraping') {
     return `Scraping ${scrapeProgress.current}/${scrapeProgress.total}...`;
   }
@@ -114,6 +122,37 @@ function getScrapeButtonLabel() {
     return `Analyzing...`;
   }
   return 'Working...';
+}
+
+function renderScrapeDropdown() {
+  const sorted = [...creators].sort((a, b) => a.username.localeCompare(b.username));
+  const allSelected = scrapeSelection.size === creators.length;
+
+  return `
+    <div class="scrape-dropdown" id="scrapeDropdown">
+      <div class="scrape-dropdown-header">
+        <label class="scrape-check-row scrape-select-all">
+          <input type="checkbox" class="scrape-check" data-action="select-all" ${allSelected ? 'checked' : ''}>
+          <span>${allSelected ? 'Deselect All' : 'Select All'}</span>
+        </label>
+        <span class="text-xs text-tertiary">${scrapeSelection.size} selected</span>
+      </div>
+      <div class="scrape-dropdown-list">
+        ${sorted.map(c => `
+          <label class="scrape-check-row">
+            <input type="checkbox" class="scrape-check" data-username="${escapeHtml(c.username)}" ${scrapeSelection.has(c.username) ? 'checked' : ''}>
+            <span class="scrape-check-handle">@${escapeHtml(c.username)}</span>
+            <span class="text-xs text-tertiary">${c.lastScraped ? formatRelativeTime(c.lastScraped) : 'never'}</span>
+          </label>
+        `).join('')}
+      </div>
+      <div class="scrape-dropdown-footer">
+        <button class="btn btn-primary btn-sm" id="scrapeSelectedBtn" ${scrapeSelection.size === 0 ? 'disabled' : ''}>
+          Scrape ${scrapeSelection.size} Creator${scrapeSelection.size !== 1 ? 's' : ''}
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 function getScrapeStatusText() {
@@ -347,9 +386,21 @@ function bindCompetitorEvents() {
       return;
     }
 
-    // Scrape & Analyze button
-    if (e.target.closest('#scrapeNowBtn')) {
-      if (!scraping) scrapeAndAnalyze();
+    // Scrape dropdown toggle
+    if (e.target.closest('#scrapeDropdownBtn')) {
+      if (!scraping) {
+        scrapeDropdownOpen = !scrapeDropdownOpen;
+        renderCompetitors();
+      }
+      return;
+    }
+
+    // Scrape selected button (inside dropdown)
+    if (e.target.closest('#scrapeSelectedBtn')) {
+      if (!scraping && scrapeSelection.size > 0) {
+        scrapeDropdownOpen = false;
+        scrapeAndAnalyze();
+      }
       return;
     }
 
@@ -404,11 +455,42 @@ function bindCompetitorEvents() {
     }
   });
 
-  // Creator filter dropdown in feed
+  // Creator filter dropdown in feed + scrape checkboxes
   container.addEventListener('change', (e) => {
     if (e.target.id === 'compFeedCreatorFilter') {
       selectedCreator = e.target.value || null;
       feedLimit = 50;
+      renderCompetitors();
+      return;
+    }
+
+    // Scrape dropdown checkboxes
+    if (e.target.classList.contains('scrape-check')) {
+      const action = e.target.dataset.action;
+      const username = e.target.dataset.username;
+
+      if (action === 'select-all') {
+        if (e.target.checked) {
+          creators.forEach(c => scrapeSelection.add(c.username));
+        } else {
+          scrapeSelection.clear();
+        }
+      } else if (username) {
+        if (e.target.checked) {
+          scrapeSelection.add(username);
+        } else {
+          scrapeSelection.delete(username);
+        }
+      }
+      renderCompetitors();
+      return;
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (scrapeDropdownOpen && !e.target.closest('.scrape-dropdown-wrap')) {
+      scrapeDropdownOpen = false;
       renderCompetitors();
     }
   });
@@ -418,16 +500,21 @@ function bindCompetitorEvents() {
 async function scrapeAndAnalyze() {
   if (scraping || creators.length === 0) return;
 
+  // If no selection, default to all creators
+  const toScrape = scrapeSelection.size > 0
+    ? creators.filter(c => scrapeSelection.has(c.username))
+    : creators;
+
   scraping = true;
-  scrapeProgress = { current: 0, total: creators.length, username: '', phase: 'scraping' };
+  scrapeProgress = { current: 0, total: toScrape.length, username: '', phase: 'scraping' };
   analyzeProgress = { done: 0, remaining: 0 };
   renderCompetitors();
 
-  // Phase 1: Scrape all creators
+  // Phase 1: Scrape selected creators
   let successCount = 0;
   let failCount = 0;
 
-  for (const creator of creators) {
+  for (const creator of toScrape) {
     scrapeProgress.current++;
     scrapeProgress.username = creator.username;
     renderCompetitors();
@@ -490,6 +577,8 @@ async function scrapeAndAnalyze() {
   scraping = false;
   scrapeProgress = { current: 0, total: 0, username: '', phase: 'idle' };
   analyzeProgress = { done: 0, remaining: 0 };
+  scrapeSelection.clear();
+  scrapeDropdownOpen = false;
 
   // Reload data to show fresh posts
   await loadCompetitorData();
