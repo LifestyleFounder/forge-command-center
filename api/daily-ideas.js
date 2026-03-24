@@ -87,9 +87,9 @@ List 8 trending topics, news events, or cultural moments RIGHT NOW that a coachi
 - Cultural moments or news that coaches could riff on
 - Creator economy developments
 
-For each, include the topic, why it's trending, and a content angle.
+For each, include the topic, why it's trending, a content angle, and a Google search query someone could use to find real sources about this trend.
 
-Return JSON: { "trends": [{ "topic": "...", "why": "...", "angle": "..." }] }`
+Return JSON: { "trends": [{ "topic": "...", "why": "...", "angle": "...", "searchQuery": "..." }] }`
         },
       ],
       temperature: 0.9,
@@ -176,6 +176,8 @@ For each idea, provide:
 5. angle — 1-2 sentence explanation of why this will hit
 6. source — "competitor" or "trending" or "evergreen"
 7. urgency — "today" (time-sensitive), "this-week", or "anytime"
+8. reference — what specifically inspired this idea. For "competitor": the creator username and what they posted. For "trending": the specific news event, article, or platform update. For "evergreen": which of Dan's top posts it's based on. Be specific enough that Dan can Google it.
+9. referenceUrl — a Google search URL (https://www.google.com/search?q=...) with a query that will find the original source
 
 Return valid JSON:
 {
@@ -190,7 +192,9 @@ Return valid JSON:
       "format": "...",
       "angle": "...",
       "source": "...",
-      "urgency": "..."
+      "urgency": "...",
+      "reference": "...",
+      "referenceUrl": "..."
     }
   ]
 }`;
@@ -261,7 +265,7 @@ export default async function handler(req, res) {
       competitorPostCount: competitorPosts.length,
       trendCount: trends.length,
       danPostCount: danTopPosts.length,
-      trends: trends.map(t => t.topic),
+      trends: trends,
     };
 
     await sbUpsert('daily_content_ideas', 'run_date', [{

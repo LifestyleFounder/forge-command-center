@@ -188,8 +188,10 @@ function renderDailyIdeas(data) {
           <h4 class="ca-idea-title">${escapeHtml(idea.title)}</h4>
           <p class="ca-idea-hook">"${escapeHtml(idea.hook)}"</p>
           <p class="ca-idea-angle">${escapeHtml(idea.angle)}</p>
+          ${idea.reference ? `<p class="ca-idea-ref">${escapeHtml(idea.reference)}</p>` : ''}
           <div class="ca-idea-footer">
             <span class="ca-idea-source">${sourceIcon} ${escapeHtml(idea.source || '')}</span>
+            ${idea.referenceUrl ? `<a class="ca-idea-link" href="${escapeHtml(idea.referenceUrl)}" target="_blank" rel="noopener noreferrer">View source &rarr;</a>` : ''}
           </div>
         </div>`;
     }).join('');

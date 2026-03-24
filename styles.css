@@ -2820,10 +2820,31 @@ textarea.form-input {
   margin-top: auto;
 }
 
+.ca-idea-ref {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.4;
+  padding: var(--space-2) 0 0;
+  border-top: 1px solid var(--border-light);
+}
+
 .ca-idea-source {
   font-size: 11px;
   color: var(--text-tertiary);
   text-transform: capitalize;
+}
+
+.ca-idea-link {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-gold);
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.ca-idea-link:hover {
+  text-decoration: underline;
 }
 
 .ca-badge-both {
