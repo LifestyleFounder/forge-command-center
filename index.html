@@ -215,12 +215,128 @@
         <section class="tab-panel" id="tab-content" role="tabpanel" aria-labelledby="nav-content" hidden>
           <div class="section-header"><h1>Content</h1></div>
           <div class="subtabs" id="contentSubtabs" role="tablist">
-            <button class="subtab is-active" data-subtab="content-overview" role="tab" aria-selected="true">Weekly Gameplan</button>
+            <button class="subtab is-active" data-subtab="content-analytics" role="tab" aria-selected="true">Analytics</button>
+            <button class="subtab" data-subtab="content-overview" role="tab" aria-selected="false">Weekly Gameplan</button>
             <button class="subtab" data-subtab="content-youtube" role="tab" aria-selected="false">YouTube</button>
             <button class="subtab" data-subtab="content-instagram" role="tab" aria-selected="false">Instagram</button>
           </div>
+          <!-- Analytics Dashboard -->
+          <div class="subtab-panel is-active" id="content-analytics" role="tabpanel">
+            <!-- Controls Bar -->
+            <div class="ca-controls">
+              <div class="ca-platform-filter" id="caPlatformFilter">
+                <button class="ca-pill is-active" data-platform="all">All</button>
+                <button class="ca-pill" data-platform="instagram">Instagram</button>
+                <button class="ca-pill" data-platform="youtube">YouTube</button>
+              </div>
+              <div class="ca-range-filter" id="caRangeFilter">
+                <button class="ca-pill" data-range="7">7d</button>
+                <button class="ca-pill" data-range="14">14d</button>
+                <button class="ca-pill is-active" data-range="30">30d</button>
+                <button class="ca-pill" data-range="90">90d</button>
+              </div>
+            </div>
+            <!-- KPI Cards -->
+            <div class="ca-kpi-row" id="caKpiRow">
+              <div class="ca-kpi-card">
+                <div class="ca-kpi-header">
+                  <span class="ca-kpi-label">Views</span>
+                  <span class="ca-kpi-change" id="caViewsChange"></span>
+                </div>
+                <span class="ca-kpi-value" id="caViews">--</span>
+                <canvas class="ca-sparkline" id="caViewsSpark" width="100" height="32"></canvas>
+              </div>
+              <div class="ca-kpi-card">
+                <div class="ca-kpi-header">
+                  <span class="ca-kpi-label">Likes</span>
+                  <span class="ca-kpi-change" id="caLikesChange"></span>
+                </div>
+                <span class="ca-kpi-value" id="caLikes">--</span>
+                <canvas class="ca-sparkline" id="caLikesSpark" width="100" height="32"></canvas>
+              </div>
+              <div class="ca-kpi-card">
+                <div class="ca-kpi-header">
+                  <span class="ca-kpi-label">Engagement</span>
+                  <span class="ca-kpi-change" id="caEngChange"></span>
+                </div>
+                <span class="ca-kpi-value" id="caEng">--</span>
+                <canvas class="ca-sparkline" id="caEngSpark" width="100" height="32"></canvas>
+              </div>
+              <div class="ca-kpi-card">
+                <div class="ca-kpi-header">
+                  <span class="ca-kpi-label">Followers</span>
+                  <span class="ca-kpi-change" id="caFollowersChange"></span>
+                </div>
+                <span class="ca-kpi-value" id="caFollowers">--</span>
+                <canvas class="ca-sparkline" id="caFollowersSpark" width="100" height="32"></canvas>
+              </div>
+              <div class="ca-kpi-card">
+                <div class="ca-kpi-header">
+                  <span class="ca-kpi-label">Shares</span>
+                  <span class="ca-kpi-change" id="caSharesChange"></span>
+                </div>
+                <span class="ca-kpi-value" id="caShares">--</span>
+                <canvas class="ca-sparkline" id="caSharesSpark" width="100" height="32"></canvas>
+              </div>
+              <div class="ca-kpi-card">
+                <div class="ca-kpi-header">
+                  <span class="ca-kpi-label">Saves</span>
+                  <span class="ca-kpi-change" id="caSavesChange"></span>
+                </div>
+                <span class="ca-kpi-value" id="caSaves">--</span>
+                <canvas class="ca-sparkline" id="caSavesSpark" width="100" height="32"></canvas>
+              </div>
+            </div>
+            <!-- Charts -->
+            <div class="ca-chart-row">
+              <div class="ca-chart-card">
+                <h3>Views & Engagement Over Time</h3>
+                <div class="chart-container"><canvas id="caViewsChart"></canvas></div>
+              </div>
+              <div class="ca-chart-card">
+                <h3>Engagement Breakdown</h3>
+                <div class="chart-container"><canvas id="caEngChart"></canvas></div>
+              </div>
+            </div>
+            <!-- Content Patterns -->
+            <div class="ca-patterns-row" id="caPatternsRow">
+              <div class="ca-pattern-card">
+                <h3>Top Hook Types</h3>
+                <div class="ca-pattern-list" id="caHookPatterns"></div>
+              </div>
+              <div class="ca-pattern-card">
+                <h3>Top Content Structures</h3>
+                <div class="ca-pattern-list" id="caStructurePatterns"></div>
+              </div>
+              <div class="ca-pattern-card">
+                <h3>Top Formats</h3>
+                <div class="ca-pattern-list" id="caFormatPatterns"></div>
+              </div>
+            </div>
+            <!-- Top Posts Leaderboard -->
+            <div class="card" style="margin-top: var(--space-4);">
+              <div class="card-header">
+                <h2>Top Performing Posts</h2>
+                <div class="card-actions">
+                  <select class="form-select" id="caPostSort" aria-label="Sort posts by">
+                    <option value="views">Views</option>
+                    <option value="likes">Likes</option>
+                    <option value="comments">Comments</option>
+                    <option value="shares">Shares</option>
+                    <option value="saves">Saves</option>
+                    <option value="engagement">Engagement</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="ca-posts-list" id="caPostsList">
+                  <div class="empty-state"><p>Loading analytics...</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
           <!-- Weekly Gameplan -->
-          <div class="subtab-panel is-active" id="content-overview" role="tabpanel">
+          <div class="subtab-panel" id="content-overview" role="tabpanel" hidden>
             <div class="card">
               <div class="card-header">
                 <h2 id="gameplanWeekLabel">Weekly Gameplan</h2>

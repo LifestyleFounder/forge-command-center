@@ -1,4 +1,4 @@
-// js/content.js — Content tab: Weekly Gameplan, YouTube, Instagram, Meta Ads
+// js/content.js — Content tab: Analytics, Weekly Gameplan, YouTube, Instagram, Meta Ads
 // ──────────────────────────────────────────────────────────────────────
 
 import {
@@ -10,6 +10,12 @@ import {
 // ── State ────────────────────────────────────────────────────────────
 let contentDataLoaded = false;
 let igFollowerChartInstance = null;
+let caViewsChartInstance = null;
+let caEngChartInstance = null;
+let caActivePlatform = 'all';
+let caActiveRange = 30;
+let caActiveSort = 'views';
+let caData = null;
 
 // ── Public init ──────────────────────────────────────────────────────
 export function initContent() {
@@ -25,6 +31,7 @@ export function initContent() {
     if (key === 'myInstagram') renderMyInstagram();
     if (key === 'metaAds')    renderMetaAds();
     if (key === 'adSwipes')   renderAdSwipes();
+    if (key === 'contentAnalytics') renderContentAnalytics();
   });
 }
 
@@ -33,11 +40,19 @@ export async function loadContentData() {
   if (contentDataLoaded) return;
   contentDataLoaded = true;
   try {
-    // Fetch gameplan + YouTube stats from APIs in parallel
-    const [gameplanRes, youtubeRes] = await Promise.allSettled([
+    // Fetch analytics + gameplan + YouTube stats from APIs in parallel
+    const [analyticsRes, gameplanRes, youtubeRes] = await Promise.allSettled([
+      fetch(`/api/content-analytics?range=${caActiveRange}&platform=${caActivePlatform}`).then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
       fetch('/api/content-gameplan').then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
       fetch('/api/youtube-stats').then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
     ]);
+
+    if (analyticsRes.status === 'fulfilled') {
+      caData = analyticsRes.value;
+      setState('contentAnalytics', caData);
+    } else {
+      console.warn('[content] Analytics load failed:', analyticsRes.reason);
+    }
 
     if (gameplanRes.status === 'fulfilled') {
       setState('gameplan', gameplanRes.value);
@@ -57,6 +72,290 @@ export async function loadContentData() {
     console.error('[content] Failed to load content data:', err);
     showToast('Failed to load content data', 'error');
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CONTENT ANALYTICS DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════
+
+async function loadAnalyticsData() {
+  try {
+    const res = await fetch(`/api/content-analytics?range=${caActiveRange}&platform=${caActivePlatform}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    caData = await res.json();
+    setState('contentAnalytics', caData);
+  } catch (err) {
+    console.error('[content] Analytics load failed:', err);
+    showToast('Failed to load analytics', 'error');
+  }
+}
+
+function renderContentAnalytics() {
+  const data = caData;
+  if (!data) return;
+
+  renderKpiCards(data.kpis, data.daily, data.followerSpark);
+  renderAnalyticsCharts(data.daily);
+  renderPatterns(data.analysis);
+  renderPostsLeaderboard(data.posts);
+}
+
+function renderKpiCards(kpis, daily, followerSpark) {
+  if (!kpis) return;
+
+  const cards = [
+    { id: 'Views', kpi: kpis.views, dataKey: 'views', fmt: formatCompact },
+    { id: 'Likes', kpi: kpis.likes, dataKey: 'likes', fmt: formatCompact },
+    { id: 'Eng', kpi: kpis.engagement, dataKey: null, fmt: v => v.toFixed(2) + '%', isAbs: true },
+    { id: 'Followers', kpi: kpis.followers, dataKey: null, fmt: formatCompact, spark: followerSpark },
+    { id: 'Shares', kpi: kpis.shares, dataKey: 'shares', fmt: formatCompact },
+    { id: 'Saves', kpi: kpis.saves, dataKey: 'saves', fmt: formatCompact },
+  ];
+
+  cards.forEach(c => {
+    const valEl = $(`#ca${c.id}`);
+    const changeEl = $(`#ca${c.id}Change`);
+    if (valEl) valEl.textContent = c.fmt(c.kpi.value);
+    if (changeEl) {
+      const change = c.kpi.change;
+      const isAbs = c.isAbs;
+      const arrow = change > 0 ? '\u2191' : change < 0 ? '\u2193' : '';
+      const cls = change > 0 ? 'ca-change-up' : change < 0 ? 'ca-change-down' : 'ca-change-flat';
+      const display = isAbs
+        ? `${arrow} ${change > 0 ? '+' : ''}${change.toFixed(2)}pp`
+        : `${arrow} ${change > 0 ? '+' : ''}${Math.round(change)}%`;
+      changeEl.textContent = display;
+      changeEl.className = `ca-kpi-change ${cls}`;
+    }
+
+    // Draw sparkline
+    const canvas = $(`#ca${c.id}Spark`);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    let points;
+    if (c.spark) {
+      points = c.spark.map(s => s.value);
+    } else if (c.dataKey && daily) {
+      points = daily.map(d => d[c.dataKey] || 0);
+    } else {
+      return;
+    }
+    if (points.length < 2) return;
+
+    const max = Math.max(...points) || 1;
+    const min = Math.min(...points);
+    const range = max - min || 1;
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const color = c.kpi.change >= 0 ? (isDark ? '#34D399' : '#10B981') : (isDark ? '#F87171' : '#EF4444');
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    points.forEach((v, i) => {
+      const x = (i / (points.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 4) - 2;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Fill under
+    ctx.lineTo(w, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = color + '15';
+    ctx.fill();
+  });
+}
+
+function renderAnalyticsCharts(daily) {
+  if (typeof Chart === 'undefined' || !daily || daily.length === 0) return;
+
+  const labels = daily.map(d => {
+    const dt = new Date(d.date + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#9CA3AF' : '#6B7280';
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  // ── Views & Engagement Area Chart ──
+  const viewsCtx = $('#caViewsChart');
+  if (viewsCtx) {
+    if (caViewsChartInstance) caViewsChartInstance.destroy();
+    caViewsChartInstance = new Chart(viewsCtx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Views',
+            data: daily.map(d => d.views),
+            borderColor: isDark ? '#C8A24A' : '#0F2A1E',
+            backgroundColor: isDark ? 'rgba(200,162,74,0.12)' : 'rgba(15,42,30,0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Likes',
+            data: daily.map(d => d.likes),
+            borderColor: isDark ? '#34D399' : '#10B981',
+            backgroundColor: isDark ? 'rgba(52,211,153,0.08)' : 'rgba(16,185,129,0.06)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            yAxisID: 'y1',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top', labels: { color: textColor, boxWidth: 12, padding: 16 } } },
+        scales: {
+          y: { position: 'left', beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } },
+          y1: { position: 'right', beginAtZero: true, ticks: { color: textColor }, grid: { drawOnChartArea: false } },
+          x: { ticks: { color: textColor, maxTicksLimit: 10 }, grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  // ── Engagement Breakdown Bar Chart ──
+  const engCtx = $('#caEngChart');
+  if (engCtx) {
+    if (caEngChartInstance) caEngChartInstance.destroy();
+    const colors = {
+      likes: isDark ? 'rgba(200,162,74,0.85)' : 'rgba(193,154,72,0.85)',
+      comments: isDark ? 'rgba(52,211,153,0.85)' : 'rgba(16,185,129,0.85)',
+      shares: isDark ? 'rgba(96,165,250,0.85)' : 'rgba(59,130,246,0.85)',
+      saves: isDark ? 'rgba(167,139,250,0.85)' : 'rgba(139,92,246,0.85)',
+    };
+    caEngChartInstance = new Chart(engCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Likes', data: daily.map(d => d.likes), backgroundColor: colors.likes, borderRadius: 3, barPercentage: 0.7 },
+          { label: 'Comments', data: daily.map(d => d.comments), backgroundColor: colors.comments, borderRadius: 3, barPercentage: 0.7 },
+          { label: 'Shares', data: daily.map(d => d.shares), backgroundColor: colors.shares, borderRadius: 3, barPercentage: 0.7 },
+          { label: 'Saves', data: daily.map(d => d.saves), backgroundColor: colors.saves, borderRadius: 3, barPercentage: 0.7 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { color: textColor, boxWidth: 12, padding: 16 } } },
+        scales: {
+          x: { stacked: true, ticks: { color: textColor, maxTicksLimit: 10 }, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } },
+        },
+      },
+    });
+  }
+}
+
+function renderPatterns(analysis) {
+  if (!analysis) return;
+
+  function renderPatternList(containerId, data) {
+    const el = $(`#${containerId}`);
+    if (!el) return;
+
+    const sorted = Object.entries(data)
+      .map(([name, stats]) => ({
+        name,
+        count: stats.count,
+        avgLikes: stats.count > 0 ? Math.round(stats.totalLikes / stats.count) : 0,
+        avgViews: stats.count > 0 ? Math.round(stats.totalViews / stats.count) : 0,
+      }))
+      .sort((a, b) => b.avgViews - a.avgViews)
+      .slice(0, 5);
+
+    if (sorted.length === 0) {
+      el.innerHTML = '<span class="text-sm text-secondary">No data yet</span>';
+      return;
+    }
+
+    const maxViews = sorted[0].avgViews || 1;
+    el.innerHTML = sorted.map(item => {
+      const pct = Math.round((item.avgViews / maxViews) * 100);
+      return `
+        <div class="ca-pattern-item">
+          <div class="ca-pattern-info">
+            <span class="ca-pattern-name">${escapeHtml(item.name)}</span>
+            <span class="ca-pattern-stats">${formatCompact(item.avgViews)} avg views &middot; ${item.count} posts</span>
+          </div>
+          <div class="ca-pattern-bar-bg"><div class="ca-pattern-bar" style="width:${pct}%"></div></div>
+        </div>`;
+    }).join('');
+  }
+
+  renderPatternList('caHookPatterns', analysis.hooks || {});
+  renderPatternList('caStructurePatterns', analysis.structures || {});
+  renderPatternList('caFormatPatterns', analysis.formats || {});
+}
+
+function renderPostsLeaderboard(posts) {
+  const el = $('#caPostsList');
+  if (!el) return;
+
+  if (!posts || posts.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>No posts in this time range.</p></div>';
+    return;
+  }
+
+  // Sort posts
+  const sorted = [...posts].sort((a, b) => {
+    if (caActiveSort === 'engagement') {
+      const eA = a.views > 0 ? (a.likes + a.comments + (a.shares || 0) + (a.saves || 0)) / a.views : 0;
+      const eB = b.views > 0 ? (b.likes + b.comments + (b.shares || 0) + (b.saves || 0)) / b.views : 0;
+      return eB - eA;
+    }
+    return (b[caActiveSort] || 0) - (a[caActiveSort] || 0);
+  });
+
+  el.innerHTML = sorted.slice(0, 20).map((p, i) => {
+    const engRate = p.views > 0
+      ? ((p.likes + p.comments + (p.shares || 0) + (p.saves || 0)) / p.views * 100).toFixed(1) + '%'
+      : '--';
+    const platformBadge = p.platform === 'youtube'
+      ? '<span class="ca-badge ca-badge-yt">YT</span>'
+      : '<span class="ca-badge ca-badge-ig">IG</span>';
+    const date = p.publishedAt ? formatDate(p.publishedAt) : '';
+
+    return `
+      <a class="ca-post-row" href="${escapeHtml(p.link || '#')}" target="_blank" rel="noopener noreferrer">
+        <span class="ca-post-rank">${i + 1}</span>
+        ${p.thumbnail
+          ? `<img class="ca-post-thumb" src="${escapeHtml(p.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+          : '<div class="ca-post-thumb ca-post-thumb-empty"></div>'}
+        <div class="ca-post-info">
+          <span class="ca-post-title">${platformBadge} ${escapeHtml(p.title || 'Untitled')}</span>
+          <span class="ca-post-meta">${escapeHtml(p.post_type || '')} &middot; ${date}</span>
+        </div>
+        <div class="ca-post-metrics">
+          <span class="ca-metric"><strong>${formatCompact(p.views)}</strong> views</span>
+          <span class="ca-metric"><strong>${formatCompact(p.likes)}</strong> likes</span>
+          <span class="ca-metric"><strong>${formatCompact(p.comments)}</strong> comments</span>
+          <span class="ca-metric"><strong>${formatCompact(p.shares || 0)}</strong> shares</span>
+          <span class="ca-metric"><strong>${formatCompact(p.saves || 0)}</strong> saves</span>
+          <span class="ca-metric ca-metric-eng"><strong>${engRate}</strong> eng</span>
+        </div>
+      </a>`;
+  }).join('');
 }
 
 // ── Meta Ads data loader (called on first Meta Ads tab visit) ────────
@@ -795,7 +1094,7 @@ function bindContentEvents() {
         b.setAttribute('aria-selected', String(isActive));
       });
 
-      ['content-overview', 'content-youtube', 'content-instagram'].forEach(id => {
+      ['content-analytics', 'content-overview', 'content-youtube', 'content-instagram'].forEach(id => {
         const panel = $(`#${id}`);
         if (!panel) return;
         const active = id === target;
@@ -805,6 +1104,30 @@ function bindContentEvents() {
       });
     });
   }
+
+  // Analytics platform filter
+  $('#caPlatformFilter')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ca-pill');
+    if (!btn || !btn.dataset.platform) return;
+    caActivePlatform = btn.dataset.platform;
+    $$('#caPlatformFilter .ca-pill').forEach(b => b.classList.toggle('is-active', b === btn));
+    loadAnalyticsData();
+  });
+
+  // Analytics time range filter
+  $('#caRangeFilter')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ca-pill');
+    if (!btn || !btn.dataset.range) return;
+    caActiveRange = parseInt(btn.dataset.range);
+    $$('#caRangeFilter .ca-pill').forEach(b => b.classList.toggle('is-active', b === btn));
+    loadAnalyticsData();
+  });
+
+  // Analytics sort dropdown
+  $('#caPostSort')?.addEventListener('change', (e) => {
+    caActiveSort = e.target.value;
+    if (caData) renderPostsLeaderboard(caData.posts);
+  });
 
   // Gameplan refresh
   $('#refreshGameplanBtn')?.addEventListener('click', refreshGameplan);
