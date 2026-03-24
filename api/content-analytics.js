@@ -48,8 +48,8 @@ export default async function handler(req, res) {
         const cid = creators[0].id;
 
         const [currentPosts, previousPosts, snaps] = await Promise.all([
-          sbGet('ig_posts', `creator_id=eq.${cid}&posted_at=gte.${rangeISO}&order=posted_at.desc&select=id,shortcode,caption,post_type,likes,comments,views,saves,shares,thumbnail_url,post_url,posted_at,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag`),
-          sbGet('ig_posts', `creator_id=eq.${cid}&posted_at=gte.${prevISO}&posted_at=lt.${rangeISO}&order=posted_at.desc&select=id,likes,comments,views,saves,shares`),
+          sbGet('ig_posts', `creator_id=eq.${cid}&posted_at=gte.${rangeISO}&order=posted_at.desc&select=id,shortcode,caption,post_type,likes,comments,views,thumbnail_url,post_url,posted_at,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag`),
+          sbGet('ig_posts', `creator_id=eq.${cid}&posted_at=gte.${prevISO}&posted_at=lt.${rangeISO}&order=posted_at.desc&select=id,likes,comments,views`),
           sbGet('ig_creator_snapshots', `creator_id=eq.${cid}&order=scraped_at.asc&limit=90`),
         ]);
 
