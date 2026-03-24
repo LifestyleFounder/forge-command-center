@@ -1,5 +1,6 @@
 // api/daily-ideas.js — Daily content idea generator
-// Pulls competitor trends + trending news → GPT → 10 content ideas
+// Pulls REAL competitor posts from Supabase + REAL news from Google News RSS
+// GPT analyzes actual data and generates ideas with real source links
 // GET           → returns today's ideas (or most recent)
 // GET ?generate → forces fresh generation
 // Called by Vercel cron daily at 4am PT
@@ -30,159 +31,208 @@ async function sbUpsert(table, onConflict, body) {
   return res.json();
 }
 
-// ── 1. Get top competitor posts from last 7 days ───────────────────
-async function getCompetitorTrends() {
+// ── 1. Real competitor posts from Supabase (with IG links) ─────────
+async function getCompetitorPosts() {
   const since = new Date();
   since.setDate(since.getDate() - 7);
 
-  // Get all active creators except Dan
   const creators = await sbGet('ig_creators', 'is_active=eq.true&username=neq.thedanharrison&select=id,username');
   if (!creators.length) return { posts: [], creators: [] };
 
   const creatorIds = creators.map(c => c.id);
   const creatorMap = Object.fromEntries(creators.map(c => [c.id, c.username]));
 
-  // Get top posts from these creators in the last 7 days
   const posts = await sbGet(
     'ig_posts',
-    `creator_id=in.(${creatorIds.join(',')})&posted_at=gte.${since.toISOString()}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=20&select=caption,likes,comments,views,post_type,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag,creator_id`
+    `creator_id=in.(${creatorIds.join(',')})&posted_at=gte.${since.toISOString()}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=20&select=shortcode,caption,likes,comments,views,post_type,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag,creator_id,posted_at`
   );
 
-  // Attach creator names
   const enriched = posts.map(p => ({
     ...p,
     creator: creatorMap[p.creator_id] || 'unknown',
+    url: p.shortcode ? `https://instagram.com/p/${p.shortcode}` : null,
   }));
 
   return { posts: enriched, creators: creators.map(c => c.username) };
 }
 
-// ── 2. Get trending topics via web search ──────────────────────────
-async function getTrendingTopics() {
-  // Use OpenAI to get current trends relevant to Dan's niche
-  // This acts as a "trend radar" without needing a separate news API
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4.1-mini',
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a trend analyst specializing in coaching, online business, Skool communities, AI tools, and creator economy. Return current trends and newsworthy angles.'
-        },
-        {
-          role: 'user',
-          content: `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}.
+// ── 2. Real news articles from Google News RSS ─────────────────────
+async function getNewsArticles() {
+  const queries = [
+    'online coaching business 2026',
+    'Skool community platform',
+    'AI tools coaches creators',
+    'Instagram algorithm update',
+    'YouTube creator economy',
+    'coaching industry trends',
+  ];
 
-List 8 trending topics, news events, or cultural moments RIGHT NOW that a coaching/online business creator could make content about. Focus on:
-- AI tools and updates (Claude, ChatGPT, automation)
-- Skool platform news or community trends
-- Social media algorithm changes (Instagram, YouTube, TikTok)
-- Online business / coaching industry shifts
-- Cultural moments or news that coaches could riff on
-- Creator economy developments
+  const allArticles = [];
 
-For each, include the topic, why it's trending, a content angle, and a Google search query someone could use to find real sources about this trend.
+  // Fetch RSS feeds in parallel
+  const feeds = await Promise.allSettled(
+    queries.map(async (q) => {
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!res.ok) return [];
+      const xml = await res.text();
+      return parseRssItems(xml, q);
+    })
+  );
 
-Return JSON: { "trends": [{ "topic": "...", "why": "...", "angle": "...", "searchQuery": "..." }] }`
-        },
-      ],
-      temperature: 0.9,
-      max_tokens: 1500,
-    }),
+  for (const result of feeds) {
+    if (result.status === 'fulfilled') {
+      allArticles.push(...result.value);
+    }
+  }
+
+  // Deduplicate by title, sort by date, take top 15
+  const seen = new Set();
+  const unique = allArticles.filter(a => {
+    const key = a.title.toLowerCase().slice(0, 60);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 
-  if (!res.ok) {
-    console.warn('[daily-ideas] Trend fetch failed:', res.status);
-    return [];
-  }
-
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) return [];
-
-  try {
-    const parsed = JSON.parse(content);
-    return parsed.trends || [];
-  } catch {
-    return [];
-  }
+  unique.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  return unique.slice(0, 15);
 }
 
-// ── 3. Get Dan's own top performers for pattern matching ───────────
+// Simple XML parser for Google News RSS (no dependencies)
+function parseRssItems(xml, query) {
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const block = match[1];
+    const title = extractTag(block, 'title');
+    const link = extractTag(block, 'link');
+    const pubDate = extractTag(block, 'pubDate');
+    const source = extractTag(block, 'source');
+
+    if (title && link) {
+      items.push({
+        title: decodeHtmlEntities(title),
+        url: link,
+        pubDate: pubDate || '',
+        source: source ? decodeHtmlEntities(source) : '',
+        query,
+      });
+    }
+  }
+
+  return items.slice(0, 5); // Max 5 per query
+}
+
+function extractTag(xml, tag) {
+  const regex = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?(.*?)(?:\\]\\]>)?</${tag}>`, 's');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : '';
+}
+
+function decodeHtmlEntities(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'");
+}
+
+// ── 3. Dan's own top performers ────────────────────────────────────
 async function getDanTopPosts() {
   const creators = await sbGet('ig_creators', 'username=eq.thedanharrison&limit=1');
   if (!creators.length) return [];
 
-  const posts = await sbGet(
+  return sbGet(
     'ig_posts',
-    `creator_id=eq.${creators[0].id}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=10&select=caption,likes,comments,views,hook_structure,content_structure,topic,visual_format`
+    `creator_id=eq.${creators[0].id}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=10&select=shortcode,caption,likes,comments,views,hook_structure,content_structure,topic,visual_format`
   );
-  return posts;
 }
 
-// ── 4. Generate ideas with GPT ─────────────────────────────────────
-async function generateIdeas(competitorPosts, trends, danTopPosts) {
-  const competitorSummary = competitorPosts.slice(0, 15).map((p, i) =>
-    `${i + 1}. @${p.creator} (${p.likes} likes) — Hook: "${(p.hook_framework || '').slice(0, 100)}" | Type: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'} | Format: ${p.visual_format || p.post_type || '?'}`
-  ).join('\n');
+// ── 4. GPT analyzes REAL data ──────────────────────────────────────
+async function generateIdeas(competitorPosts, articles, danTopPosts) {
+  // Build competitor context with real URLs
+  const competitorContext = competitorPosts.slice(0, 15).map((p, i) => {
+    const caption = (p.caption || '').slice(0, 120).replace(/\n/g, ' ');
+    return `[C${i + 1}] @${p.creator} | ${p.likes} likes | ${p.post_type} | Hook type: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'}
+  Hook: "${(p.hook_framework || '').slice(0, 120)}"
+  Caption: "${caption}"
+  URL: ${p.url || 'n/a'}
+  Posted: ${p.posted_at ? new Date(p.posted_at).toLocaleDateString() : '?'}`;
+  }).join('\n\n');
 
-  const trendSummary = trends.map((t, i) =>
-    `${i + 1}. ${t.topic} — ${t.why} → Angle: ${t.angle}`
-  ).join('\n');
+  // Build news context with real URLs
+  const newsContext = articles.map((a, i) =>
+    `[N${i + 1}] "${a.title}"
+  Source: ${a.source}
+  URL: ${a.url}
+  Published: ${a.pubDate ? new Date(a.pubDate).toLocaleDateString() : 'today'}
+  Search topic: ${a.query}`
+  ).join('\n\n');
 
-  const danSummary = danTopPosts.map((p, i) =>
-    `${i + 1}. (${p.likes} likes) Hook type: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'} | Format: ${p.visual_format || '?'}`
-  ).join('\n');
+  // Dan's data
+  const danContext = danTopPosts.map((p, i) => {
+    const url = p.shortcode ? `https://instagram.com/p/${p.shortcode}` : 'n/a';
+    return `[D${i + 1}] ${p.likes} likes | Hook: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'} | Format: ${p.visual_format || '?'} | URL: ${url}`;
+  }).join('\n');
 
-  const systemPrompt = `You are Dan Harrison's content strategist. Dan runs Lifestyle Founders Group (LFG) — helping coaches build $30-50K/month Skool businesses working 4 days/week.
+  const systemPrompt = `You are Dan Harrison's content strategist. Your job is to analyze REAL competitor posts and REAL news articles, then generate content ideas that reference specific sources.
 
-Dan's voice: Frank Kern meets Pete Holmes. Chill, witty, grounded. Anti-bro marketing. Short punchy sentences. Real numbers not hype. Blends spirituality, psychology, comedy, and marketing.
+Dan runs Lifestyle Founders Group (LFG) — helping coaches build $30-50K/month Skool businesses working 4 days/week.
 
-Dan's audience: Coaches/consultants aged 35-52, making $5-40K/month, tired of launching/chasing/hustling. Want simple systems, not complexity.
+Dan's voice: Frank Kern meets Pete Holmes. Chill, witty, grounded. Anti-bro marketing. Short punchy sentences. Real numbers not hype.
+
+Dan's audience: Coaches/consultants aged 35-52, making $5-40K/month, tired of launching/chasing/hustling.
 
 Dan's platforms: YouTube (long-form 8-15 min), Instagram (Reels + Carousels), TikTok (repurposed shorts).
 
-Dan's key topics: Skool, AI for coaches, Close By Chat (DM selling), anti-bro marketing, 4-day work week, simple offers, community-led growth.`;
+Dan's key topics: Skool, AI for coaches, Close By Chat (DM selling), anti-bro marketing, 4-day work week, simple offers, community-led growth.
+
+CRITICAL RULES:
+- Every idea MUST reference a specific source from the data below using its ID tag (e.g. [C3], [N7], [D2])
+- For competitor-inspired ideas: cite the specific post and creator
+- For trending ideas: cite the specific article title, source publication, and URL
+- For evergreen ideas: cite which of Dan's own posts proves the format works
+- Do NOT make up sources. Only reference items from the data provided.`;
 
   const userPrompt = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}.
 
-## COMPETITOR TRENDS (top posts this week)
-${competitorSummary || 'No competitor data available'}
+═══ REAL COMPETITOR POSTS (last 7 days, sorted by engagement) ═══
+${competitorContext || 'No competitor posts scraped this week.'}
 
-## TRENDING TOPICS & NEWS
-${trendSummary || 'No trends available'}
+═══ REAL NEWS ARTICLES (fetched today from Google News) ═══
+${newsContext || 'No news articles found.'}
 
-## DAN'S TOP PERFORMERS (what already works for him)
-${danSummary || 'No historical data yet'}
+═══ DAN'S OWN TOP PERFORMERS ═══
+${danContext || 'No historical data yet.'}
 
----
+───────────────────────────────────────
 
-Generate exactly 10 content ideas for Dan to film. Mix of:
-- 3-4 ideas inspired by competitor trends (put your own spin, don't copy)
-- 3-4 ideas riding trending topics/news (timely hooks)
-- 2-3 "evergreen bangers" based on Dan's proven formats
+Generate exactly 10 content ideas. Mix:
+- 3-4 ideas inspired by specific competitor posts above
+- 3-4 ideas riding specific news articles above
+- 2-3 evergreen ideas based on Dan's proven formats
 
-For each idea, provide:
+For each idea:
 1. title — punchy, clickable
-2. hook — the exact first sentence Dan would say or put on screen
+2. hook — exact first sentence Dan would say or put on screen
 3. platform — "youtube" or "instagram" or "both"
 4. format — "talking-head reel", "carousel", "long-form", "b-roll reel", "screen-share tutorial"
-5. angle — 1-2 sentence explanation of why this will hit
-6. source — "competitor" or "trending" or "evergreen"
+5. angle — 1-2 sentences on why this will hit
+6. source — "competitor" or "news" or "evergreen"
 7. urgency — "today" (time-sensitive), "this-week", or "anytime"
-8. reference — what specifically inspired this idea. For "competitor": the creator username and what they posted. For "trending": the specific news event, article, or platform update. For "evergreen": which of Dan's top posts it's based on. Be specific enough that Dan can Google it.
-9. referenceUrl — a Google search URL (https://www.google.com/search?q=...) with a query that will find the original source
+8. reference — the specific source that inspired this: for competitor posts include "@username — [topic/hook summary]", for news include the article title and publication, for evergreen reference Dan's post
+9. referenceId — the ID tag from the data above (e.g. "C3", "N7", "D2")
+10. referenceUrl — the actual URL of the source post or article from the data above. Use the exact URL provided — do NOT generate or modify URLs.
 
 Return valid JSON:
 {
   "date": "${new Date().toISOString().slice(0, 10)}",
-  "summary": "2-3 sentence overview of today's content landscape and what to prioritize",
+  "summary": "2-3 sentence overview of today's content landscape based on what you see in the real data",
   "ideas": [
     {
       "rank": 1,
@@ -194,6 +244,7 @@ Return valid JSON:
       "source": "...",
       "urgency": "...",
       "reference": "...",
+      "referenceId": "...",
       "referenceUrl": "..."
     }
   ]
@@ -212,8 +263,8 @@ Return valid JSON:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.85,
-      max_tokens: 3000,
+      temperature: 0.8,
+      max_tokens: 4000,
     }),
   });
 
@@ -250,22 +301,33 @@ export default async function handler(req, res) {
       }
     }
 
-    // Generate fresh ideas
-    const [{ posts: competitorPosts, creators }, trends, danTopPosts] = await Promise.all([
-      getCompetitorTrends(),
-      getTrendingTopics(),
+    // Gather REAL data in parallel
+    const [{ posts: competitorPosts, creators }, articles, danTopPosts] = await Promise.all([
+      getCompetitorPosts(),
+      getNewsArticles(),
       getDanTopPosts(),
     ]);
 
-    const ideas = await generateIdeas(competitorPosts, trends, danTopPosts);
+    // Generate ideas from real data
+    const ideas = await generateIdeas(competitorPosts, articles, danTopPosts);
 
-    // Store in Supabase
+    // Store in Supabase with full source data
     const sources = {
       competitors: creators,
-      competitorPostCount: competitorPosts.length,
-      trendCount: trends.length,
+      competitorPosts: competitorPosts.slice(0, 15).map(p => ({
+        creator: p.creator,
+        topic: p.topic,
+        likes: p.likes,
+        url: p.url,
+        hookType: p.hook_structure,
+      })),
+      articles: articles.map(a => ({
+        title: a.title,
+        source: a.source,
+        url: a.url,
+        query: a.query,
+      })),
       danPostCount: danTopPosts.length,
-      trends: trends,
     };
 
     await sbUpsert('daily_content_ideas', 'run_date', [{

@@ -170,7 +170,8 @@ function renderDailyIdeas(data) {
   if (gridEl && ideas.ideas && ideas.ideas.length) {
     gridEl.innerHTML = ideas.ideas.map(idea => {
       const urgencyClass = idea.urgency === 'today' ? 'ca-idea-urgent' : idea.urgency === 'this-week' ? 'ca-idea-soon' : '';
-      const sourceIcon = idea.source === 'competitor' ? '&#x1f50d;' : idea.source === 'trending' ? '&#x1f525;' : '&#x267b;&#xfe0f;';
+      const sourceIcon = idea.source === 'competitor' ? '&#x1f50d;' : idea.source === 'news' ? '&#x1f4f0;' : idea.source === 'trending' ? '&#x1f525;' : '&#x267b;&#xfe0f;';
+      const sourceLabel = idea.source === 'competitor' ? 'Competitor post' : idea.source === 'news' ? 'News article' : idea.source === 'evergreen' ? 'Proven format' : idea.source || '';
       const platformBadge = idea.platform === 'youtube'
         ? '<span class="ca-badge ca-badge-yt">YT</span>'
         : idea.platform === 'instagram'
@@ -190,7 +191,7 @@ function renderDailyIdeas(data) {
           <p class="ca-idea-angle">${escapeHtml(idea.angle)}</p>
           ${idea.reference ? `<p class="ca-idea-ref">${escapeHtml(idea.reference)}</p>` : ''}
           <div class="ca-idea-footer">
-            <span class="ca-idea-source">${sourceIcon} ${escapeHtml(idea.source || '')}</span>
+            <span class="ca-idea-source">${sourceIcon} ${escapeHtml(sourceLabel)}</span>
             ${idea.referenceUrl ? `<a class="ca-idea-link" href="${escapeHtml(idea.referenceUrl)}" target="_blank" rel="noopener noreferrer">View source &rarr;</a>` : ''}
           </div>
         </div>`;
