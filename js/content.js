@@ -40,11 +40,12 @@ export async function loadContentData() {
   if (contentDataLoaded) return;
   contentDataLoaded = true;
   try {
-    // Fetch analytics + gameplan + YouTube stats from APIs in parallel
-    const [analyticsRes, gameplanRes, youtubeRes] = await Promise.allSettled([
+    // Fetch analytics + gameplan + YouTube stats + daily ideas from APIs in parallel
+    const [analyticsRes, gameplanRes, youtubeRes, ideasRes] = await Promise.allSettled([
       fetch(`/api/content-analytics?range=${caActiveRange}&platform=${caActivePlatform}`).then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
       fetch('/api/content-gameplan').then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
       fetch('/api/youtube-stats').then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
+      fetch('/api/daily-ideas').then(r => r.ok ? r.json() : Promise.reject(r.statusText)),
     ]);
 
     if (analyticsRes.status === 'fulfilled') {
@@ -64,6 +65,12 @@ export async function loadContentData() {
       setState('youtube', youtubeRes.value);
     } else {
       console.warn('[content] YouTube load failed:', youtubeRes.reason);
+    }
+
+    if (ideasRes.status === 'fulfilled') {
+      renderDailyIdeas(ideasRes.value);
+    } else {
+      console.warn('[content] Daily ideas load failed:', ideasRes.reason);
     }
 
     // Load Instagram data from Supabase
@@ -98,6 +105,105 @@ function renderContentAnalytics() {
   renderAnalyticsCharts(data.daily);
   renderPatterns(data.analysis);
   renderPostsLeaderboard(data.posts);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DAILY CONTENT IDEAS
+// ═══════════════════════════════════════════════════════════════════════
+
+async function loadDailyIdeas() {
+  try {
+    const res = await fetch('/api/daily-ideas');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderDailyIdeas(data);
+  } catch (err) {
+    console.warn('[content] Daily ideas load failed:', err.message);
+  }
+}
+
+async function generateDailyIdeas() {
+  try {
+    showToast('Generating content ideas...');
+    const btn = $('#caIdeasGenBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+    const res = await fetch('/api/daily-ideas?generate');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    renderDailyIdeas(data);
+    showToast('Content ideas generated');
+  } catch (err) {
+    console.error('[content] Ideas generation failed:', err);
+    showToast('Ideas generation failed: ' + err.message, 'error');
+  } finally {
+    const btn = $('#caIdeasGenBtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Generate'; }
+  }
+}
+
+function renderDailyIdeas(data) {
+  if (!data || !data.ideas) return;
+
+  const ideas = data.ideas;
+  const dateEl = $('#caIdeasDate');
+  const summaryEl = $('#caIdeasSummary');
+  const gridEl = $('#caIdeasGrid');
+  const sourcesEl = $('#caIdeasSources');
+
+  // Header date
+  if (dateEl) {
+    const d = data.run_date || ideas.date;
+    dateEl.textContent = d
+      ? `Content Ideas — ${new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`
+      : "Today's Content Ideas";
+  }
+
+  // Summary
+  if (summaryEl && ideas.summary) {
+    summaryEl.textContent = ideas.summary;
+  }
+
+  // Ideas grid
+  if (gridEl && ideas.ideas && ideas.ideas.length) {
+    gridEl.innerHTML = ideas.ideas.map(idea => {
+      const urgencyClass = idea.urgency === 'today' ? 'ca-idea-urgent' : idea.urgency === 'this-week' ? 'ca-idea-soon' : '';
+      const sourceIcon = idea.source === 'competitor' ? '&#x1f50d;' : idea.source === 'trending' ? '&#x1f525;' : '&#x267b;&#xfe0f;';
+      const platformBadge = idea.platform === 'youtube'
+        ? '<span class="ca-badge ca-badge-yt">YT</span>'
+        : idea.platform === 'instagram'
+        ? '<span class="ca-badge ca-badge-ig">IG</span>'
+        : '<span class="ca-badge ca-badge-both">Both</span>';
+
+      return `
+        <div class="ca-idea-card ${urgencyClass}">
+          <div class="ca-idea-top">
+            <span class="ca-idea-rank">${idea.rank || ''}</span>
+            ${platformBadge}
+            <span class="ca-idea-format">${escapeHtml(idea.format || '')}</span>
+            ${idea.urgency === 'today' ? '<span class="ca-idea-urgency">TODAY</span>' : ''}
+          </div>
+          <h4 class="ca-idea-title">${escapeHtml(idea.title)}</h4>
+          <p class="ca-idea-hook">"${escapeHtml(idea.hook)}"</p>
+          <p class="ca-idea-angle">${escapeHtml(idea.angle)}</p>
+          <div class="ca-idea-footer">
+            <span class="ca-idea-source">${sourceIcon} ${escapeHtml(idea.source || '')}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Sources
+  if (sourcesEl && data.sources) {
+    const s = data.sources;
+    const parts = [];
+    if (s.competitorPostCount) parts.push(`${s.competitorPostCount} competitor posts`);
+    if (s.trendCount) parts.push(`${s.trendCount} trending topics`);
+    if (s.danPostCount) parts.push(`${s.danPostCount} of your top posts`);
+    sourcesEl.textContent = parts.length ? `Sources: ${parts.join(' · ')}` : '';
+  }
 }
 
 function renderKpiCards(kpis, daily, followerSpark) {
@@ -1128,6 +1234,9 @@ function bindContentEvents() {
     caActiveSort = e.target.value;
     if (caData) renderPostsLeaderboard(caData.posts);
   });
+
+  // Daily ideas generate
+  $('#caIdeasGenBtn')?.addEventListener('click', generateDailyIdeas);
 
   // Gameplan refresh
   $('#refreshGameplanBtn')?.addEventListener('click', refreshGameplan);

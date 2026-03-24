@@ -9,6 +9,12 @@
     "api/content-gameplan.js": {
       "maxDuration": 60
     },
+    "api/daily-ideas.js": {
+      "maxDuration": 60
+    },
+    "api/content-analytics.js": {
+      "maxDuration": 60
+    },
     "api/youtube-stats.js": {
       "maxDuration": 30
     },
@@ -27,5 +33,11 @@
     "api/sendblue-messages.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/daily-ideas?generate",
+      "schedule": "0 11 * * 1-4"
+    }
+  ]
 }
