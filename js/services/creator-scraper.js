@@ -203,6 +203,12 @@ export function proxyImageUrl(url) {
   return url;
 }
 
+// Use local static avatars (CDN URLs expire, local files don't)
+export function localAvatarUrl(username) {
+  if (!username) return '';
+  return `/avatars/${username}.jpg`;
+}
+
 // ── Normalizers ──────────────────────────────────────────────────────
 
 function normalizeCreator(row) {
@@ -216,7 +222,7 @@ function normalizeCreator(row) {
     id: row.id,
     username: row.username,
     fullName: row.full_name || '',
-    profilePic: proxyImageUrl(row.profile_pic_url),
+    profilePic: localAvatarUrl(row.username),
     followers: latest.followers || 0,
     following: latest.following || 0,
     posts: latest.posts_count || 0,

@@ -171,7 +171,7 @@ function renderCreatorCard(c) {
     <div class="creator-card" data-username="${escapeHtml(c.username)}">
       <div class="creator-card-header">
         ${c.profilePic
-          ? `<img class="creator-avatar" src="${escapeHtml(c.profilePic)}" alt="" loading="lazy">`
+          ? `<img class="creator-avatar" src="${escapeHtml(c.profilePic)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="creator-avatar creator-avatar-placeholder" style="display:none">${initial}</div>`
           : `<div class="creator-avatar creator-avatar-placeholder">${initial}</div>`}
         <div class="creator-card-info">
           <span class="creator-handle">@${escapeHtml(c.username)}</span>
