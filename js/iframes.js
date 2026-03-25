@@ -4,6 +4,10 @@
 import { $, subscribe } from './app.js';
 
 const IFRAMES = {
+  'lfg-os': {
+    url: 'https://lfg-os.vercel.app/',
+    title: 'LFG-OS',
+  },
   'performance-tracker': {
     url: 'https://lfgperformancetracker.lovable.app/auth',
     title: 'Performance Tracker',
