@@ -1,8 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/os/:path*",
-      "destination": "https://lfg-os.vercel.app/:path*"
+      "source": "/os/(.*)",
+      "destination": "https://lfg-os.vercel.app/$1"
+    },
+    {
+      "source": "/os",
+      "destination": "https://lfg-os.vercel.app/"
     }
   ],
   "functions": {
