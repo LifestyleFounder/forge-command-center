@@ -5,7 +5,7 @@ import { $, subscribe } from './app.js';
 
 const IFRAMES = {
   'lfg-os': {
-    url: 'https://lfg-os.vercel.app/',
+    url: '/os/',
     title: 'LFG-OS',
   },
   'performance-tracker': {

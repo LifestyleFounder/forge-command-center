@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/os/:path*",
+      "destination": "https://lfg-os.vercel.app/:path*"
+    }
+  ],
   "functions": {
     "api/scrape-creators.js": {
       "maxDuration": 60

@@ -1096,16 +1096,13 @@ async function init() {
   });
 
   // LFG-OS pop-out and reload buttons
-  const lfgOsUrl = 'https://lfg-os.vercel.app/';
-  $('#lfgOsPopout')?.addEventListener('click', () => window.open(lfgOsUrl, '_blank'));
+  $('#lfgOsPopout')?.addEventListener('click', () => window.open('/os/', '_blank'));
   $('#lfgOsReload')?.addEventListener('click', () => {
     const container = $('#iframe-lfg-os');
     if (!container) return;
-    // Remove existing iframe and loading state, reset loaded flag so loadIframe works
     container.innerHTML = '';
-    // Re-import and call loadIframe after clearing the loaded set
     const iframe = document.createElement('iframe');
-    iframe.src = lfgOsUrl + '?t=' + Date.now();
+    iframe.src = '/os/?t=' + Date.now();
     iframe.title = 'LFG-OS';
     iframe.className = 'iframe-embed';
     iframe.setAttribute('allow', 'clipboard-read; clipboard-write');
