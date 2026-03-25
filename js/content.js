@@ -218,8 +218,7 @@ function renderKpiCards(kpis, daily, followerSpark) {
     { id: 'Likes', kpi: kpis.likes, dataKey: 'likes', fmt: formatCompact },
     { id: 'Eng', kpi: kpis.engagement, dataKey: null, fmt: v => v.toFixed(2) + '%', isAbs: true },
     { id: 'Followers', kpi: kpis.followers, dataKey: null, fmt: formatCompact, spark: followerSpark },
-    { id: 'Shares', kpi: kpis.shares, dataKey: 'shares', fmt: formatCompact },
-    { id: 'Saves', kpi: kpis.saves, dataKey: 'saves', fmt: formatCompact },
+    { id: 'Comments', kpi: kpis.comments, dataKey: 'comments', fmt: formatCompact },
   ];
 
   cards.forEach(c => {
@@ -430,8 +429,8 @@ function renderPostsLeaderboard(posts) {
   // Sort posts
   const sorted = [...posts].sort((a, b) => {
     if (caActiveSort === 'engagement') {
-      const eA = a.views > 0 ? (a.likes + a.comments + (a.shares || 0) + (a.saves || 0)) / a.views : 0;
-      const eB = b.views > 0 ? (b.likes + b.comments + (b.shares || 0) + (b.saves || 0)) / b.views : 0;
+      const eA = a.views > 0 ? (a.likes + a.comments) / a.views : 0;
+      const eB = b.views > 0 ? (b.likes + b.comments) / b.views : 0;
       return eB - eA;
     }
     return (b[caActiveSort] || 0) - (a[caActiveSort] || 0);
@@ -439,7 +438,7 @@ function renderPostsLeaderboard(posts) {
 
   el.innerHTML = sorted.slice(0, 20).map((p, i) => {
     const engRate = p.views > 0
-      ? ((p.likes + p.comments + (p.shares || 0) + (p.saves || 0)) / p.views * 100).toFixed(1) + '%'
+      ? ((p.likes + p.comments) / p.views * 100).toFixed(1) + '%'
       : '--';
     const platformBadge = p.platform === 'youtube'
       ? '<span class="ca-badge ca-badge-yt">YT</span>'
@@ -460,8 +459,6 @@ function renderPostsLeaderboard(posts) {
           <span class="ca-metric"><strong>${formatCompact(p.views)}</strong> views</span>
           <span class="ca-metric"><strong>${formatCompact(p.likes)}</strong> likes</span>
           <span class="ca-metric"><strong>${formatCompact(p.comments)}</strong> comments</span>
-          <span class="ca-metric"><strong>${formatCompact(p.shares || 0)}</strong> shares</span>
-          <span class="ca-metric"><strong>${formatCompact(p.saves || 0)}</strong> saves</span>
           <span class="ca-metric ca-metric-eng"><strong>${engRate}</strong> eng</span>
         </div>
       </a>`;

@@ -119,8 +119,8 @@ export default async function handler(req, res) {
       views: p.views || 0,
       likes: p.likes || 0,
       comments: p.comments || 0,
-      shares: p.shares || 0,
-      saves: p.saves || 0,
+      shares: 0,
+      saves: 0,
       hook_framework: p.hook_framework,
       hook_structure: p.hook_structure,
       content_structure: p.content_structure,
@@ -142,20 +142,16 @@ export default async function handler(req, res) {
     const totalViews = allPosts.reduce((s, p) => s + p.views, 0);
     const totalLikes = allPosts.reduce((s, p) => s + p.likes, 0);
     const totalComments = allPosts.reduce((s, p) => s + p.comments, 0);
-    const totalShares = allPosts.reduce((s, p) => s + (p.shares || 0), 0);
-    const totalSaves = allPosts.reduce((s, p) => s + (p.saves || 0), 0);
     const avgEngagement = totalViews > 0
-      ? ((totalLikes + totalComments + totalShares + totalSaves) / totalViews * 100)
+      ? ((totalLikes + totalComments) / totalViews * 100)
       : 0;
 
     // Previous period totals
     const prevViews = igPostsPrev.reduce((s, p) => s + (p.views || 0), 0) + ytPrev.reduce((s, p) => s + p.views, 0);
     const prevLikes = igPostsPrev.reduce((s, p) => s + (p.likes || 0), 0) + ytPrev.reduce((s, p) => s + p.likes, 0);
     const prevComments = igPostsPrev.reduce((s, p) => s + (p.comments || 0), 0) + ytPrev.reduce((s, p) => s + p.comments, 0);
-    const prevShares = igPostsPrev.reduce((s, p) => s + (p.shares || 0), 0) + ytPrev.reduce((s, p) => s + (p.shares || 0), 0);
-    const prevSaves = igPostsPrev.reduce((s, p) => s + (p.saves || 0), 0) + ytPrev.reduce((s, p) => s + (p.saves || 0), 0);
     const prevEngagement = prevViews > 0
-      ? ((prevLikes + prevComments + prevShares + prevSaves) / prevViews * 100)
+      ? ((prevLikes + prevComments) / prevViews * 100)
       : 0;
 
     // Followers (latest snapshot)
@@ -175,8 +171,7 @@ export default async function handler(req, res) {
       likes: { value: totalLikes, change: pctChange(totalLikes, prevLikes) },
       engagement: { value: Math.round(avgEngagement * 100) / 100, change: Math.round((avgEngagement - prevEngagement) * 100) / 100 },
       followers: { value: followers, change: pctChange(followers, prevFollowers) },
-      shares: { value: totalShares, change: pctChange(totalShares, prevShares) },
-      saves: { value: totalSaves, change: pctChange(totalSaves, prevSaves) },
+      comments: { value: totalComments, change: pctChange(totalComments, prevComments) },
     };
 
     // ── Daily time series for charts ────────────────────

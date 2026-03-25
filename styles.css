@@ -2459,7 +2459,7 @@ textarea.form-input {
 /* ── KPI Cards ── */
 .ca-kpi-row {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-3);
   margin-bottom: var(--space-5);
 }
