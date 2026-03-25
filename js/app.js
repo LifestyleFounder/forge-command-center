@@ -1099,8 +1099,17 @@ async function init() {
   const lfgOsUrl = 'https://lfg-os.vercel.app/';
   $('#lfgOsPopout')?.addEventListener('click', () => window.open(lfgOsUrl, '_blank'));
   $('#lfgOsReload')?.addEventListener('click', () => {
-    const iframe = document.querySelector('#iframe-lfg-os iframe');
-    if (iframe) iframe.src = iframe.src;
+    const container = $('#iframe-lfg-os');
+    if (!container) return;
+    // Remove existing iframe and loading state, reset loaded flag so loadIframe works
+    container.innerHTML = '';
+    // Re-import and call loadIframe after clearing the loaded set
+    const iframe = document.createElement('iframe');
+    iframe.src = lfgOsUrl + '?t=' + Date.now();
+    iframe.title = 'LFG-OS';
+    iframe.className = 'iframe-embed';
+    iframe.setAttribute('allow', 'clipboard-read; clipboard-write');
+    container.appendChild(iframe);
   });
 
   // Restore last active tab on refresh
