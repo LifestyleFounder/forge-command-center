@@ -252,7 +252,6 @@ function onTabFirstVisit(tabName) {
   if (tabLoaded.has(tabName)) return;
   tabLoaded.add(tabName);
   switch (tabName) {
-    case 'chat': loadIframe('lfg-os'); break;
     case 'content': loadContentData(); break;
     case 'competitors': loadCompetitorData(); break;
     case 'meta-ads': loadMetaAdsData(); break;
@@ -315,6 +314,11 @@ function initRouter() {
       const btn = e.target.closest('.nav-item[data-tab]');
       if (!btn) return;
       e.preventDefault();
+      // LFG-OS opens in a new tab
+      if (btn.dataset.tab === 'chat') {
+        window.open('https://lfg-os.vercel.app/', '_blank');
+        return;
+      }
       switchTab(btn.dataset.tab);
     });
   }
@@ -1093,20 +1097,6 @@ async function init() {
   // Subscribe to status changes
   subscribe((key) => {
     if (key === 'status') updateStatusBar();
-  });
-
-  // LFG-OS pop-out and reload buttons
-  $('#lfgOsPopout')?.addEventListener('click', () => window.open('/os/', '_blank'));
-  $('#lfgOsReload')?.addEventListener('click', () => {
-    const container = $('#iframe-lfg-os');
-    if (!container) return;
-    container.innerHTML = '';
-    const iframe = document.createElement('iframe');
-    iframe.src = '/os/?t=' + Date.now();
-    iframe.title = 'LFG-OS';
-    iframe.className = 'iframe-embed';
-    iframe.setAttribute('allow', 'clipboard-read; clipboard-write');
-    container.appendChild(iframe);
   });
 
   // Restore last active tab on refresh

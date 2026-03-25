@@ -4,10 +4,6 @@
 import { $, subscribe } from './app.js';
 
 const IFRAMES = {
-  'lfg-os': {
-    url: '/os/',
-    title: 'LFG-OS',
-  },
   'performance-tracker': {
     url: 'https://lfgperformancetracker.lovable.app/auth',
     title: 'Performance Tracker',

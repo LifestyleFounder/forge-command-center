@@ -1,14 +1,4 @@
 {
-  "rewrites": [
-    {
-      "source": "/os/(.*)",
-      "destination": "https://lfg-os.vercel.app/$1"
-    },
-    {
-      "source": "/os",
-      "destination": "https://lfg-os.vercel.app/"
-    }
-  ],
   "functions": {
     "api/scrape-creators.js": {
       "maxDuration": 60
