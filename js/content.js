@@ -184,6 +184,7 @@ function renderDailyIdeas(data) {
             <span class="ca-idea-rank">${idea.rank || ''}</span>
             ${platformBadge}
             <span class="ca-idea-format">${escapeHtml(idea.format || '')}</span>
+            ${idea.archetype ? `<span class="ca-idea-archetype">${escapeHtml(idea.archetype)}</span>` : ''}
             ${idea.urgency === 'today' ? '<span class="ca-idea-urgency">TODAY</span>' : ''}
           </div>
           <h4 class="ca-idea-title">${escapeHtml(idea.title)}</h4>

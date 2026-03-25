@@ -1,6 +1,7 @@
 // api/daily-ideas.js — Daily content idea generator
-// Pulls REAL competitor posts from Supabase + REAL news from Google News RSS
-// GPT analyzes actual data and generates ideas with real source links
+// Pulls REAL competitor posts + REAL news articles
+// Evaluates using 8 Viral Content Archetypes (from daily-content-researcher skill)
+// Every idea references a specific real source
 // GET           → returns today's ideas (or most recent)
 // GET ?generate → forces fresh generation
 // Called by Vercel cron daily at 4am PT
@@ -31,7 +32,7 @@ async function sbUpsert(table, onConflict, body) {
   return res.json();
 }
 
-// ── 1. Real competitor posts from Supabase (with IG links) ─────────
+// ── 1. Real competitor posts from Supabase ─────────────────────────
 async function getCompetitorPosts() {
   const since = new Date();
   since.setDate(since.getDate() - 7);
@@ -44,7 +45,7 @@ async function getCompetitorPosts() {
 
   const posts = await sbGet(
     'ig_posts',
-    `creator_id=in.(${creatorIds.join(',')})&posted_at=gte.${since.toISOString()}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=20&select=shortcode,caption,likes,comments,views,post_type,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag,creator_id,posted_at`
+    `creator_id=in.(${creatorIds.join(',')})&posted_at=gte.${since.toISOString()}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=25&select=shortcode,caption,likes,comments,views,post_type,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag,creator_id,posted_at`
   );
 
   const enriched = posts.map(p => ({
@@ -58,18 +59,24 @@ async function getCompetitorPosts() {
 
 // ── 2. Real news articles from Google News RSS ─────────────────────
 async function getNewsArticles() {
+  // Queries aligned with the 8 Viral Content Archetypes
   const queries = [
-    'online coaching business 2026',
-    'Skool community platform',
-    'AI tools coaches creators',
-    'Instagram algorithm update',
-    'YouTube creator economy',
-    'coaching industry trends',
+    // Archetype 2: Breaking product news
+    'AI tool launch OR release coaching creators',
+    'Skool platform update OR feature',
+    // Archetype 6: New capability
+    'ChatGPT OR Claude OR Gemini new feature update',
+    'Instagram OR YouTube algorithm change creators',
+    // Archetype 7: Industry shock
+    'online coaching industry news',
+    'creator economy subscription community',
+    // Broader niche
+    'AI automation small business coaches',
+    'social media marketing coaches 2026',
   ];
 
   const allArticles = [];
 
-  // Fetch RSS feeds in parallel
   const feeds = await Promise.allSettled(
     queries.map(async (q) => {
       const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
@@ -86,20 +93,19 @@ async function getNewsArticles() {
     }
   }
 
-  // Deduplicate by title, sort by date, take top 15
+  // Deduplicate by title, sort by date, take top 20
   const seen = new Set();
   const unique = allArticles.filter(a => {
-    const key = a.title.toLowerCase().slice(0, 60);
+    const key = a.title.toLowerCase().slice(0, 50);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
   unique.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-  return unique.slice(0, 15);
+  return unique.slice(0, 20);
 }
 
-// Simple XML parser for Google News RSS (no dependencies)
 function parseRssItems(xml, query) {
   const items = [];
   const itemRegex = /<item>([\s\S]*?)<\/item>/g;
@@ -123,7 +129,7 @@ function parseRssItems(xml, query) {
     }
   }
 
-  return items.slice(0, 5); // Max 5 per query
+  return items.slice(0, 4);
 }
 
 function extractTag(xml, tag) {
@@ -142,24 +148,14 @@ function decodeHtmlEntities(str) {
     .replace(/&#x27;/g, "'");
 }
 
-// ── 3. Dan's own top performers ────────────────────────────────────
-async function getDanTopPosts() {
-  const creators = await sbGet('ig_creators', 'username=eq.thedanharrison&limit=1');
-  if (!creators.length) return [];
-
-  return sbGet(
-    'ig_posts',
-    `creator_id=eq.${creators[0].id}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=10&select=shortcode,caption,likes,comments,views,hook_structure,content_structure,topic,visual_format`
-  );
-}
-
-// ── 4. GPT analyzes REAL data ──────────────────────────────────────
-async function generateIdeas(competitorPosts, articles, danTopPosts) {
+// ── 3. GPT analyzes real data using 8 Viral Content Archetypes ─────
+async function generateIdeas(competitorPosts, articles) {
   // Build competitor context with real URLs
-  const competitorContext = competitorPosts.slice(0, 15).map((p, i) => {
-    const caption = (p.caption || '').slice(0, 120).replace(/\n/g, ' ');
-    return `[C${i + 1}] @${p.creator} | ${p.likes} likes | ${p.post_type} | Hook type: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'}
-  Hook: "${(p.hook_framework || '').slice(0, 120)}"
+  const competitorContext = competitorPosts.slice(0, 20).map((p, i) => {
+    const caption = (p.caption || '').slice(0, 150).replace(/\n/g, ' ');
+    return `[C${i + 1}] @${p.creator} | ${p.likes} likes, ${p.comments} comments, ${p.views || 0} views | ${p.post_type}
+  Hook type: ${p.hook_structure || '?'} | Visual: ${p.visual_format || '?'} | Topic: ${p.topic || '?'}
+  Hook: "${(p.hook_framework || '').slice(0, 150)}"
   Caption: "${caption}"
   URL: ${p.url || 'n/a'}
   Posted: ${p.posted_at ? new Date(p.posted_at).toLocaleDateString() : '?'}`;
@@ -168,71 +164,85 @@ async function generateIdeas(competitorPosts, articles, danTopPosts) {
   // Build news context with real URLs
   const newsContext = articles.map((a, i) =>
     `[N${i + 1}] "${a.title}"
-  Source: ${a.source}
+  Publication: ${a.source}
   URL: ${a.url}
-  Published: ${a.pubDate ? new Date(a.pubDate).toLocaleDateString() : 'today'}
-  Search topic: ${a.query}`
+  Published: ${a.pubDate ? new Date(a.pubDate).toLocaleDateString() : 'today'}`
   ).join('\n\n');
 
-  // Dan's data
-  const danContext = danTopPosts.map((p, i) => {
-    const url = p.shortcode ? `https://instagram.com/p/${p.shortcode}` : 'n/a';
-    return `[D${i + 1}] ${p.likes} likes | Hook: ${p.hook_structure || '?'} | Topic: ${p.topic || '?'} | Format: ${p.visual_format || '?'} | URL: ${url}`;
-  }).join('\n');
+  const systemPrompt = `You are Dan Harrison's content strategist. You analyze REAL competitor posts and REAL news articles to generate content ideas.
 
-  const systemPrompt = `You are Dan Harrison's content strategist. Your job is to analyze REAL competitor posts and REAL news articles, then generate content ideas that reference specific sources.
+## WHO DAN IS
+Dan runs Lifestyle Founders Group (LFG) — helping coaches build $30-50K/month Skool businesses working 4 days/week. 3x Skool Games winner. $25M+ career sales.
 
-Dan runs Lifestyle Founders Group (LFG) — helping coaches build $30-50K/month Skool businesses working 4 days/week.
+Voice: Frank Kern meets Pete Holmes. Chill, witty, grounded. Anti-bro marketing. Short punchy sentences. Real numbers not hype.
 
-Dan's voice: Frank Kern meets Pete Holmes. Chill, witty, grounded. Anti-bro marketing. Short punchy sentences. Real numbers not hype.
+Audience: Coaches/consultants aged 35-52, making $5-40K/month, tired of launching/chasing/hustling. Want simple systems.
 
-Dan's audience: Coaches/consultants aged 35-52, making $5-40K/month, tired of launching/chasing/hustling.
+Platforms: YouTube (long-form 8-15 min), Instagram (Reels + Carousels), TikTok (repurposed shorts).
 
-Dan's platforms: YouTube (long-form 8-15 min), Instagram (Reels + Carousels), TikTok (repurposed shorts).
+Key topics: Skool, AI for coaches, Close By Chat (DM selling), anti-bro marketing, 4-day work week, simple offers, community-led growth.
 
-Dan's key topics: Skool, AI for coaches, Close By Chat (DM selling), anti-bro marketing, 4-day work week, simple offers, community-led growth.
+## 8 VIRAL CONTENT ARCHETYPES (use these to evaluate every idea)
+
+1. "Someone Built X with Y" (Proof of Magic) — Show a real result, build, or transformation
+2. "X Just Dropped Y" (Breaking Product News) — New tool, feature, or platform update
+3. "Free Tool That Does X" (Secret Reveal) — Free resource most people don't know about
+4. "You're Doing X Wrong" (Contrarian Correction) — Challenge common advice in the coaching space
+5. "X vs Y" (Comparison/Battle) — Compare tools, methods, or approaches
+6. "X Can Now Do Y" (New Capability) — New feature that changes what's possible
+7. "This Changes Everything" (Industry Shock) — Major shift coaches need to know about
+8. Entertaining Automation Demo (Personality + Tech) — Show an automation or AI workflow with personality
+
+## EVALUATION CRITERIA (from daily-content-researcher)
+
+For each potential idea, evaluate:
+- **TAM:** Does this appeal broadly? (70% casual viewers, 30% serious coaches)
+- **Demo-ability:** Can Dan SHOW this on screen? Tools, workflows, results > opinions
+- **Hook potential:** Does it map to a proven hook pattern?
+- **Timeliness:** Is this fresh? Breaking > this week > evergreen
 
 CRITICAL RULES:
-- Every idea MUST reference a specific source from the data below using its ID tag (e.g. [C3], [N7], [D2])
-- For competitor-inspired ideas: cite the specific post and creator
-- For trending ideas: cite the specific article title, source publication, and URL
-- For evergreen ideas: cite which of Dan's own posts proves the format works
-- Do NOT make up sources. Only reference items from the data provided.`;
+- Every idea MUST reference a specific source from the data below using its ID tag (e.g. [C3], [N7])
+- For competitor-inspired ideas: cite the specific post, creator, and what they did that sparked the idea
+- For news-inspired ideas: cite the specific article title, publication, and URL
+- Do NOT make up sources. Only reference items from the data provided.
+- Do NOT use Dan's own content as a source. All ideas come from competitor posts or news.
+- Use the EXACT URLs from the data — do not generate or modify URLs.`;
 
   const userPrompt = `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}.
 
-═══ REAL COMPETITOR POSTS (last 7 days, sorted by engagement) ═══
-${competitorContext || 'No competitor posts scraped this week.'}
+═══ COMPETITOR POSTS (last 7 days, by engagement) ═══
+${competitorContext || 'No competitor posts scraped this week. Focus on news sources.'}
 
-═══ REAL NEWS ARTICLES (fetched today from Google News) ═══
-${newsContext || 'No news articles found.'}
-
-═══ DAN'S OWN TOP PERFORMERS ═══
-${danContext || 'No historical data yet.'}
+═══ NEWS ARTICLES (live from Google News today) ═══
+${newsContext || 'No news articles found. Focus on competitor data.'}
 
 ───────────────────────────────────────
 
-Generate exactly 10 content ideas. Mix:
-- 3-4 ideas inspired by specific competitor posts above
-- 3-4 ideas riding specific news articles above
-- 2-3 evergreen ideas based on Dan's proven formats
+Analyze ALL the sources above. For each, ask:
+1. Which archetype does it fit? (if none, skip it)
+2. How would Dan put his unique spin on this?
+3. What's the hook?
+
+Then generate exactly 10 content ideas ranked by how good the opportunity is. Each idea MUST be inspired by a specific source above.
 
 For each idea:
-1. title — punchy, clickable
-2. hook — exact first sentence Dan would say or put on screen
+1. title — punchy, Dan's voice
+2. hook — exact opening line Dan would say or put on screen
 3. platform — "youtube" or "instagram" or "both"
 4. format — "talking-head reel", "carousel", "long-form", "b-roll reel", "screen-share tutorial"
-5. angle — 1-2 sentences on why this will hit
-6. source — "competitor" or "news" or "evergreen"
-7. urgency — "today" (time-sensitive), "this-week", or "anytime"
-8. reference — the specific source that inspired this: for competitor posts include "@username — [topic/hook summary]", for news include the article title and publication, for evergreen reference Dan's post
-9. referenceId — the ID tag from the data above (e.g. "C3", "N7", "D2")
-10. referenceUrl — the actual URL of the source post or article from the data above. Use the exact URL provided — do NOT generate or modify URLs.
+5. archetype — which of the 8 archetypes this fits (number + name)
+6. angle — 1-2 sentences: why this hits + how Dan makes it his own
+7. source — "competitor" or "news"
+8. urgency — "today" (breaking/time-sensitive), "this-week", or "anytime"
+9. reference — what specifically inspired this: the creator + what they posted, or the article title + publication
+10. referenceId — the ID tag (e.g. "C3" or "N7")
+11. referenceUrl — the EXACT URL from the source data above
 
 Return valid JSON:
 {
   "date": "${new Date().toISOString().slice(0, 10)}",
-  "summary": "2-3 sentence overview of today's content landscape based on what you see in the real data",
+  "summary": "2-3 sentences: what's happening today in the data, what Dan should prioritize and why",
   "ideas": [
     {
       "rank": 1,
@@ -240,6 +250,7 @@ Return valid JSON:
       "hook": "...",
       "platform": "...",
       "format": "...",
+      "archetype": "...",
       "angle": "...",
       "source": "...",
       "urgency": "...",
@@ -290,7 +301,6 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().slice(0, 10);
     const generate = req.query.generate !== undefined;
 
-    // Return existing ideas if not forcing regeneration
     if (!generate) {
       const existing = await sbGet(
         'daily_content_ideas',
@@ -302,32 +312,28 @@ export default async function handler(req, res) {
     }
 
     // Gather REAL data in parallel
-    const [{ posts: competitorPosts, creators }, articles, danTopPosts] = await Promise.all([
+    const [{ posts: competitorPosts, creators }, articles] = await Promise.all([
       getCompetitorPosts(),
       getNewsArticles(),
-      getDanTopPosts(),
     ]);
 
-    // Generate ideas from real data
-    const ideas = await generateIdeas(competitorPosts, articles, danTopPosts);
+    const ideas = await generateIdeas(competitorPosts, articles);
 
-    // Store in Supabase with full source data
+    // Store with full source data for audit
     const sources = {
       competitors: creators,
-      competitorPosts: competitorPosts.slice(0, 15).map(p => ({
+      competitorPosts: competitorPosts.slice(0, 20).map(p => ({
         creator: p.creator,
         topic: p.topic,
         likes: p.likes,
-        url: p.url,
         hookType: p.hook_structure,
+        url: p.url,
       })),
       articles: articles.map(a => ({
         title: a.title,
         source: a.source,
         url: a.url,
-        query: a.query,
       })),
-      danPostCount: danTopPosts.length,
     };
 
     await sbUpsert('daily_content_ideas', 'run_date', [{

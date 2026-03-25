@@ -2780,6 +2780,16 @@ textarea.form-input {
   border-radius: var(--radius-full);
 }
 
+.ca-idea-archetype {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+}
+
 .ca-idea-urgency {
   font-size: 10px;
   font-weight: 700;
