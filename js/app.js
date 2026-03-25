@@ -1095,6 +1095,14 @@ async function init() {
     if (key === 'status') updateStatusBar();
   });
 
+  // LFG-OS pop-out and reload buttons
+  const lfgOsUrl = 'https://lfg-os.vercel.app/';
+  $('#lfgOsPopout')?.addEventListener('click', () => window.open(lfgOsUrl, '_blank'));
+  $('#lfgOsReload')?.addEventListener('click', () => {
+    const iframe = document.querySelector('#iframe-lfg-os iframe');
+    if (iframe) iframe.src = iframe.src;
+  });
+
   // Restore last active tab on refresh
   const savedTab = localStorage.getItem('forge-activeTab');
   if (savedTab && TAB_LABELS[savedTab]) {
