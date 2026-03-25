@@ -32,20 +32,19 @@ async function sbUpsert(table, onConflict, body) {
   return res.json();
 }
 
-// ── 1. Real competitor posts from Supabase ─────────────────────────
+// ── 1. Real competitor posts from Supabase (full pool) ─────────────
 async function getCompetitorPosts() {
-  const since = new Date();
-  since.setDate(since.getDate() - 7);
-
   const creators = await sbGet('ig_creators', 'is_active=eq.true&username=neq.thedanharrison&select=id,username');
   if (!creators.length) return { posts: [], creators: [] };
 
   const creatorIds = creators.map(c => c.id);
   const creatorMap = Object.fromEntries(creators.map(c => [c.id, c.username]));
 
+  // Pull top 40 analyzed posts by engagement across ALL time
+  // These are your 670+ scraped competitor posts — use the full pool
   const posts = await sbGet(
     'ig_posts',
-    `creator_id=in.(${creatorIds.join(',')})&posted_at=gte.${since.toISOString()}&is_analyzed=eq.true&order=likes.desc.nullslast&limit=25&select=shortcode,caption,likes,comments,views,post_type,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag,creator_id,posted_at`
+    `creator_id=in.(${creatorIds.join(',')})&is_analyzed=eq.true&order=likes.desc.nullslast&limit=40&select=shortcode,caption,likes,comments,views,post_type,hook_framework,hook_structure,content_structure,visual_format,topic,topic_tag,creator_id,posted_at`
   );
 
   const enriched = posts.map(p => ({
@@ -151,7 +150,7 @@ function decodeHtmlEntities(str) {
 // ── 3. GPT analyzes real data using 8 Viral Content Archetypes ─────
 async function generateIdeas(competitorPosts, articles) {
   // Build competitor context with real URLs
-  const competitorContext = competitorPosts.slice(0, 20).map((p, i) => {
+  const competitorContext = competitorPosts.slice(0, 30).map((p, i) => {
     const caption = (p.caption || '').slice(0, 150).replace(/\n/g, ' ');
     return `[C${i + 1}] @${p.creator} | ${p.likes} likes, ${p.comments} comments, ${p.views || 0} views | ${p.post_type}
   Hook type: ${p.hook_structure || '?'} | Visual: ${p.visual_format || '?'} | Topic: ${p.topic || '?'}
@@ -322,7 +321,7 @@ export default async function handler(req, res) {
     // Store with full source data for audit
     const sources = {
       competitors: creators,
-      competitorPosts: competitorPosts.slice(0, 20).map(p => ({
+      competitorPosts: competitorPosts.slice(0, 30).map(p => ({
         creator: p.creator,
         topic: p.topic,
         likes: p.likes,
