@@ -31,7 +31,7 @@ function getDefaultDateRange() {
 const DEFAULT_FUNNELS = [
   {
     id: 'swipe-funnel',
-    name: 'Swipe My Sales & Marketing',
+    name: 'The Client Machine',
     pages: [
       { id: 'swipe-1', name: 'Swipe Page', slug: '/swipe' },
       { id: 'swipe-2', name: 'Apply', slug: '/apply' },
