@@ -41,6 +41,11 @@ const DEFAULT_FUNNELS = [
   },
 ];
 
+// Check if default funnel already exists in config
+function hasDefaultFunnel(config) {
+  return config.some(f => f.id === 'swipe-funnel');
+}
+
 function loadConfig() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -50,13 +55,17 @@ function loadConfig() {
         activeFunnelId = funnelsConfig[0].id;
       }
     }
-    // Seed default funnel if empty
-    if (funnelsConfig.length === 0) {
-      funnelsConfig = DEFAULT_FUNNELS;
+    // Always ensure default funnel exists
+    if (!hasDefaultFunnel(funnelsConfig)) {
+      funnelsConfig = [...DEFAULT_FUNNELS, ...funnelsConfig];
       activeFunnelId = funnelsConfig[0].id;
       saveConfig();
     }
-  } catch { funnelsConfig = DEFAULT_FUNNELS; activeFunnelId = DEFAULT_FUNNELS[0].id; }
+  } catch {
+    funnelsConfig = DEFAULT_FUNNELS;
+    activeFunnelId = DEFAULT_FUNNELS[0].id;
+    saveConfig();
+  }
 }
 
 function saveConfig() {
