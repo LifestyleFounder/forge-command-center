@@ -28,6 +28,19 @@ function getDefaultDateRange() {
 }
 
 // ── Config Persistence ──────────────────────────────────────────────
+const DEFAULT_FUNNELS = [
+  {
+    id: 'swipe-funnel',
+    name: 'Swipe My Sales & Marketing',
+    pages: [
+      { id: 'swipe-1', name: 'Swipe Page', slug: '/swipe' },
+      { id: 'swipe-2', name: 'Apply', slug: '/apply' },
+      { id: 'swipe-3', name: 'Book Call', slug: '/book' },
+      { id: 'swipe-4', name: 'Thanks', slug: '/thanks' },
+    ],
+  },
+];
+
 function loadConfig() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -37,7 +50,13 @@ function loadConfig() {
         activeFunnelId = funnelsConfig[0].id;
       }
     }
-  } catch { funnelsConfig = []; }
+    // Seed default funnel if empty
+    if (funnelsConfig.length === 0) {
+      funnelsConfig = DEFAULT_FUNNELS;
+      activeFunnelId = funnelsConfig[0].id;
+      saveConfig();
+    }
+  } catch { funnelsConfig = DEFAULT_FUNNELS; activeFunnelId = DEFAULT_FUNNELS[0].id; }
 }
 
 function saveConfig() {
