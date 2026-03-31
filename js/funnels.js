@@ -33,10 +33,10 @@ const DEFAULT_FUNNELS = [
     id: 'swipe-funnel',
     name: 'The Client Machine',
     pages: [
-      { id: 'swipe-1', name: 'Swipe Page', slug: 'swipe' },
-      { id: 'swipe-2', name: 'Apply', slug: 'apply' },
-      { id: 'swipe-3', name: 'Book Call', slug: 'book' },
-      { id: 'swipe-4', name: 'Thanks', slug: 'thanks' },
+      { id: 'swipe-1', name: 'Swipe Page', slug: 'swipe', url: 'https://go.lifestylefounder.com/swipe' },
+      { id: 'swipe-2', name: 'Apply', slug: 'apply', url: 'https://go.lifestylefounder.com/apply' },
+      { id: 'swipe-3', name: 'Book Call', slug: 'book', url: 'https://go.lifestylefounder.com/book' },
+      { id: 'swipe-4', name: 'Thanks', slug: 'thanks', url: 'https://go.lifestylefounder.com/thanks' },
     ],
   },
 ];
@@ -65,9 +65,9 @@ function loadConfig() {
       const idx = funnelsConfig.findIndex(f => f.id === 'swipe-funnel');
       const def = DEFAULT_FUNNELS.find(f => f.id === 'swipe-funnel');
       if (idx !== -1 && def) {
-        const currentSlugs = funnelsConfig[idx].pages.map(p => p.slug).join(',');
-        const defaultSlugs = def.pages.map(p => p.slug).join(',');
-        if (currentSlugs !== defaultSlugs) {
+        const currentKey = funnelsConfig[idx].pages.map(p => `${p.slug}|${p.url||''}`).join(',');
+        const defaultKey = def.pages.map(p => `${p.slug}|${p.url||''}`).join(',');
+        if (currentKey !== defaultKey) {
           funnelsConfig[idx].pages = def.pages;
           funnelsConfig[idx].name = def.name;
           saveConfig();
@@ -326,7 +326,10 @@ function renderPageRow(page, index, conversionRate) {
         <svg class="funnel-page-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
         </svg>
-        <span class="funnel-page-name">${escapeHtml(page.name)}</span>
+        ${page.url
+          ? `<a class="funnel-page-name" href="${escapeHtml(page.url)}" target="_blank" rel="noopener">${escapeHtml(page.name)}</a>`
+          : `<span class="funnel-page-name">${escapeHtml(page.name)}</span>`
+        }
         ${conversionBadge}
         <button class="funnel-page-delete" data-delete-page="${escapeHtml(page.id)}" title="Remove page">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
