@@ -33,8 +33,8 @@ const DEFAULT_FUNNELS = [
     id: 'swipe-funnel',
     name: 'The Client Machine',
     pages: [
-      { id: 'swipe-1', name: 'Swipe Page', slug: 'swipe-page' },
-      { id: 'swipe-2', name: 'Apply', slug: 'application' },
+      { id: 'swipe-1', name: 'Swipe Page', slug: 'swipe' },
+      { id: 'swipe-2', name: 'Apply', slug: 'apply' },
       { id: 'swipe-3', name: 'Book Call', slug: 'book' },
       { id: 'swipe-4', name: 'Thanks', slug: 'thanks' },
     ],
