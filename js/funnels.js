@@ -33,10 +33,9 @@ const DEFAULT_FUNNELS = [
     id: 'swipe-funnel',
     name: 'The Client Machine',
     pages: [
-      { id: 'swipe-1', name: 'Swipe Page', slug: '/swipe' },
-      { id: 'swipe-2', name: 'Apply', slug: '/apply' },
-      { id: 'swipe-3', name: 'Book Call', slug: '/book' },
-      { id: 'swipe-4', name: 'Thanks', slug: '/thanks' },
+      { id: 'swipe-1', name: 'Swipe Page', slug: 'swipe-page' },
+      { id: 'swipe-2', name: 'Application', slug: 'application' },
+      { id: 'swipe-3', name: 'Thanks', slug: 'thanks' },
     ],
   },
 ];
@@ -55,11 +54,24 @@ function loadConfig() {
         activeFunnelId = funnelsConfig[0].id;
       }
     }
-    // Always ensure default funnel exists
+    // Always ensure default funnel exists and has current slugs
     if (!hasDefaultFunnel(funnelsConfig)) {
       funnelsConfig = [...DEFAULT_FUNNELS, ...funnelsConfig];
       activeFunnelId = funnelsConfig[0].id;
       saveConfig();
+    } else {
+      // Update default funnel pages if they've changed
+      const idx = funnelsConfig.findIndex(f => f.id === 'swipe-funnel');
+      const def = DEFAULT_FUNNELS.find(f => f.id === 'swipe-funnel');
+      if (idx !== -1 && def) {
+        const currentSlugs = funnelsConfig[idx].pages.map(p => p.slug).join(',');
+        const defaultSlugs = def.pages.map(p => p.slug).join(',');
+        if (currentSlugs !== defaultSlugs) {
+          funnelsConfig[idx].pages = def.pages;
+          funnelsConfig[idx].name = def.name;
+          saveConfig();
+        }
+      }
     }
   } catch {
     funnelsConfig = DEFAULT_FUNNELS;

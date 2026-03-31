@@ -5,9 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Slug aliases — old tracking slugs that map to canonical funnel slugs
-const SLUG_ALIASES = {
-  'swipe-page': 'free-skool',
-};
+const SLUG_ALIASES = {};
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
