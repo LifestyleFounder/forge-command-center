@@ -249,6 +249,7 @@ function renderFunnelTable(funnel) {
   const pages = funnel.pages;
 
   // Calculate conversion between consecutive pages
+  // Uses unique views: current page unique views / previous page unique views
   const conversionRates = [];
   for (let i = 0; i < pages.length; i++) {
     if (i === 0) {
@@ -256,10 +257,10 @@ function renderFunnelTable(funnel) {
     } else {
       const prevSlug = pages[i - 1].slug;
       const currSlug = pages[i].slug;
-      const prevOptins = pageStats[prevSlug]?.optins?.all || 0;
-      const currViews = pageStats[currSlug]?.views?.all || 0;
-      if (prevOptins > 0 && currViews > 0) {
-        conversionRates.push(((currViews / prevOptins) * 100).toFixed(1) + '%');
+      const prevViews = pageStats[prevSlug]?.views?.unique || 0;
+      const currViews = pageStats[currSlug]?.views?.unique || 0;
+      if (prevViews > 0) {
+        conversionRates.push(((currViews / prevViews) * 100).toFixed(1) + '%');
       } else {
         conversionRates.push('-');
       }
