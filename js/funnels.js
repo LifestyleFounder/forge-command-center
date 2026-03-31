@@ -34,8 +34,9 @@ const DEFAULT_FUNNELS = [
     name: 'The Client Machine',
     pages: [
       { id: 'swipe-1', name: 'Swipe Page', slug: 'swipe-page' },
-      { id: 'swipe-2', name: 'Application', slug: 'application' },
-      { id: 'swipe-3', name: 'Thanks', slug: 'thanks' },
+      { id: 'swipe-2', name: 'Apply', slug: 'application' },
+      { id: 'swipe-3', name: 'Book Call', slug: 'book' },
+      { id: 'swipe-4', name: 'Thanks', slug: 'thanks' },
     ],
   },
 ];
