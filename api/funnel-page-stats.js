@@ -105,8 +105,9 @@ export default async function handler(req, res) {
     for (const slug of slugs) {
       const p = pages[slug];
       p.views.unique = uniqueViewers[slug].size;
-      const rate = p.views.all > 0
-        ? ((p.optins.all / p.views.all) * 100).toFixed(1)
+      const uniqueViews = uniqueViewers[slug].size;
+      const rate = uniqueViews > 0
+        ? ((p.optins.all / uniqueViews) * 100).toFixed(1)
         : '0.0';
       p.optins.rate = rate + '%';
 
