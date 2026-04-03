@@ -32,12 +32,19 @@
     },
     "api/sendblue-messages.js": {
       "maxDuration": 30
+    },
+    "api/daily-metrics.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
     {
       "path": "/api/daily-ideas?generate",
       "schedule": "0 11 * * 1-4"
+    },
+    {
+      "path": "/api/daily-metrics",
+      "schedule": "0 12 * * *"
     }
   ]
 }
