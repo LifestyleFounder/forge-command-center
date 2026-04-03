@@ -155,7 +155,7 @@ async function fetchFunnelMetrics(dateStr) {
       }
     } else if (e.event_type === 'form_submit') {
       // Free group joins = opt-ins on /swipe
-      if (e.page_slug === 'swipe-page') {
+      if (e.page_slug === 'swipe' || e.page_slug === 'swipe-page') {
         free_group_joins++;
       }
       // Applications = form submit on /apply
