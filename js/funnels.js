@@ -249,14 +249,13 @@ function renderFunnelTable(funnel) {
   const pages = funnel.pages;
 
   // Calculate conversion between consecutive pages.
-  // Each page's "step value" is the best available signal: total page views
-  // if the page has tracking installed, otherwise opt-in count (for GHL pages
-  // that only fire form_submit webhooks and have no browser pixel).
+  // Each page's "step value" is unique views (people who reached this step).
+  // Falls back to opt-in count for pages with no view tracking at all.
   const stepValue = (slug) => {
     const s = pageStats[slug];
     if (!s) return 0;
-    const views = s.views?.all || 0;
-    if (views > 0) return views;
+    const unique = s.views?.unique || 0;
+    if (unique > 0) return unique;
     return s.optins?.all || 0;
   };
 
@@ -321,16 +320,20 @@ function renderPageRow(page, index, conversionRate, prevStepValue = 0) {
   const viewsAll = stats ? formatNumber(stats.views.all) : '-';
   const viewsUnique = stats ? formatNumber(stats.views.unique) : '-';
   const optinsAll = stats ? formatNumber(stats.optins.all) : '-';
-  // Opt-In Rate: prefer this page's own rate (optins/unique views). For pages
-  // with no view tracking (e.g. GHL pages firing only form_submit webhooks),
-  // fall back to optins / previous step value so the funnel rate still shows.
+  // Rate column: if this page has its own opt-ins, show optins/unique views.
+  // Otherwise (downstream funnel pages with no form on them), show step
+  // conversion vs the previous page so the funnel reads end-to-end.
   let optinsRate = '-';
   if (stats) {
+    const ownOptins = stats.optins?.all || 0;
     const ownUnique = stats.views?.unique || 0;
-    if (ownUnique > 0) {
+    if (ownOptins > 0 && ownUnique > 0) {
       optinsRate = stats.optins.rate;
-    } else if (prevStepValue > 0 && stats.optins?.all > 0) {
-      optinsRate = ((stats.optins.all / prevStepValue) * 100).toFixed(1) + '%';
+    } else if (prevStepValue > 0) {
+      const currStep = ownUnique > 0 ? ownUnique : ownOptins;
+      if (currStep > 0) {
+        optinsRate = ((currStep / prevStepValue) * 100).toFixed(1) + '%';
+      }
     }
   }
 
