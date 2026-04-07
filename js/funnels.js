@@ -301,9 +301,10 @@ function renderFunnelTable(funnel) {
         </thead>
         <tbody>
           ${pages.map((page, idx) => {
-            const prevSlug = idx > 0 ? pages[idx - 1].slug : null;
-            const prevStep = prevSlug ? stepValue(prevSlug) : 0;
-            return renderPageRow(page, idx, conversionRates[idx], prevStep);
+            const nextSlug = idx < pages.length - 1 ? pages[idx + 1].slug : null;
+            const nextStep = nextSlug ? stepValue(nextSlug) : null;
+            const isLast = idx === pages.length - 1;
+            return renderPageRow(page, idx, conversionRates[idx], nextStep, isLast);
           }).join('')}
         </tbody>
       </table>
@@ -312,28 +313,30 @@ function renderFunnelTable(funnel) {
   `;
 }
 
-function renderPageRow(page, index, conversionRate, prevStepValue = 0) {
+function renderPageRow(page, index, conversionRate, nextStepValue = null, isLast = false) {
   const stats = pageStats[page.slug];
   const isExpanded = expandedRows.has(page.id);
   const hasData = stats && (stats.views.all > 0 || stats.optins.all > 0);
 
   const viewsAll = stats ? formatNumber(stats.views.all) : '-';
   const viewsUnique = stats ? formatNumber(stats.views.unique) : '-';
-  const optinsAll = stats ? formatNumber(stats.optins.all) : '-';
-  // Rate column: if this page has its own opt-ins, show optins/unique views.
-  // Otherwise (downstream funnel pages with no form on them), show step
-  // conversion vs the previous page so the funnel reads end-to-end.
+
+  // Opt-Ins columns:
+  // - Pages with their own form: show own optins + own rate (e.g. swipe).
+  // - Pages without a form (intermediate funnel steps): show NEXT page's
+  //   unique-view count + conversion to next step (how many moved forward).
+  // - Last page (thanks/destination): no conversion.
+  let optinsAll = '-';
   let optinsRate = '-';
   if (stats) {
     const ownOptins = stats.optins?.all || 0;
     const ownUnique = stats.views?.unique || 0;
     if (ownOptins > 0 && ownUnique > 0) {
+      optinsAll = formatNumber(ownOptins);
       optinsRate = stats.optins.rate;
-    } else if (prevStepValue > 0) {
-      const currStep = ownUnique > 0 ? ownUnique : ownOptins;
-      if (currStep > 0) {
-        optinsRate = ((currStep / prevStepValue) * 100).toFixed(1) + '%';
-      }
+    } else if (!isLast && nextStepValue != null && ownUnique > 0) {
+      optinsAll = formatNumber(nextStepValue);
+      optinsRate = ((nextStepValue / ownUnique) * 100).toFixed(1) + '%';
     }
   }
 
