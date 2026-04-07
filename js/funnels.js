@@ -248,19 +248,27 @@ function renderFunnelTabs() {
 function renderFunnelTable(funnel) {
   const pages = funnel.pages;
 
-  // Calculate conversion between consecutive pages
-  // Uses unique views: current page unique views / previous page unique views
+  // Calculate conversion between consecutive pages.
+  // Each page's "step value" is the best available signal: total page views
+  // if the page has tracking installed, otherwise opt-in count (for GHL pages
+  // that only fire form_submit webhooks and have no browser pixel).
+  const stepValue = (slug) => {
+    const s = pageStats[slug];
+    if (!s) return 0;
+    const views = s.views?.all || 0;
+    if (views > 0) return views;
+    return s.optins?.all || 0;
+  };
+
   const conversionRates = [];
   for (let i = 0; i < pages.length; i++) {
     if (i === 0) {
       conversionRates.push(null);
     } else {
-      const prevSlug = pages[i - 1].slug;
-      const currSlug = pages[i].slug;
-      const prevViews = pageStats[prevSlug]?.views?.unique || 0;
-      const currViews = pageStats[currSlug]?.views?.unique || 0;
-      if (prevViews > 0) {
-        conversionRates.push(((currViews / prevViews) * 100).toFixed(1) + '%');
+      const prev = stepValue(pages[i - 1].slug);
+      const curr = stepValue(pages[i].slug);
+      if (prev > 0) {
+        conversionRates.push(((curr / prev) * 100).toFixed(1) + '%');
       } else {
         conversionRates.push('-');
       }
