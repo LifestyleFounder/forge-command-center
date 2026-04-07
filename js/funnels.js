@@ -340,10 +340,8 @@ function renderPageRow(page, index, conversionRate, nextStepValue = null, isLast
     }
   }
 
-  // Build the conversion indicator between pages
-  const conversionBadge = conversionRate && conversionRate !== '-'
-    ? `<span class="funnel-conversion-badge">${conversionRate}</span>`
-    : '';
+  // Conversion is shown in the Opt-Ins column, no inline badge needed.
+  const conversionBadge = '';
 
   let rows = `
     <tr class="funnel-page-row ${isExpanded ? 'is-expanded' : ''}" data-page-id="${escapeHtml(page.id)}">
