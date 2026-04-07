@@ -301,7 +301,11 @@ function renderFunnelTable(funnel) {
           </tr>
         </thead>
         <tbody>
-          ${pages.map((page, idx) => renderPageRow(page, idx, conversionRates[idx])).join('')}
+          ${pages.map((page, idx) => {
+            const prevSlug = idx > 0 ? pages[idx - 1].slug : null;
+            const prevStep = prevSlug ? stepValue(prevSlug) : 0;
+            return renderPageRow(page, idx, conversionRates[idx], prevStep);
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -309,7 +313,7 @@ function renderFunnelTable(funnel) {
   `;
 }
 
-function renderPageRow(page, index, conversionRate) {
+function renderPageRow(page, index, conversionRate, prevStepValue = 0) {
   const stats = pageStats[page.slug];
   const isExpanded = expandedRows.has(page.id);
   const hasData = stats && (stats.views.all > 0 || stats.optins.all > 0);
@@ -317,7 +321,18 @@ function renderPageRow(page, index, conversionRate) {
   const viewsAll = stats ? formatNumber(stats.views.all) : '-';
   const viewsUnique = stats ? formatNumber(stats.views.unique) : '-';
   const optinsAll = stats ? formatNumber(stats.optins.all) : '-';
-  const optinsRate = stats ? stats.optins.rate : '-';
+  // Opt-In Rate: prefer this page's own rate (optins/unique views). For pages
+  // with no view tracking (e.g. GHL pages firing only form_submit webhooks),
+  // fall back to optins / previous step value so the funnel rate still shows.
+  let optinsRate = '-';
+  if (stats) {
+    const ownUnique = stats.views?.unique || 0;
+    if (ownUnique > 0) {
+      optinsRate = stats.optins.rate;
+    } else if (prevStepValue > 0 && stats.optins?.all > 0) {
+      optinsRate = ((stats.optins.all / prevStepValue) * 100).toFixed(1) + '%';
+    }
+  }
 
   // Build the conversion indicator between pages
   const conversionBadge = conversionRate && conversionRate !== '-'
