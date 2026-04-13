@@ -82,6 +82,16 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             <span>Workspace</span>
           </button></li>
+          <li><a class="nav-item" id="nav-agents" href="http://localhost:3000" target="_blank" rel="noopener noreferrer" title="Open Forge Console (local)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/><path d="M12 19v4"/><path d="M1 12h4"/><path d="M19 12h4"/><path d="M4.22 4.22l2.83 2.83"/><path d="M16.95 16.95l2.83 2.83"/><path d="M4.22 19.78l2.83-2.83"/><path d="M16.95 7.05l2.83-2.83"/></svg>
+            <span>Agents</span>
+            <svg class="nav-external" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-left:auto;opacity:0.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a></li>
+          <li><a class="nav-item" id="nav-notes" href="https://www.notion.so/Forge-Workspace-315237e12a2c8091928ef1a00e742ddb" target="_blank" rel="noopener noreferrer" title="Open Forge Workspace in Notion">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Notes</span>
+            <svg class="nav-external" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-left:auto;opacity:0.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a></li>
           <li><button class="nav-item" id="nav-calendar" role="tab" aria-selected="false" aria-controls="tab-calendar" data-tab="calendar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Calendar</span>
@@ -735,10 +745,65 @@
       </div>
     </div>
 
-    <!-- BLOCK EDITOR FAB -->
-    <button class="block-editor-fab" id="blockEditorFab" title="Open Block Editor (⌘E)" aria-label="Open Block Editor">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    <!-- PAGE AI FAB + POPOVER -->
+    <button class="page-ai-fab" id="pageAiFab" title="Ask AI about this page (⌘E)" aria-label="Open Page AI">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L13.9 8.1L19 10L13.9 11.9L12 17L10.1 11.9L5 10L10.1 8.1L12 3Z"/><path d="M19 14L19.9 16.1L22 17L19.9 17.9L19 20L18.1 17.9L16 17L18.1 16.1L19 14Z"/></svg>
     </button>
+
+    <div class="page-ai-panel" id="pageAiPanel" hidden role="dialog" aria-label="Page AI Chat">
+      <div class="page-ai-header">
+        <span class="page-ai-title">New AI chat</span>
+        <div class="page-ai-header-actions">
+          <button class="page-ai-iconbtn" id="pageAiNewChat" title="New chat" aria-label="New chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button class="page-ai-iconbtn" id="pageAiClose" title="Close" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="page-ai-body" id="pageAiBody">
+        <div class="page-ai-empty" id="pageAiEmpty">
+          <div class="page-ai-mascot" aria-hidden="true">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L13.9 8.1L19 10L13.9 11.9L12 17L10.1 11.9L5 10L10.1 8.1L12 3Z"/><path d="M19 14L19.9 16.1L22 17L19.9 17.9L19 20L18.1 17.9L16 17L18.1 16.1L19 14Z"/></svg>
+          </div>
+          <h3 class="page-ai-greeting">What magic shall we make happen?</h3>
+          <ul class="page-ai-suggestions">
+            <li><button class="page-ai-suggestion" data-prompt="Summarize what's on this page in 5 bullets.">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Summarize this page</span>
+            </button></li>
+            <li><button class="page-ai-suggestion" data-prompt="Analyze this page and surface the most important insights, patterns, or anomalies.">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <span>Analyze for insights</span>
+            </button></li>
+            <li><button class="page-ai-suggestion" data-prompt="What's the next action I should take based on what's on this page?">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <span>What should I do next?</span>
+            </button></li>
+            <li><button class="page-ai-suggestion" data-prompt="Draft a quick update I can send to the team about what's on this page.">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>Draft a team update</span>
+            </button></li>
+          </ul>
+        </div>
+        <div class="page-ai-messages" id="pageAiMessages"></div>
+      </div>
+
+      <div class="page-ai-input-wrap">
+        <div class="page-ai-context-badge" id="pageAiContextBadge" title="The AI sees the page you're currently viewing">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span id="pageAiContextLabel">Lifestyle Founder™ OS</span>
+        </div>
+        <div class="page-ai-input-row">
+          <textarea id="pageAiInput" class="page-ai-input" placeholder="Do anything with AI..." rows="1"></textarea>
+          <button class="page-ai-send" id="pageAiSend" aria-label="Send" title="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Toast -->
     <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
